@@ -1,4 +1,4 @@
-# To use the GUI JSON editor, start the edit_json.rb executable script. It
+# To use the GUI JSON editor, start the edit_json.rb executable scripts. It
 # requires ruby-gtk to be installed.
 
 require 'gtk2'
