@@ -280,6 +280,17 @@ class TitleScene < Scene::Base
 end
 
 
+class Mouse < Sprite
+  attr_reader :name
+
+  def initialize
+    super()
+    self.collision = [0, 0]
+    @name = "mouse"
+  end
+end
+
+
 # ゲーム・シーン
 class GameScene < Scene::Base
 
@@ -313,6 +324,7 @@ class GameScene < Scene::Base
     @poi.x = (Window.width - @poi.width) * 0.5
     @poi.y = (Window.height - @poi.height) * 0.5
 
+=begin
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     # いまマウスで掴んでるオブジェクト
     @item = nil
@@ -323,6 +335,8 @@ class GameScene < Scene::Base
     # マウスカーソルの衝突判定用スプライト
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
+=end
+    @mouse = Mouse.new
 
     # ログの書き込みと読み込みのテスト
     if IS_LOG then
@@ -351,6 +365,8 @@ class GameScene < Scene::Base
 
     @stage_number = FIRST_STAGE_NUMBER - 1
     self.stage_init(@stage_number)
+
+    @windows = []
   end
 
   def stage_init(stage_no)
@@ -382,10 +398,28 @@ class GameScene < Scene::Base
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     self.mouseProcess
 
+    if not @poi.is_try_gaze then
+      if (@windows.size <= POINT_COUNT_IN_GAZE_AREA) then
+        @windows.push([@mouse.x, @mouse.y])
+      else
+        @windows.shift(1)
+      end
+
+      if @windows.size >= POINT_COUNT_IN_GAZE_AREA then
+        if @poi.search_gaze_point(@windows) then
+          @windows.clear
+          @poi.is_try_gaze = true
+          @poi.is_drag = false
+        end
+      end
+    end
+
+=begin
     Sprite.update(@charas)
     Sprite.check(@charas)
 
     Sprite.check(@item, @charas) if @item
+=end
 
     # Write your code...
     if not @kingyos.empty? then
@@ -393,6 +427,10 @@ class GameScene < Scene::Base
         kingyo.update
       end
     end
+
+    Sprite.check(@mouse, @poi) if @poi.is_try_gaze
+    @poi.update
+
     Sprite.check(@@borders + @kingyos)
   end
 
@@ -406,6 +444,7 @@ class GameScene < Scene::Base
       border.draw
     end
 
+=begin
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     if not @charas.empty? then
       @charas.reverse.each do |obj|
@@ -413,6 +452,9 @@ class GameScene < Scene::Base
       end
     end
     Sprite.draw(@item) if @item
+=end
+
+    @poi.draw
 
     if not @kingyos.empty? then
       @kingyos.each do |kingyo|
@@ -427,9 +469,15 @@ class GameScene < Scene::Base
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
   def mouseProcess
 
-    oldX, oldY = @mouse.x, @mouse.y
+    # oldX, oldY = @mouse.x, @mouse.y
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
+    if @poi.is_drag then
+      @poi.x = @mouse.x - (@poi.width * 0.5)
+      @poi.y = @mouse.y - (@poi.height * 0.5)
+    end
+
+=begin
     # ボタンを押したら判定
     if Input.mouse_push?(M_LBUTTON)
       @charas.each_with_index do |obj, i|
@@ -468,6 +516,7 @@ class GameScene < Scene::Base
         @item = nil
       end
     end
+=end
   end
 end
 
