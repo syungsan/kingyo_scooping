@@ -47,6 +47,10 @@ Dir.chdir("./lib/dxruby") do
 end
 =end
 
+require "border"
+require "kingyo"
+require "poi"
+
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
 APPLICATION_NAME = "私のアプリケーション"
@@ -65,7 +69,7 @@ DEFAULT_BACK_GROUND_COLER = C_WHITE
 
 # 画面サイズのワイド時とスクエア時の選択肢（display.rb参照）
 include Display
-WINDOW_WIDE_SIZE = HD
+WINDOW_WIDE_SIZE = FHD
 WINDOW_SQUARE_SIZE = XGA
 
 # 起動時にウィンドウを画面中央に表示する
@@ -98,7 +102,8 @@ end
 CLICK_SE = "./sounds/push13.wav"
 
 # 画像
-# IMAGE = ""
+STONE_TILE_IMAGE = "./images/stone_tile.png"
+AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
 
 # フォント
 # FONT = ""
@@ -123,6 +128,14 @@ Window.bgcolor = DEFAULT_BACK_GROUND_COLER
 Window.frameskip = FRAME_SKIP
 Window.windowed = WINDOWED
 ########################################################################################################################
+
+FIRST_STAGE_NUMBER = 1
+
+KINGYO_NUMBERS = [60]
+KINGYO_SCALE_RANGES = [[0.5, 1]]
+KINGYO_HOVER_RANGES = [[0, 1]]
+KINGYO_SPEED_RANGES = [{"move"=>[1, 5], "escape"=>[1, 5]}]
+KINGYO_MODE_RANGES = [{"wait"=>[0, 100], "move"=>[0, 100], "escape"=>[0, 100]}]
 
 
 # タイトル・シーン
@@ -270,7 +283,19 @@ end
 # ゲーム・シーン
 class GameScene < Scene::Base
 
+  include Common
+
   @@clickSE = Sound.new(CLICK_SE)
+
+  @@stone_tile_image = Image.load(STONE_TILE_IMAGE)
+  @@aquarium_back_image = Image.load(AQUARIUM_BACK_IMAGE)
+
+  line_width = 50
+  border_top = Border.new(0, -1 * line_width, Window.width, line_width, 0)
+  border_left = Border.new(-1 * line_width, 0, line_width, Window.height, 1)
+  border_right = Border.new(Window.width, 0, line_width, Window.height, 2)
+  border_bottom = Border.new(0, Window.height, Window.width, line_width, 3)
+  @@borders = [border_top, border_left, border_right, border_bottom]
 
   def init
 
@@ -284,19 +309,21 @@ class GameScene < Scene::Base
     @windowModeButton = Button.new(0, 0, windowModeButtonHeight * windowModeButtonText.size * 0.5, windowModeButtonHeight, windowModeButtonText, windowModeButtonHeight)
     @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
 
+    @poi = Poi.new(0, 0, 0.8)
+    @poi.x = (Window.width - @poi.width) * 0.5
+    @poi.y = (Window.height - @poi.height) * 0.5
+
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
-=begin
     # いまマウスで掴んでるオブジェクト
     @item = nil
 
     # キャラクタをオブジェクト配列に追加
-    @charas = []
+    @charas = [@poi]
 
     # マウスカーソルの衝突判定用スプライト
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
-=end
-=begin
+
     # ログの書き込みと読み込みのテスト
     if IS_LOG then
       data = [1, 2, 3, 4]
@@ -307,9 +334,34 @@ class GameScene < Scene::Base
       $log.add(data)
       p $log.read
     end
-=end
 
     # Write your code...
+    stone_tile_image_scale = 0.5
+    stone_tile_rt = RenderTarget.new(@@stone_tile_image.width * stone_tile_image_scale, @@stone_tile_image.height * stone_tile_image_scale)
+    stone_tile_rt.draw_scale(@@stone_tile_image.width * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image.height * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image, stone_tile_image_scale, stone_tile_image_scale)
+    @stone_tile_image = stone_tile_rt.to_image
+    @@stone_tile_image.dispose
+    stone_tile_rt.dispose
+
+    aquarium_back_rt = RenderTarget.new(Window.width, Window.height)
+    aquarium_back_rt.drawTile(0, 0, [[0]], [@@aquarium_back_image], nil, nil, nil, nil)
+    @aquarium_back_image = aquarium_back_rt.to_image
+    @@aquarium_back_image.dispose
+    aquarium_back_rt.dispose
+
+    @stage_number = FIRST_STAGE_NUMBER - 1
+    self.stage_init(@stage_number)
+  end
+
+  def stage_init(stage_no)
+
+    @kingyos = []
+    KINGYO_NUMBERS[@stage_number].times do |index|
+      kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number][0], KINGYO_SCALE_RANGES[@stage_number][1]), index, KINGYO_HOVER_RANGES[@stage_number], KINGYO_SPEED_RANGES[@stage_number], KINGYO_MODE_RANGES[@stage_number])
+      kingyo.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - kingyo.width)
+      kingyo.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - kingyo.height)
+      @kingyos.push(kingyo)
+    end
   end
 
   def update
@@ -328,40 +380,51 @@ class GameScene < Scene::Base
     end
 
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
-=begin
     self.mouseProcess
 
     Sprite.update(@charas)
     Sprite.check(@charas)
 
     Sprite.check(@item, @charas) if @item
-=end
 
     # Write your code...
+    if not @kingyos.empty? then
+      @kingyos.each do |kingyo|
+        kingyo.update
+      end
+    end
+    Sprite.check(@@borders + @kingyos)
   end
 
   def render
 
-    @exitButton.render
-    @windowModeButton.render
+    # Write your code...
+    Window.drawTile(0, 0, [[0]], [@stone_tile_image], nil, nil, nil, nil)
+    Window.draw_ex(0, 0, @aquarium_back_image, :alpha=>180)
+
+    @@borders.each do |border|
+      border.draw
+    end
 
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
-=begin
-     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     if not @charas.empty? then
       @charas.reverse.each do |obj|
         obj.draw if not obj.nil?
       end
     end
-
     Sprite.draw(@item) if @item
-=end
 
-    # Write your code...
+    if not @kingyos.empty? then
+      @kingyos.each do |kingyo|
+        kingyo.draw
+      end
+    end
+
+    @exitButton.render
+    @windowModeButton.render
   end
 
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
-=begin
   def mouseProcess
 
     oldX, oldY = @mouse.x, @mouse.y
@@ -388,7 +451,7 @@ class GameScene < Scene::Base
 
         # Write your code. when mouse down. #####
 
-        if @item.isDrag then
+        if @item.is_drag then
           @item.x += @mouse.x - oldX
           @item.y += @mouse.y - oldY
         end
@@ -406,7 +469,6 @@ class GameScene < Scene::Base
       end
     end
   end
-=end
 end
 
 Scene.main_loop TitleScene, FPS, FRAME_STEP

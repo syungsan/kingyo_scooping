@@ -5,6 +5,11 @@ require "jcode"
 
 require "dxruby"
 
+BORDER_COLLISION_FOR_KINGYO_ADJUST_TOP = 5
+BORDER_COLLISION_FOR_KINGYO_ADJUST_LEFT = 50
+BORDER_COLLISION_FOR_KINGYO_ADJUST_RIGHT = 50
+BORDER_COLLISION_FOR_KINGYO_ADJUST_BOTTOM = 5
+
 
 class Border < Sprite
 
@@ -36,11 +41,12 @@ class Border < Sprite
 
   # ‰½‚©‚ª“–‚Á‚Ä‚¢‚éŠÔ‚Ìˆ—iŽó“®j
   def hit(obj)
+
     if obj.name.include?("kingyo") then
-      obj.y = self.y + self.height + 5 if self.id == 0
-      obj.x = self.x + self.width + 55 if self.id == 1
-      obj.x = self.x - obj.width - 55 if self.id == 2
-      obj.y = self.y - obj.height - 5 if self.id == 3
+      obj.y = self.y + self.height + BORDER_COLLISION_FOR_KINGYO_ADJUST_TOP if self.id == 0
+      obj.x = self.x + self.width + BORDER_COLLISION_FOR_KINGYO_ADJUST_LEFT if self.id == 1
+      obj.x = self.x - obj.width - BORDER_COLLISION_FOR_KINGYO_ADJUST_RIGHT if self.id == 2
+      obj.y = self.y - obj.height - BORDER_COLLISION_FOR_KINGYO_ADJUST_BOTTOM if self.id == 3
     end
   end
 

@@ -26,7 +26,7 @@ class Kingyo < Sprite
 
   include Common
 
-  def initialize(x, y, kind_of, angle=0, scale=1, id=0, hover_speed=1, speed_lengths={"move"=>[1, 5], "escape"=>[1, 5]}, mode_lengths={"wait"=>[0, 100], "move"=>[0, 100], "escape"=>[0, 100]}, target=Window, is_drag=false)
+  def initialize(x, y, kind_of, angle=0, scale=1, id=0, hover_ranges=[0, 1], speed_ranges={"move"=>[1, 5], "escape"=>[1, 5]}, mode_ranges={"wait"=>[0, 100], "move"=>[0, 100], "escape"=>[0, 100]}, target=Window, is_drag=false)
     super()
 
     @images = []
@@ -59,9 +59,9 @@ class Kingyo < Sprite
     @id = id
     @name = "#{kind_of}_kingyo"
     @is_drag = is_drag
-    @mode_lengths = mode_lengths
-    @speed_lengths = speed_lengths
-    @hover_speed = hover_speed
+    @mode_ranges = mode_ranges
+    @speed_ranges = speed_ranges
+    @hover_ranges = hover_ranges
     @anime_count = 0
 
     modes = ["wait", "move"]
@@ -91,11 +91,11 @@ class Kingyo < Sprite
 
     case mode
     when "wait"
-      @wait_length = random_int(@mode_lengths["wait"][0], @mode_lengths["wait"][1])
-      @speed = @hover_speed
+      @wait_length = random_int(@mode_ranges["wait"][0], @mode_ranges["wait"][1])
+      @speed = rand_float(@hover_ranges[0], @hover_ranges[1])
     when "move"
-      @move_length = random_int(@mode_lengths["move"][0], @mode_lengths["move"][1])
-      @speed = rand_float(@speed_lengths["move"][0], @speed_lengths["move"][1])
+      @move_length = random_int(@mode_ranges["move"][0], @mode_ranges["move"][1])
+      @speed = rand_float(@speed_ranges["move"][0], @speed_ranges["move"][1])
       self.angle = rand(360)
     end
     @mode = mode
