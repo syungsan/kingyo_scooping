@@ -147,7 +147,7 @@ class TitleScene < Scene::Base
 
     # 必要最小限のグローバル変数を初期化
     # $score, $userNameなど…
-
+=begin
     # IS_LOGフラグはログを記録するすべての場所に付ける
     if IS_LOG then
       $log = Log.new # ログオブジェクト生成
@@ -159,6 +159,7 @@ class TitleScene < Scene::Base
       # $log.setLog($log.parent_dir)
     end
     # ログファイルのpathの作成にログクラスのメンバ変数startDate, startDateTime, parent_dirが参照できる
+=end
 
     @titleLabel = Fonts.new(0, 0, APPLICATION_NAME, Window.height * 0.1, C_BLACK)
     @versionNumberLabel = Fonts.new(0, 0, "Version #{VERSION_NUMBER}", @titleLabel.get_height * 0.3, C_BLACK)
@@ -338,6 +339,7 @@ class GameScene < Scene::Base
 =end
     @mouse = Mouse.new
 
+=begin
     # ログの書き込みと読み込みのテスト
     if IS_LOG then
       data = [1, 2, 3, 4]
@@ -348,6 +350,7 @@ class GameScene < Scene::Base
       $log.add(data)
       p $log.read
     end
+=end
 
     # Write your code...
     stone_tile_image_scale = 0.5
@@ -398,7 +401,7 @@ class GameScene < Scene::Base
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     self.mouseProcess
 
-    if not @poi.is_try_gaze then
+    unless @poi.mode == "try_gaze" then
       if (@windows.size <= POINT_COUNT_IN_GAZE_AREA) then
         @windows.push([@mouse.x, @mouse.y])
       else
@@ -408,7 +411,7 @@ class GameScene < Scene::Base
       if @windows.size >= POINT_COUNT_IN_GAZE_AREA then
         if @poi.search_gaze_point(@windows) then
           @windows.clear
-          @poi.is_try_gaze = true
+          @poi.mode = "try_gaze"
           @poi.is_drag = false
         end
       end
@@ -428,7 +431,7 @@ class GameScene < Scene::Base
       end
     end
 
-    Sprite.check(@mouse, @poi) if @poi.is_try_gaze
+    Sprite.check([@mouse, @poi] + @kingyos) if @poi.mode == "try_gaze" or @poi.mode == "try_catch"
     @poi.update
 
     Sprite.check(@@borders + @kingyos)

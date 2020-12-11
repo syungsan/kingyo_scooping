@@ -21,8 +21,8 @@ KINGYO_ANIME_ADJUST_SPEED_RATIO = 0.1
 
 class Kingyo < Sprite
 
-  attr_accessor :id, :name, :is_drag
-  attr_reader :width, :height, :mode
+  attr_accessor :id, :name, :is_drag, :mode
+  attr_reader :width, :height
 
   include Common
 
@@ -81,6 +81,8 @@ class Kingyo < Sprite
       self.move
     when "escape"
       self.escape
+    when "catched"
+      self.catched
     end
   end
 
@@ -121,6 +123,10 @@ class Kingyo < Sprite
   end
 
   def escape
+
+  end
+
+  def catched
 
   end
 
