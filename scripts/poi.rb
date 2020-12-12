@@ -4,13 +4,16 @@ $KCODE = "s"
 require "jcode"
 
 require "dxruby"
+require "bigdecimal"
 
 if __FILE__ == $0 then
+  require "../lib/dxruby/easing"
   POI_FRAME_IMAGE = "../images/poi_frame.png"
   POI_SHADOW_IMAGE = "../images/poi_frame_shadow.png"
   POI_PAPER_NORMAL_IMAGE = "../images/poi_paper_0.png"
   POI_PAPER_BREAK_IMAGE = "../images/poi_paper_1.png"
 else
+  require "./lib/dxruby/easing"
   POI_FRAME_IMAGE = "./images/poi_frame.png"
   POI_SHADOW_IMAGE = "./images/poi_frame_shadow.png"
   POI_PAPER_NORMAL_IMAGE = "./images/poi_paper_0.png"
@@ -25,16 +28,25 @@ POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y = 0.03
 
 GAZE_AREA_RADIUS_AGAINST_POI_PAPER_RATIO = 0.5
 POINT_COUNT_IN_GAZE_AREA = 30
+CATCH_ADJUST_RANGE_RATIO = 1.0
 
 CATCH_COUNT = 60
+TRANSPORT_DURATION = 0.5
+RESERVE_DURATION = 0.3
+REVERSE_DURATION = 0.4
+
+RESERVED_OBJECT_Z_POSITION = 100
+DEEP_DIVE_OBJECT_Z_POSITION = 0
 
 
 class Poi <Sprite
 
+  include Easing
+
   attr_accessor :id, :name, :is_drag, :mode
   attr_reader :width, :height
 
-  def initialize(x, y, scale=1, id=0, target=Window, is_drag=true)
+  def initialize(x, y, scale=1, transport_target=nil, id=0, target=Window, is_drag=true)
     super()
 
     poi_frame_image = Image.load(POI_FRAME_IMAGE)
@@ -66,19 +78,19 @@ class Poi <Sprite
     @name = "poi"
     @is_drag = is_drag
     @gaze_area_radius = @width * GAZE_AREA_RADIUS_AGAINST_POI_PAPER_RATIO
-    @is_try_gaze = false
     @gaze_count = 0
     @div_catch_count = 1 / CATCH_COUNT.to_f
     @catch_range_scale = 0
     @catch_objects = []
     @inner_diffs = []
     @transport_count = 0
+    @transport_target = transport_target
     @mode = "normal"
   end
 
   def update
-    case @mode
 
+    case @mode
     when "normal"
 
     when "try_gaze"
@@ -127,21 +139,30 @@ class Poi <Sprite
 
     unless @catch_objects.empty? then
       @catch_objects.each do |catch_object|
-        if (catch_object.x + catch_object.center_x - (self.x + (@width * 0.5))) ** 2 + (catch_object.y + catch_object.center_y - (@mouse.y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5) ** 2 - 30 then
+        if (catch_object.x + catch_object.center_x - (self.x + (@width * 0.5))) ** 2 + ((catch_object.y + catch_object.center_y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5 * CATCH_ADJUST_RANGE_RATIO) ** 2 then
           @inner_diffs.push([catch_object, [catch_object.x - self.x, catch_object.y - self.y]])
           catch_object.mode = "catched"
         else
           @catch_objects.delete(catch_object)
         end
       end
-      @mode = "transport"
+      @catch_objects.size
+      @old_pos = [self.x, self.y]
+      @mode = "transport" unless @inner_diffs.empty?
     else
       @mode = "normal"
     end
   end
 
   def transport
-    if @transport_count <= 600 then
+
+    @is_drag = false
+    v_begin = 0
+
+    if @transport_count <= TRANSPORT_DURATION then
+      self.x = @old_pos[0] + ease_in_out_quad(@transport_count, v_begin, @transport_target.x - @old_pos[0] + (@width * 0.5), TRANSPORT_DURATION)
+      self.y = @old_pos[1] + ease_in_out_quad(@transport_count, v_begin, @transport_target.y - @old_pos[1] + (@height * 0.5), TRANSPORT_DURATION)
+
       @catch_objects.each do |catch_object|
         @inner_diffs.each do |inner_diff|
           if inner_diff[0] == catch_object then
@@ -150,14 +171,32 @@ class Poi <Sprite
           end
         end
       end
-      @transport_count += 1
-    else
-      @transport_count = 0
+      @transport_count += 0.01
+
+    elsif @transport_count < TRANSPORT_DURATION + RESERVE_DURATION then
+      @transport_count += 0.01
+
+    elsif BigDecimal(@transport_count.to_s).floor(2).to_f == TRANSPORT_DURATION + RESERVE_DURATION then
+      @catch_objects.each do |catch_object|
+        catch_object.z = RESERVED_OBJECT_Z_POSITION
+        catch_object.is_reserved = true
+        catch_object.mode = "reserved"
+      end
+      @old_pos = [self.x, self.y]
       @catch_objects.clear
       @inner_diffs.clear
+      @transport_count += 0.01
+
+    elsif @transport_count <= TRANSPORT_DURATION + RESERVE_DURATION + REVERSE_DURATION then
+      self.x = @old_pos[0] + ease_in_out_quad(@transport_count - (TRANSPORT_DURATION + RESERVE_DURATION), v_begin, @mouse.x - @old_pos[0] - (@width * 0.5), REVERSE_DURATION)
+      self.y = @old_pos[1] + ease_in_out_quad(@transport_count - (TRANSPORT_DURATION + RESERVE_DURATION), v_begin, @mouse.y - @old_pos[1] - (@height * 0.5), REVERSE_DURATION)
+      @transport_count += 0.01
+
+    else
+      @transport_count = 0
+      @is_drag = true
       @mode = "normal"
     end
-
   end
 
   def hit(obj)
@@ -168,17 +207,17 @@ class Poi <Sprite
       @mouse = obj if @mode == "try_gaze"
 
     when "red_kingyo", "black_kingyo"
-      if @mode == "try_gaze" then
+      if @mode == "try_gaze" and not obj.z == DEEP_DIVE_OBJECT_Z_POSITION then
         @catch_objects.push(obj) unless @catch_objects.include?(obj)
       end
     end
   end
 
   def draw
-    self.target.draw(self.x + POI_SHADOW_OFFSET_X, self.y + POI_SHADOW_OFFSET_Y, @poi_images[1])
-    self.target.draw_ex(self.x + (@poi_images[0].width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@poi_images[0].height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), self.image, :alpha=>128)
-    self.target.draw_ex(self.x + (@catch_range_image.width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@catch_range_image.height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), @catch_range_image, :scale_x=>@catch_range_scale, :scale_y=>@catch_range_scale, :alpha=>128) if @mode == "try_gaze"
-    self.target.draw(self.x, self.y, @poi_images[0])
+    self.target.draw(self.x + POI_SHADOW_OFFSET_X, self.y + POI_SHADOW_OFFSET_Y, @poi_images[1], self.z)
+    self.target.draw_ex(self.x + (@poi_images[0].width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@poi_images[0].height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), self.image, {:z=>self.z, :alpha=>128})
+    self.target.draw_ex(self.x + (@catch_range_image.width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@catch_range_image.height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), @catch_range_image, {:z=>self.z, :scale_x=>@catch_range_scale, :scale_y=>@catch_range_scale, :alpha=>128}) if @mode == "try_gaze"
+    self.target.draw(self.x, self.y, @poi_images[0], self.z)
   end
 end
 
@@ -234,7 +273,7 @@ if __FILE__ == $0 then
       end
     end
 
-    Sprite.check(@mouse, @poi) if @poi.mode == "try_gaze" or @poi.mode == "try_catch"
+    Sprite.check(@mouse, @poi) if @poi.mode == "try_gaze"
 
     @poi.update
     @poi.draw

@@ -17,11 +17,12 @@ KIND_OF_KINGYOS = ["red", "black"]
 KINGYO_SHADOW_OFFSET_X = 5
 KINGYO_SHADOW_OFFSET_Y = 5
 KINGYO_ANIME_ADJUST_SPEED_RATIO = 0.1
+CATCHED_ANIME_SPEED_RATIO = 1.5
 
 
 class Kingyo < Sprite
 
-  attr_accessor :id, :name, :is_drag, :mode
+  attr_accessor :id, :name, :is_drag, :mode, :is_reserved
   attr_reader :width, :height
 
   include Common
@@ -77,12 +78,19 @@ class Kingyo < Sprite
     case @mode
     when "wait"
       self.wait
+
     when "move"
       self.move
+
     when "escape"
       self.escape
+
     when "catched"
       self.catched
+
+    when "reserved"
+      modes = ["wait", "move"]
+      self.change_mode(modes[rand(2)])
     end
   end
 
@@ -95,9 +103,11 @@ class Kingyo < Sprite
     when "wait"
       @wait_length = random_int(@mode_ranges["wait"][0], @mode_ranges["wait"][1])
       @speed = rand_float(@hover_ranges[0], @hover_ranges[1])
+      @old_speed = @speed
     when "move"
       @move_length = random_int(@mode_ranges["move"][0], @mode_ranges["move"][1])
       @speed = rand_float(@speed_ranges["move"][0], @speed_ranges["move"][1])
+      @old_speed = @speed
       self.angle = rand(360)
     end
     @mode = mode
@@ -127,12 +137,12 @@ class Kingyo < Sprite
   end
 
   def catched
-
+    @speed = @old_speed * CATCHED_ANIME_SPEED_RATIO if @speed == @old_speed
   end
 
   def draw
-    self.target.draw_ex(self.x + KINGYO_SHADOW_OFFSET_X, self.y + KINGYO_SHADOW_OFFSET_Y, @shadow_image, {:angle=>self.angle})
-    self.target.draw_ex(self.x, self.y, self.image, {:angle=>self.angle})
+    self.target.draw_ex(self.x + KINGYO_SHADOW_OFFSET_X, self.y + KINGYO_SHADOW_OFFSET_Y, @shadow_image, {:z=>self.z, :angle=>self.angle})
+    self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :angle=>self.angle})
   end
 end
 

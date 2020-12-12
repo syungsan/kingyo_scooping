@@ -50,6 +50,7 @@ end
 require "border"
 require "kingyo"
 require "poi"
+require "container"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
@@ -130,6 +131,10 @@ Window.windowed = WINDOWED
 ########################################################################################################################
 
 FIRST_STAGE_NUMBER = 1
+
+Z_POSITION_UP = 200
+Z_POSITION_DOWN = 100
+Z_POSITION_BOTTOM = 0
 
 KINGYO_NUMBERS = [60]
 KINGYO_SCALE_RANGES = [[0.5, 1]]
@@ -321,10 +326,6 @@ class GameScene < Scene::Base
     @windowModeButton = Button.new(0, 0, windowModeButtonHeight * windowModeButtonText.size * 0.5, windowModeButtonHeight, windowModeButtonText, windowModeButtonHeight)
     @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
 
-    @poi = Poi.new(0, 0, 0.8)
-    @poi.x = (Window.width - @poi.width) * 0.5
-    @poi.y = (Window.height - @poi.height) * 0.5
-
 =begin
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     # いまマウスで掴んでるオブジェクト
@@ -366,6 +367,16 @@ class GameScene < Scene::Base
     @@aquarium_back_image.dispose
     aquarium_back_rt.dispose
 
+    @container = Container.new(0, 0, 0.8)
+    @container.x = 300 # @@borders[2].x - @container.width
+    @container.y = 300 # @@borders[3].y - @container.height
+    @container.z = Z_POSITION_DOWN
+
+    @poi = Poi.new(0, 0, 0.8, @container)
+    @poi.x = (Window.width - @poi.width) * 0.5
+    @poi.y = (Window.height - @poi.height) * 0.5
+    @poi.z = Z_POSITION_UP
+
     @stage_number = FIRST_STAGE_NUMBER - 1
     self.stage_init(@stage_number)
 
@@ -379,6 +390,7 @@ class GameScene < Scene::Base
       kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number][0], KINGYO_SCALE_RANGES[@stage_number][1]), index, KINGYO_HOVER_RANGES[@stage_number], KINGYO_SPEED_RANGES[@stage_number], KINGYO_MODE_RANGES[@stage_number])
       kingyo.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - kingyo.width)
       kingyo.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - kingyo.height)
+      kingyo.z = Z_POSITION_UP
       @kingyos.push(kingyo)
     end
   end
@@ -401,7 +413,7 @@ class GameScene < Scene::Base
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     self.mouseProcess
 
-    unless @poi.mode == "try_gaze" then
+    if @poi.mode != "try_gaze" and @poi.mode != "transport" then
       if (@windows.size <= POINT_COUNT_IN_GAZE_AREA) then
         @windows.push([@mouse.x, @mouse.y])
       else
@@ -431,10 +443,10 @@ class GameScene < Scene::Base
       end
     end
 
-    Sprite.check([@mouse, @poi] + @kingyos) if @poi.mode == "try_gaze" or @poi.mode == "try_catch"
+    Sprite.check([@mouse, @poi] + @kingyos) if @poi.mode == "try_gaze"
     @poi.update
 
-    Sprite.check(@@borders + @kingyos)
+    Sprite.check(@@borders + @kingyos + [@container])
   end
 
   def render
@@ -456,6 +468,8 @@ class GameScene < Scene::Base
     end
     Sprite.draw(@item) if @item
 =end
+
+    @container.draw
 
     @poi.draw
 
