@@ -14,12 +14,6 @@ end
 CONTAINER_SHADOW_OFFSET_X = 5
 CONTAINER_SHADOW_OFFSET_Y = 5
 
-CONTACT_OBJECT_Z_POSITION = 0
-LEAVE_OBJECT_Z_POSITION = 200
-
-CONTACT_ADJUST_RANGE_RATIO = 1.2
-RESERVE_ADJUST_RANGE_RATIO = 0.6
-
 
 class Container < Sprite
 
@@ -65,26 +59,6 @@ class Container < Sprite
 
   def hit(obj)
 
-    case obj.name
-
-    when "red_kingyo", "black_kingyo"
-      if not obj.mode == "catched" and not obj.is_reserved then
-        if (obj.x + obj.center_x - (self.x + (@width * 0.5))) ** 2 + ((obj.y + obj.center_y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5 * CONTACT_ADJUST_RANGE_RATIO) ** 2 then
-          obj.z = CONTACT_OBJECT_Z_POSITION
-        else
-          obj.z = LEAVE_OBJECT_Z_POSITION
-        end
-      elsif obj.is_reserved then
-        max_radius = @width * 0.5 * RESERVE_ADJUST_RANGE_RATIO
-        obj_radius = Math.sqrt((obj.x + obj.center_x - (self.x + self.center_x)) ** 2 + ((obj.y + obj.center_y - (self.y + self.center_y)) ** 2))
-
-        if obj_radius >= max_radius then
-          angle = Math.atan2(obj.y + obj.center_y - (self.y + self.center_y), obj.x + obj.center_x - (self.x + self.center_x))
-          obj.x = self.x + self.center_x - (obj.width * 0.5) + (max_radius * Math.cos(angle))
-          obj.y = self.y + self.center_y - (obj.height * 0.5) + (max_radius * Math.sin(angle))
-        end
-      end
-    end
   end
 end
 

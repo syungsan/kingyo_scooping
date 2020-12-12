@@ -51,6 +51,8 @@ require "border"
 require "kingyo"
 require "poi"
 require "container"
+require "weed"
+require "boss"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
@@ -132,15 +134,31 @@ Window.windowed = WINDOWED
 
 FIRST_STAGE_NUMBER = 1
 
+Z_POSITION_TOP = 300
 Z_POSITION_UP = 200
 Z_POSITION_DOWN = 100
 Z_POSITION_BOTTOM = 0
 
 KINGYO_NUMBERS = [60]
 KINGYO_SCALE_RANGES = [[0.5, 1]]
-KINGYO_HOVER_RANGES = [[0, 1]]
-KINGYO_SPEED_RANGES = [{"move"=>[1, 5], "escape"=>[1, 5]}]
-KINGYO_MODE_RANGES = [{"wait"=>[0, 100], "move"=>[0, 100], "escape"=>[0, 100]}]
+KINGYO_SPEED_RANGES = [{:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]}]
+KINGYO_MODE_RANGES = [{:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}]
+
+BOSS_NUMBERS = 4
+BOSS_SCALE_RANGES = [0.5, 1]
+BOSS_SPEED_RANGES = {:wait=>[0, 1], :move=>[1, 3], :against=>[1, 3]}
+BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}
+
+WEED_NUMBERS = [10]
+WEED_SCALE_RANGES = [[0.4, 0.8]]
+
+POINT_COUNT_IN_WINDOW = 60
+POI_CATCH_ADJUST_RANGE_RATIO = 0.9
+
+CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
+CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
+
+BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-100, "boss"=>10000}
 
 
 # タイトル・シーン
@@ -354,6 +372,9 @@ class GameScene < Scene::Base
 =end
 
     # Write your code...
+    @score = 0
+    @score_label = Fonts.new(0, 0, "SCORE : #{@score}点", Window.height * 0.05, C_GREEN)
+
     stone_tile_image_scale = 0.5
     stone_tile_rt = RenderTarget.new(@@stone_tile_image.width * stone_tile_image_scale, @@stone_tile_image.height * stone_tile_image_scale)
     stone_tile_rt.draw_scale(@@stone_tile_image.width * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image.height * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image, stone_tile_image_scale, stone_tile_image_scale)
@@ -372,27 +393,49 @@ class GameScene < Scene::Base
     @container.y = 300 # @@borders[3].y - @container.height
     @container.z = Z_POSITION_DOWN
 
-    @poi = Poi.new(0, 0, 0.8, @container)
+    @poi = Poi.new(0, 0, 0.8, @mouse, @container, self)
     @poi.x = (Window.width - @poi.width) * 0.5
     @poi.y = (Window.height - @poi.height) * 0.5
-    @poi.z = Z_POSITION_UP
+    @poi.z = Z_POSITION_TOP
 
     @stage_number = FIRST_STAGE_NUMBER - 1
-    self.stage_init(@stage_number)
+    self.stage_init
 
     @windows = []
   end
 
-  def stage_init(stage_no)
+  def stage_init
 
-    @kingyos = []
+    weeds = []
+    WEED_NUMBERS[@stage_number].times do |index|
+      weed = Weed.new(0, 0, rand(360), rand_float(WEED_SCALE_RANGES[@stage_number][0], WEED_SCALE_RANGES[@stage_number][1]), index)
+      weed.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - weed.width)
+      weed.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - weed.height)
+      weed.z = Z_POSITION_TOP
+      weeds.push(weed)
+    end
+
+    kingyos = []
     KINGYO_NUMBERS[@stage_number].times do |index|
-      kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number][0], KINGYO_SCALE_RANGES[@stage_number][1]), index, KINGYO_HOVER_RANGES[@stage_number], KINGYO_SPEED_RANGES[@stage_number], KINGYO_MODE_RANGES[@stage_number])
+      kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number][0], KINGYO_SCALE_RANGES[@stage_number][1]), index, KINGYO_SPEED_RANGES[@stage_number], KINGYO_MODE_RANGES[@stage_number])
       kingyo.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - kingyo.width)
       kingyo.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - kingyo.height)
-      kingyo.z = Z_POSITION_UP
-      @kingyos.push(kingyo)
+      kingyo.z = Z_POSITION_TOP
+      kingyos.push(kingyo)
     end
+
+    bosss = []
+    BOSS_NUMBERS.times do |index|
+      boss = Boss.new(0, 0, rand(360), rand_float(BOSS_SCALE_RANGES[0], BOSS_SCALE_RANGES[1]), index, BOSS_SPEED_RANGES, BOSS_MODE_RANGES)
+      boss.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - boss.width)
+      boss.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - boss.height)
+      boss.z = Z_POSITION_TOP
+      bosss.push(boss)
+    end
+
+    @swimers = weeds + kingyos
+    fisher_yates(@swimers)
+    @swimers += bosss
   end
 
   def update
@@ -413,18 +456,53 @@ class GameScene < Scene::Base
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     self.mouseProcess
 
-    if @poi.mode != "try_gaze" and @poi.mode != "transport" then
-      if (@windows.size <= POINT_COUNT_IN_GAZE_AREA) then
+    if @poi.mode != :try_gaze and @poi.mode != :transport then
+      if (@windows.size <= POINT_COUNT_IN_WINDOW) then
         @windows.push([@mouse.x, @mouse.y])
       else
         @windows.shift(1)
       end
 
-      if @windows.size >= POINT_COUNT_IN_GAZE_AREA then
+      if @windows.size >= POINT_COUNT_IN_WINDOW then
         if @poi.search_gaze_point(@windows) then
           @windows.clear
-          @poi.mode = "try_gaze"
+          @poi.mode = :try_gaze
           @poi.is_drag = false
+        end
+      end
+    end
+
+    if @poi.mode == :try_catch then
+      catch_objects = []
+      @swimers.each do |swimer|
+        unless swimer.z == Z_POSITION_BOTTOM then
+          if (swimer.x + swimer.center_x - (@poi.x + @poi.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@poi.y + @poi.center_y)) ** 2) <= (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
+            swimer.mode = :catched
+            catch_objects.push([swimer, [swimer.x - @poi.x, swimer.y - @poi.y]])
+          end
+        end
+      end
+      @poi.try_catch(catch_objects)
+    end
+
+    # swimerに対するメインループ
+    @swimers.each do |swimer|
+      if not swimer.mode == :catched and not swimer.is_reserved then
+        if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 + ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <= (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
+          swimer.z = Z_POSITION_BOTTOM
+        else
+          swimer.z = Z_POSITION_TOP
+        end
+      end
+
+      if swimer.is_reserved then
+        max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
+        obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
+
+        if obj_radius >= max_radius then
+          angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y), swimer.x + swimer.center_x - (@container.x + @container.center_x))
+          swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
+          swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
         end
       end
     end
@@ -437,16 +515,15 @@ class GameScene < Scene::Base
 =end
 
     # Write your code...
-    if not @kingyos.empty? then
-      @kingyos.each do |kingyo|
-        kingyo.update
+    if not @swimers.empty? then
+      @swimers.each do |swimer|
+        swimer.update
       end
     end
 
-    Sprite.check([@mouse, @poi] + @kingyos) if @poi.mode == "try_gaze"
     @poi.update
 
-    Sprite.check(@@borders + @kingyos + [@container])
+    Sprite.check(@@borders + @swimers + [@container])
   end
 
   def render
@@ -473,14 +550,16 @@ class GameScene < Scene::Base
 
     @poi.draw
 
-    if not @kingyos.empty? then
-      @kingyos.each do |kingyo|
-        kingyo.draw
+    if not @swimers.empty? then
+      @swimers.each do |swimer|
+        swimer.draw
       end
     end
 
     @exitButton.render
     @windowModeButton.render
+
+    @score_label.render
   end
 
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
@@ -534,6 +613,16 @@ class GameScene < Scene::Base
       end
     end
 =end
+  end
+
+  def scoring(targets)
+
+    score_diff = 0
+    targets.each do |target|
+      score_diff += (BASE_SCORES[target.name] * target.height * 0.01).round
+    end
+    @score += score_diff * targets.size
+    @score_label.string = "SCORE : #{@score}点"
   end
 end
 

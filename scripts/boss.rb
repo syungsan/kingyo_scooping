@@ -7,58 +7,56 @@ require "dxruby"
 
 if __FILE__ == $0 then
   require "../lib/common"
-  KINGYO_IMAGES = ["../images/kingyo03.png", "../images/demekin_black.png"]
+  BOSS_IMAGE = "../images/boss_kingyo.PNG"
 else
   require "./lib/common"
-  KINGYO_IMAGES = ["./images/kingyo03.png", "./images/demekin_black.png"]
+  BOSS_IMAGE = "./images/boss_kingyo.PNG"
 end
 
-KIND_OF_KINGYOS = ["red", "black"]
-KINGYO_SHADOW_OFFSET_X = 5
-KINGYO_SHADOW_OFFSET_Y = 5
-KINGYO_ANIME_ADJUST_SPEED_RATIO = 0.1
-KINGYO_CATCHED_ANIME_SPEED_RATIO = 1.5
+BOSS_SHADOW_OFFSET_X = 5
+BOSS_SHADOW_OFFSET_Y = 5
+
+BOSS_ANIME_ADJUST_SPEED_RATIO = 0.05
+BOSS_CATCHED_ANIME_SPEED_RATIO = 1.5
 
 
-class Kingyo < Sprite
+class Boss < Sprite
 
   attr_accessor :id, :name, :is_drag, :mode, :is_reserved
   attr_reader :width, :height
 
   include Common
 
-  def initialize(x, y, kind_of, angle=0, scale=1, id=0, speed_ranges={:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]}, mode_ranges={:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}, target=Window, is_drag=false)
+  def initialize(x, y, angle=0, scale=1, id=0, speed_ranges={:wait=>[0, 1], :move=>[1, 3], :against=>[1, 3]}, mode_ranges={:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}, target=Window, is_drag=false)
     super()
 
-    @images = []
-    KINGYO_IMAGES.each do |kingyo_image|
-      image0 = Image.load_tiles(kingyo_image, 4, 1, true)
-      image1 = image0.map { |image| image.flush([64, 0, 0, 0]) }
-      images = [image0, image1]
-      @images.push(images)
-    end
-    @kind_of = kind_of
+    image0 = Image.load_tiles(BOSS_IMAGE, 4, 1, true)
+    image1 = image0.map { |image| image.flush([64, 0, 0, 0]) }
+    image01s = [image0, image1]
 
-    image_src = @images[KIND_OF_KINGYOS.index(@kind_of)][0][0]
-    render_target = RenderTarget.new(image_src.width * scale, image_src.height * scale)
-    @images[KIND_OF_KINGYOS.index(@kind_of)].size.times do |index|
-      @images[KIND_OF_KINGYOS.index(@kind_of)][index].map do |image|
-        render_target.draw_scale(image_src.width * (scale - 1.0) * 0.5, image_src.height * (scale - 1.0) * 0.5, image, scale, scale)
-        @images[KIND_OF_KINGYOS.index(@kind_of)][index][@images[KIND_OF_KINGYOS.index(@kind_of)][index].index(image)] = render_target.to_image
+    @images = []
+    render_target = RenderTarget.new(image01s[0][0].width * scale, image01s[0][0].height * scale)
+    image01s.each do |image01|
+      images = []
+      image01.map do |image|
+        render_target.draw_scale(image.width * (scale - 1.0) * 0.5, image.height * (scale - 1.0) * 0.5, image, scale, scale)
+        images.push(render_target.to_image)
+        image.dispose
       end
+      @images.push(images)
     end
     render_target.dispose
 
     self.x = x
     self.y = y
-    self.image = @images[KIND_OF_KINGYOS.index(@kind_of)][0][0]
+    self.image = @images[0][0]
     @width = self.image.width
     @height = self.image.height
     self.collision = [0, 0, @width, @height]
     self.target = target
     self.angle = angle
     @id = id
-    @name = "#{kind_of}_kingyo"
+    @name = "boss"
     @is_drag = is_drag
     @mode_ranges = mode_ranges
     @speed_ranges = speed_ranges
@@ -69,10 +67,10 @@ class Kingyo < Sprite
   end
 
   def update
-    @anime_count += @speed * KINGYO_ANIME_ADJUST_SPEED_RATIO if @speed
-    @anime_count = 0 if @anime_count > @images[KIND_OF_KINGYOS.index(@kind_of)][0].size
-    self.image = @images[KIND_OF_KINGYOS.index(@kind_of)][0][@anime_count.floor]
-    @shadow_image = @images[KIND_OF_KINGYOS.index(@kind_of)][1][@anime_count.floor]
+    @anime_count += @speed * BOSS_ANIME_ADJUST_SPEED_RATIO if @speed
+    @anime_count = 0 if @anime_count > @images[0].size
+    self.image = @images[0][@anime_count.floor]
+    @shadow_image = @images[1][@anime_count.floor]
 
     case @mode
     when :wait
@@ -136,7 +134,7 @@ class Kingyo < Sprite
   end
 
   def catched
-    @speed = @old_speed * KINGYO_CATCHED_ANIME_SPEED_RATIO if @speed == @old_speed
+    @speed = @old_speed * BOSS_CATCHED_ANIME_SPEED_RATIO if @speed == @old_speed
   end
 
   def hit(obj)
@@ -144,7 +142,7 @@ class Kingyo < Sprite
   end
 
   def draw
-    self.target.draw_ex(self.x + KINGYO_SHADOW_OFFSET_X, self.y + KINGYO_SHADOW_OFFSET_Y, @shadow_image, {:z=>self.z, :angle=>self.angle})
+    self.target.draw_ex(self.x + BOSS_SHADOW_OFFSET_X, self.y + BOSS_SHADOW_OFFSET_Y, @shadow_image, {:z=>self.z, :angle=>self.angle})
     self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :angle=>self.angle})
   end
 end
@@ -165,12 +163,12 @@ if __FILE__ == $0 then
   border_bottom = Border.new(0, Window.height - line_width, Window.width, line_width, 3)
   borders = [border_top, border_left, border_right, border_bottom]
 
-  kingyos = []
-  60.times do
-    kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(0.5, 1.0))
-    kingyo.x = random_int(border_left.x + border_left.width, border_right.x - kingyo.width)
-    kingyo.y = random_int(border_top.y + border_top.height, border_bottom.y - kingyo.height)
-    kingyos.push(kingyo)
+  bosss = []
+  20.times do
+    boss = Boss.new(0, 0, rand(360), rand_float(0.5, 1.0))
+    boss.x = random_int(border_left.x + border_left.width, border_right.x - boss.width)
+    boss.y = random_int(border_top.y + border_top.height, border_bottom.y - boss.height)
+    bosss.push(boss)
   end
 
   Window.bgcolor = C_WHITE
@@ -180,11 +178,11 @@ if __FILE__ == $0 then
       border.draw
     end
 
-    kingyos.each do |kingyo|
-      kingyo.update
-      kingyo.draw
+    bosss.each do |boss|
+      boss.update
+      boss.draw
     end
 
-    Sprite.check(borders + kingyos)
+    Sprite.check(borders + bosss)
   end
 end

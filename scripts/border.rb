@@ -10,6 +10,11 @@ BORDER_COLLISION_FOR_KINGYO_ADJUST_LEFT = 50
 BORDER_COLLISION_FOR_KINGYO_ADJUST_RIGHT = 50
 BORDER_COLLISION_FOR_KINGYO_ADJUST_BOTTOM = 5
 
+BORDER_COLLISION_FOR_BOSS_ADJUST_TOP = 5
+BORDER_COLLISION_FOR_BOSS_ADJUST_LEFT = 90
+BORDER_COLLISION_FOR_BOSS_ADJUST_RIGHT = 90
+BORDER_COLLISION_FOR_BOSS_ADJUST_BOTTOM = 5
+
 
 class Border < Sprite
 
@@ -39,19 +44,20 @@ class Border < Sprite
     self.target.draw(self.x, self.y, self.image)
   end
 
-  # 何かが当っている間の処理（受動）
   def hit(obj)
-
-    if obj.name.include?("kingyo") then
+    if obj.name.include?("kingyo") or obj.name == "boss" then
       obj.y = self.y + self.height + BORDER_COLLISION_FOR_KINGYO_ADJUST_TOP if self.id == 0
       obj.x = self.x + self.width + BORDER_COLLISION_FOR_KINGYO_ADJUST_LEFT if self.id == 1
       obj.x = self.x - obj.width - BORDER_COLLISION_FOR_KINGYO_ADJUST_RIGHT if self.id == 2
       obj.y = self.y - obj.height - BORDER_COLLISION_FOR_KINGYO_ADJUST_BOTTOM if self.id == 3
     end
-  end
 
-  # 何かに当たっている間の処理（能動）
-  def shot(obj)
+    if obj.name == "boss" then
+      obj.y = self.y + self.height + BORDER_COLLISION_FOR_BOSS_ADJUST_TOP if self.id == 0
+      obj.x = self.x + self.width + BORDER_COLLISION_FOR_BOSS_ADJUST_LEFT if self.id == 1
+      obj.x = self.x - obj.width - BORDER_COLLISION_FOR_BOSS_ADJUST_RIGHT if self.id == 2
+      obj.y = self.y - obj.height - BORDER_COLLISION_FOR_BOSS_ADJUST_BOTTOM if self.id == 3
+    end
   end
 end
 
