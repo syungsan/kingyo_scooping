@@ -72,13 +72,17 @@ class Fonts
     return @font.size
   end
 
+  def set_z(z)
+    @z = z
+  end
+
   def build
     @font.dispose if !@font.nil?
     @font = Font.new(@font_size, @fontType, {:weight=>@isBold, :italic=>@isItalic})
   end
 
   def render
-    self.target.drawFontEx(self.x, self.y, self.string, @font, {:color=>self.st_color, :shadow=>self.isShadow, :shadow_color=>[64, 64, 64]})
+    self.target.drawFontEx(self.x, self.y, self.string, @font, {:z=>@z, :color=>self.st_color, :shadow=>self.isShadow, :shadow_color=>[64, 64, 64]})
   end
 end
 

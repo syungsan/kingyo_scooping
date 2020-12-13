@@ -153,14 +153,14 @@ if __FILE__ == $0 then
   Window.width = 1920
   Window.height = 1080
 
-  require "./border"
+  require "./stracture"
   include Common
 
   line_width = 50
-  border_top = Border.new(0, 0, Window.width, line_width, 0)
-  border_left = Border.new(0, 0, line_width, Window.height, 1)
-  border_right = Border.new(Window.width - line_width, 0, line_width, Window.height, 2)
-  border_bottom = Border.new(0, Window.height - line_width, Window.width, line_width, 3)
+  border_top = Stracture.new(0, 0, Window.width, line_width, 0)
+  border_left = Stracture.new(0, 0, line_width, Window.height, 1)
+  border_right = Stracture.new(Window.width - line_width, 0, line_width, Window.height, 2)
+  border_bottom = Stracture.new(0, Window.height - line_width, Window.width, line_width, 3)
   borders = [border_top, border_left, border_right, border_bottom]
 
   bosss = []

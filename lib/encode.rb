@@ -66,6 +66,8 @@ if RUBY_VERSION < '1.9.0' then
           return Kconv::UTF8
         when "UTF-16BE"
           return Kconv::UTF16
+        when "BINARY"
+          return Kconv::BINARY
         else
           return Kconv::UNKNOWN
         end

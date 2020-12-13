@@ -30,7 +30,7 @@ require "files" # ファイル操作（モジュールなので要include） log.rbを使うときも必
 # require "excel" # Excel操作用
 # require "sqlite3" # データベース
 # require "weighted_randomizer" # 重み付き乱択
-# require "encode" # 文字コード変換
+require "encode" # 文字コード変換
 # require "json/pure" # JSON
 # require "linear_algebra" # 線形代数
 # require "win32/open3" # 外部コマンド実行
@@ -41,23 +41,22 @@ require "files" # ファイル操作（モジュールなので要include） log.rbを使うときも必
 # require "wav_analyze"
 
 # mp3などを鳴らすため
-=begin
 Dir.chdir("./lib/dxruby") do
   require "Bass"
 end
-=end
 
-require "border"
+require "stracture"
 require "kingyo"
 require "poi"
 require "container"
 require "weed"
 require "boss"
+require "bgm_info"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
 APPLICATION_NAME = "私のアプリケーション"
-COPYLIGHT = "Powered by Ruby & DXRuby."
+COPYRIGHT = "Powered by Ruby & DXRuby."
 VERSION_NUMBER = "0.8"
 # APPLICATION_ICON =
 
@@ -103,16 +102,21 @@ end
 # ゲーム・パラメータ ###################################################################################################
 # 音
 CLICK_SE = "./sounds/push13.wav"
+MINAMO_BGM = "./sounds/minamo.mp3"
 
 # 画像
 STONE_TILE_IMAGE = "./images/stone_tile.png"
 AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
 
 # フォント
-# FONT = ""
+TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
+TANUKI_MAGIC_FONT_TYPE = "たぬき油性マジック"
+JIYUNO_TSUBASA_FONT = "./fonts/JiyunoTsubasa.ttf"
+JIYUNO_TSUBASA_FONT_TYPE = "自由の翼フォント"
 
 # フォントのインストール
-# Font.install(FONT)
+Font.install(TANUKI_MAGIC_FONT)
+Font.install(JIYUNO_TSUBASA_FONT)
 ########################################################################################################################
 ########################################################################################################################
 initWindowRect = setDisplay(WINDOW_WIDE_SIZE, WINDOW_SQUARE_SIZE, IS_WINDOW_CENTER)
@@ -158,7 +162,10 @@ POI_CATCH_ADJUST_RANGE_RATIO = 0.9
 CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
 CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
 
-BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-100, "boss"=>10000}
+BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>10000}
+
+TILDE =  "\x81\x60".encode("BINARY")
+MAIN_BGM_DATE = ["水面", "Composed by iPad", "しゅんじ" + TILDE]
 
 
 # タイトル・シーン
@@ -186,7 +193,7 @@ class TitleScene < Scene::Base
 
     @titleLabel = Fonts.new(0, 0, APPLICATION_NAME, Window.height * 0.1, C_BLACK)
     @versionNumberLabel = Fonts.new(0, 0, "Version #{VERSION_NUMBER}", @titleLabel.get_height * 0.3, C_BLACK)
-    @copyLightLabel = Fonts.new(0, 0, COPYLIGHT, Window.height * 0.05, C_BLACK)
+    @copyrightLabel = Fonts.new(0, 0, COPYRIGHT, Window.height * 0.05, C_BLACK)
 
     startButtonText = "スタート"
     startButtonHeight = Window.height * 0.05
@@ -221,7 +228,7 @@ class TitleScene < Scene::Base
 
     @titleLabel.set_pos((Window.width - @titleLabel.get_width) * 0.5, (Window.height - @titleLabel.get_height) * 0.2)
     @versionNumberLabel.set_pos(@titleLabel.x + @titleLabel.get_width - @versionNumberLabel.get_width, @titleLabel.y + @titleLabel.get_height)
-    @copyLightLabel.set_pos((Window.width - @copyLightLabel.get_width) * 0.5, (Window.height - @copyLightLabel.get_height) * 0.9)
+    @copyrightLabel.set_pos((Window.width - @copyrightLabel.get_width) * 0.5, (Window.height - @copyrightLabel.get_height) * 0.9)
     @startButton.set_pos((Window.width - @startButton.w) * 0.5, (Window.height - @startButton.h) * 0.7)
     @exitButton.set_pos(Window.width - @exitButton.w, 0)
     @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
@@ -289,7 +296,7 @@ class TitleScene < Scene::Base
   def render
     @titleLabel.render
     @versionNumberLabel.render
-    @copyLightLabel.render
+    @copyrightLabel.render
     @startButton.render
     @exitButton.render
     @windowModeButton.render
@@ -300,17 +307,6 @@ class TitleScene < Scene::Base
     end
 
     # Write your code...
-  end
-end
-
-
-class Mouse < Sprite
-  attr_reader :name
-
-  def initialize
-    super()
-    self.collision = [0, 0]
-    @name = "mouse"
   end
 end
 
@@ -332,6 +328,9 @@ class GameScene < Scene::Base
   border_bottom = Border.new(0, Window.height, Window.width, line_width, 3)
   @@borders = [border_top, border_left, border_right, border_bottom]
 
+  Bass.init(Window.hWnd)
+  @@main_bgm = Bass.loadSample(MINAMO_BGM)
+
   def init
 
     exitButtonText = "Exit"
@@ -351,12 +350,11 @@ class GameScene < Scene::Base
 
     # キャラクタをオブジェクト配列に追加
     @charas = [@poi]
+=end
 
     # マウスカーソルの衝突判定用スプライト
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
-=end
-    @mouse = Mouse.new
 
 =begin
     # ログの書き込みと読み込みのテスト
@@ -373,7 +371,8 @@ class GameScene < Scene::Base
 
     # Write your code...
     @score = 0
-    @score_label = Fonts.new(0, 0, "SCORE : #{@score}点", Window.height * 0.05, C_GREEN)
+    @score_label = Fonts.new(0, 0, "SCORE : #{@score}点", Window.height * 0.05, C_GREEN, 0, "score_font", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
+    @score_label.set_z(Z_POSITION_TOP)
 
     stone_tile_image_scale = 0.5
     stone_tile_rt = RenderTarget.new(@@stone_tile_image.width * stone_tile_image_scale, @@stone_tile_image.height * stone_tile_image_scale)
@@ -402,6 +401,13 @@ class GameScene < Scene::Base
     self.stage_init
 
     @windows = []
+
+    @bgm_info = BgmInfo.new(Window.width, Window.height * 0.04, Z_POSITION_TOP)
+    @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE})
+    @bgm_info.mode = :run
+
+    @bgm = @@main_bgm
+    @bgm.play(:loop=>true, :volume=>0.8)
   end
 
   def stage_init
@@ -450,6 +456,7 @@ class GameScene < Scene::Base
     end
 
     if @exitButton.pushed? or Input.key_push?(K_ESCAPE) then
+      self.did_disappear
       exit
     end
 
@@ -507,6 +514,8 @@ class GameScene < Scene::Base
       end
     end
 
+    @bgm_info.update if @bgm_info.mode == :run
+
 =begin
     Sprite.update(@charas)
     Sprite.check(@charas)
@@ -560,6 +569,7 @@ class GameScene < Scene::Base
     @windowModeButton.render
 
     @score_label.render
+    @bgm_info.draw if @bgm_info.mode == :run
   end
 
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
@@ -623,6 +633,12 @@ class GameScene < Scene::Base
     end
     @score += score_diff * targets.size
     @score_label.string = "SCORE : #{@score}点"
+  end
+
+  def did_disappear
+    @bgm.stop
+    @bgm.free
+    Bass.free
   end
 end
 
