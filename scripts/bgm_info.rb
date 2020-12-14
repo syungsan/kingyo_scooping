@@ -23,18 +23,19 @@ class BgmInfo < Sprite
   def initialize(x, y, z, width=300, height=100, max_wait_count=120, border_width=1, radius=10, bg_color=C_WHITE, border_color=C_GREEN, id=0, target=Window, is_drag=false)
     super()
 
-    image = Image.new(width, height).roundbox_fill(0, 0, width - border_width, height - border_width, radius, bg_color.unshift(128))
-    frame = Image.new(width, height).roundbox(0, 0, width - border_width, height - border_width, radius, border_color)
-    image.draw(0, 0, frame)
-    @shadow = image.flush([64, 0, 0, 0])
+    @width = width
+    @height = height
+    @border_width = border_width
+    @radius = radius
+    @bg_color = bg_color
+    @border_color = border_color
 
+    self.init_image
     self.x = x
     self.y = y
-    self.image = image
-    self.target = target
     @z = z
-    @width = self.image.width
-    @height = self.image.height
+    self.target = target
+
     @id = id
     @name = "bgm_info"
     @is_drag = is_drag
@@ -45,6 +46,17 @@ class BgmInfo < Sprite
     @max_wait_count = max_wait_count
     @wait_count = 0
     @mode = :wait
+  end
+
+  def init_image
+
+    self.image.dispose if self.image and not self.image.disposed?
+
+    image = Image.new(@width, @height).roundbox_fill(0, 0, @width - @border_width, @height - @border_width, @radius, @bg_color.unshift(128))
+    frame = Image.new(@width, @height).roundbox(0, 0, @width - @border_width, @height - @border_width, @radius, @border_color)
+    image.draw(0, 0, frame)
+    @shadow = image.flush([64, 0, 0, 0])
+    self.image = image
   end
 
   def set_info(info={:title=>nil, :data=>nil, :copyright=>nil}, font_type={:title=>nil, :data=>nil, :copyright=>nil}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>30, :data=>24, :copyright=>28}, italic={:title=>false, :data=>true, :copyright=>false}, weight={:title=>800, :data=>800, :copyright=>800})
@@ -79,6 +91,9 @@ class BgmInfo < Sprite
 
         @wait_count += 1 if @wait_count < @max_wait_count
         if self.x >= @first_pos_x
+          self.init_image
+          @frame = 0
+          @wait_count = 0
           @mode = :wait
         end
       end

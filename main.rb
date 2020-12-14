@@ -52,6 +52,7 @@ require "container"
 require "weed"
 require "boss"
 require "bgm_info"
+require "alert"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
@@ -102,7 +103,9 @@ end
 # ゲーム・パラメータ ###################################################################################################
 # 音
 CLICK_SE = "./sounds/push13.wav"
-MINAMO_BGM = "./sounds/minamo.mp3"
+MAIN_BGM = "./sounds/minamo.mp3"
+ALERT_BGM = "./sounds/nc40157.wav"
+BOSS_BGM = "./sounds/boss_panic_big_march.mp3"
 
 # 画像
 STONE_TILE_IMAGE = "./images/stone_tile.png"
@@ -113,10 +116,16 @@ TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
 TANUKI_MAGIC_FONT_TYPE = "たぬき油性マジック"
 JIYUNO_TSUBASA_FONT = "./fonts/JiyunoTsubasa.ttf"
 JIYUNO_TSUBASA_FONT_TYPE = "自由の翼フォント"
+CHECK_POINT_FONT = "./fonts/CP Font.ttf"
+CHECK_POINT_FONT_TYPE = "チェックポイントフォント"
+LIGHT_NOVEL_POP_FONT = "./fonts/ラノベPOP.otf"
+LIGHT_NOVEL_POP_FONT_TYPE = "07ラノベPOP"
 
 # フォントのインストール
 Font.install(TANUKI_MAGIC_FONT)
 Font.install(JIYUNO_TSUBASA_FONT)
+Font.install(CHECK_POINT_FONT)
+Font.install(LIGHT_NOVEL_POP_FONT)
 ########################################################################################################################
 ########################################################################################################################
 initWindowRect = setDisplay(WINDOW_WIDE_SIZE, WINDOW_SQUARE_SIZE, IS_WINDOW_CENTER)
@@ -137,6 +146,7 @@ Window.windowed = WINDOWED
 ########################################################################################################################
 
 FIRST_STAGE_NUMBER = 1
+FIRST_MODE = :start
 
 Z_POSITION_TOP = 300
 Z_POSITION_UP = 200
@@ -162,10 +172,16 @@ POI_CATCH_ADJUST_RANGE_RATIO = 0.9
 CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
 CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
 
-BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>10000}
+BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
 
 TILDE =  "\x81\x60".encode("BINARY")
 MAIN_BGM_DATE = ["水面", "Composed by iPad", "しゅんじ" + TILDE]
+BOSS_BGM_DATE = ["ボス・パニック大行進", "Composed by iPad", "しゅんじ" + TILDE]
+
+MAIN_ALERT_STRING = "警告！ ボス金魚出現！"
+SUB_ALERT_STRING = "WARNING!"
+
+TECHNICAL_POINT_UP_RANGE = 1000
 
 
 # タイトル・シーン
@@ -329,7 +345,9 @@ class GameScene < Scene::Base
   @@borders = [border_top, border_left, border_right, border_bottom]
 
   Bass.init(Window.hWnd)
-  @@main_bgm = Bass.loadSample(MINAMO_BGM)
+  @@main_bgm = Bass.loadSample(MAIN_BGM)
+  @@alert_bgm = Bass.loadSample(ALERT_BGM)
+  @@boss_bgm = Bass.loadSample(BOSS_BGM)
 
   def init
 
@@ -397,17 +415,22 @@ class GameScene < Scene::Base
     @poi.y = (Window.height - @poi.height) * 0.5
     @poi.z = Z_POSITION_TOP
 
-    @stage_number = FIRST_STAGE_NUMBER - 1
-    self.stage_init
-
     @windows = []
 
     @bgm_info = BgmInfo.new(Window.width, Window.height * 0.04, Z_POSITION_TOP)
-    @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE})
-    @bgm_info.mode = :run
 
-    @bgm = @@main_bgm
-    @bgm.play(:loop=>true, :volume=>0.8)
+    @alert = Alert.new(0, 0, Window.width, Window.height)
+    @alert.z = Z_POSITION_TOP
+    @alert.make_sub_alert(SUB_ALERT_STRING, LIGHT_NOVEL_POP_FONT_TYPE)
+    @alert.make_main_alert(MAIN_ALERT_STRING, CHECK_POINT_FONT_TYPE)
+
+    @swimers = []
+
+    @technical_point = 0
+    @technical_point_diff = 0
+
+    @stage_number = FIRST_STAGE_NUMBER - 1
+    self.change_mode(FIRST_MODE)
   end
 
   def stage_init
@@ -430,6 +453,13 @@ class GameScene < Scene::Base
       kingyos.push(kingyo)
     end
 
+    @swimers = weeds + kingyos
+    fisher_yates(@swimers)
+
+  end
+
+  def boss_init
+
     bosss = []
     BOSS_NUMBERS.times do |index|
       boss = Boss.new(0, 0, rand(360), rand_float(BOSS_SCALE_RANGES[0], BOSS_SCALE_RANGES[1]), index, BOSS_SPEED_RANGES, BOSS_MODE_RANGES)
@@ -439,31 +469,30 @@ class GameScene < Scene::Base
       bosss.push(boss)
     end
 
-    @swimers = weeds + kingyos
-    fisher_yates(@swimers)
     @swimers += bosss
+    fisher_yates(@swimers)
   end
 
   def update
 
-    if @windowModeButton.pushed? then
+    if @windowModeButton and @windowModeButton.pushed? then
       if Window.windowed? then
         Window.windowed = false
       else
         Window.windowed = true
       end
-      @@clickSE.play
+      @@clickSE.play if @@clickSE
     end
 
-    if @exitButton.pushed? or Input.key_push?(K_ESCAPE) then
+    if (@exitButton and @exitButton.pushed?) or Input.key_push?(K_ESCAPE) then
       self.did_disappear
       exit
     end
 
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
-    self.mouseProcess
+    self.mouseProcess if @mouse
 
-    if @poi.mode != :try_gaze and @poi.mode != :transport then
+    if @poi and @poi.mode != :try_gaze and @poi.mode != :transport then
       if (@windows.size <= POINT_COUNT_IN_WINDOW) then
         @windows.push([@mouse.x, @mouse.y])
       else
@@ -479,42 +508,53 @@ class GameScene < Scene::Base
       end
     end
 
-    if @poi.mode == :try_catch then
+    if @poi and @poi.mode == :try_catch then
       catch_objects = []
-      @swimers.each do |swimer|
-        unless swimer.z == Z_POSITION_BOTTOM then
-          if (swimer.x + swimer.center_x - (@poi.x + @poi.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@poi.y + @poi.center_y)) ** 2) <= (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
-            swimer.mode = :catched
-            catch_objects.push([swimer, [swimer.x - @poi.x, swimer.y - @poi.y]])
+      if @swimers and not @swimers.empty? then
+        @swimers.each do |swimer|
+          unless swimer.z == Z_POSITION_BOTTOM then
+            if (swimer.x + swimer.center_x - (@poi.x + @poi.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@poi.y + @poi.center_y)) ** 2) <= (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
+              swimer.mode = :catched
+              catch_objects.push([swimer, [swimer.x - @poi.x, swimer.y - @poi.y]])
+            end
           end
         end
+        @poi.try_catch(catch_objects)
       end
-      @poi.try_catch(catch_objects)
     end
 
     # swimerに対するメインループ
-    @swimers.each do |swimer|
-      if not swimer.mode == :catched and not swimer.is_reserved then
-        if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 + ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <= (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
-          swimer.z = Z_POSITION_BOTTOM
-        else
-          swimer.z = Z_POSITION_TOP
+    if @swimers and not @swimers.empty?
+      @swimers.each do |swimer|
+        if not swimer.mode == :catched and not swimer.is_reserved then
+          if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 + ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <= (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
+            swimer.z = Z_POSITION_BOTTOM
+          else
+            swimer.z = Z_POSITION_TOP
+          end
         end
-      end
 
-      if swimer.is_reserved then
-        max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
-        obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
+        if swimer.is_reserved then
+          max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
+          obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
 
-        if obj_radius >= max_radius then
-          angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y), swimer.x + swimer.center_x - (@container.x + @container.center_x))
-          swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
-          swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
+          if obj_radius >= max_radius then
+            angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y), swimer.x + swimer.center_x - (@container.x + @container.center_x))
+            swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
+            swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
+          end
         end
       end
     end
 
-    @bgm_info.update if @bgm_info.mode == :run
+    @bgm_info.update if @bgm_info and @bgm_info.mode == :run
+
+    if @alert and @alert.mode == :run then
+      @alert.update
+    elsif @alert and @alert.mode == :finish
+      @alert.mode = :wait
+      self.change_mode(:boss)
+    end
 
 =begin
     Sprite.update(@charas)
@@ -524,25 +564,27 @@ class GameScene < Scene::Base
 =end
 
     # Write your code...
-    if not @swimers.empty? then
+    if @swimers and not @swimers.empty? then
       @swimers.each do |swimer|
         swimer.update
       end
     end
 
-    @poi.update
+    @poi.update if @poi
 
-    Sprite.check(@@borders + @swimers + [@container])
+    Sprite.check(@@borders + @swimers + [@container]) if @@borders and not @@borders.empty? and @swimers and not @swimers.empty? and @container
   end
 
   def render
 
     # Write your code...
-    Window.drawTile(0, 0, [[0]], [@stone_tile_image], nil, nil, nil, nil)
-    Window.draw_ex(0, 0, @aquarium_back_image, :alpha=>180)
+    Window.drawTile(0, 0, [[0]], [@stone_tile_image], nil, nil, nil, nil) if @stone_tile_image
+    Window.draw_ex(0, 0, @aquarium_back_image, :alpha=>180) if @aquarium_back_image
 
-    @@borders.each do |border|
-      border.draw
+    if @@borders and not @@borders.empty?
+      @@borders.each do |border|
+        border.draw
+      end
     end
 
 =begin
@@ -555,11 +597,10 @@ class GameScene < Scene::Base
     Sprite.draw(@item) if @item
 =end
 
-    @container.draw
+    @container.draw if @container
+    @poi.draw if @poi
 
-    @poi.draw
-
-    if not @swimers.empty? then
+    if @swimers and not @swimers.empty? then
       @swimers.each do |swimer|
         swimer.draw
       end
@@ -568,8 +609,9 @@ class GameScene < Scene::Base
     @exitButton.render
     @windowModeButton.render
 
-    @score_label.render
-    @bgm_info.draw if @bgm_info.mode == :run
+    @score_label.render if @score_label
+    @bgm_info.draw if @bgm_info and @bgm_info.mode == :run
+    @alert.draw if @alert and @alert.mode == :run
   end
 
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
@@ -578,7 +620,7 @@ class GameScene < Scene::Base
     # oldX, oldY = @mouse.x, @mouse.y
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
-    if @poi.is_drag then
+    if @poi and @poi.is_drag then
       @poi.x = @mouse.x - (@poi.width * 0.5)
       @poi.y = @mouse.y - (@poi.height * 0.5)
     end
@@ -625,6 +667,47 @@ class GameScene < Scene::Base
 =end
   end
 
+  def change_mode(mode)
+
+    case mode
+
+    when :normal
+
+    when :start
+
+      self.stage_init
+      if @bgm then
+        @bgm.stop
+      end
+      @bgm = @@main_bgm
+      @bgm.play(:loop=>true, :volume=>0.8)
+      @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>32, :data=>24, :copyright=>28})
+      @bgm_info.mode = :run
+
+    when :alert
+
+      @alert.mode = :run
+      if @bgm then
+        @bgm.stop
+      end
+      @bgm = @@alert_bgm
+      @bgm.play(:loop=>true, :volume=>0.8)
+
+    when :boss
+
+      self.boss_init
+      if @bgm then
+        @bgm.stop
+      end
+      @bgm = @@boss_bgm
+      @bgm.play(:loop=>true, :volume=>0.8)
+      @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>24, :data=>24, :copyright=>28})
+      @bgm_info.mode = :run
+    end
+
+    @mode = mode
+  end
+
   def scoring(targets)
 
     score_diff = 0
@@ -633,6 +716,15 @@ class GameScene < Scene::Base
     end
     @score += score_diff * targets.size
     @score_label.string = "SCORE : #{@score}点"
+
+    @technical_point_diff += 50
+
+    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved}
+    if @technical_point_diff >= TECHNICAL_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
+      self.change_mode(:alert)
+      @technical_point += @technical_point_diff
+      @technical_point_diff = 0
+    end
   end
 
   def did_disappear
