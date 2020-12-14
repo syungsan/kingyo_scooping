@@ -53,6 +53,7 @@ require "weed"
 require "boss"
 require "bgm_info"
 require "alert"
+require "splash"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
@@ -106,10 +107,13 @@ CLICK_SE = "./sounds/push13.wav"
 MAIN_BGM = "./sounds/minamo.mp3"
 ALERT_BGM = "./sounds/nc40157.wav"
 BOSS_BGM = "./sounds/boss_panic_big_march.mp3"
+SPLASH_SMALL_SE = "./sounds/water-drop3.wav"
+SPLASH_RARGE_SE = "./sounds/water-throw-stone2.wav"
 
 # 画像
 STONE_TILE_IMAGE = "./images/stone_tile.png"
 AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
+SPLASH_IMAGE = "./images/water_splash.png"
 
 # フォント
 TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
@@ -334,6 +338,8 @@ class GameScene < Scene::Base
 
   @@clickSE = Sound.new(CLICK_SE)
 
+  @@splash_small_se = Sound.new(SPLASH_SMALL_SE)
+  @@splash_rarge_se = Sound.new(SPLASH_RARGE_SE)
   @@stone_tile_image = Image.load(STONE_TILE_IMAGE)
   @@aquarium_back_image = Image.load(AQUARIUM_BACK_IMAGE)
 
@@ -425,6 +431,7 @@ class GameScene < Scene::Base
     @alert.make_main_alert(MAIN_ALERT_STRING, CHECK_POINT_FONT_TYPE)
 
     @swimers = []
+    @splashs = []
 
     @technical_point = 0
     @technical_point_diff = 0
@@ -534,6 +541,17 @@ class GameScene < Scene::Base
           end
         end
 
+        if swimer.mode == :reserved then
+          splash = Splash.new(SPLASH_IMAGE, 10, 1)
+          splash.run(swimer.x + swimer.center_x - (splash.width * 0.5), swimer.y + swimer.center_y - (splash.height * 0.5), swimer, swimer.width * 4.0, 0.8)
+          if swimer.name == "boss" then
+            @@splash_rarge_se.play
+          else
+            @@splash_small_se.play
+          end
+          @splashs.push(splash)
+        end
+
         if swimer.is_reserved then
           max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
           obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
@@ -543,6 +561,16 @@ class GameScene < Scene::Base
             swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
             swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
           end
+        end
+      end
+    end
+
+    if @splashs and not @splashs.empty?
+      @splashs.each do |splash|
+        if splash.mode == :finish then
+          @splashs.delete(splash)
+        else
+          splash.update
         end
       end
     end
@@ -603,6 +631,12 @@ class GameScene < Scene::Base
     if @swimers and not @swimers.empty? then
       @swimers.each do |swimer|
         swimer.draw
+      end
+    end
+
+    if @splashs and not @splashs.empty?
+      @splashs.each do |splash|
+        splash.draw
       end
     end
 
@@ -680,7 +714,7 @@ class GameScene < Scene::Base
         @bgm.stop
       end
       @bgm = @@main_bgm
-      @bgm.play(:loop=>true, :volume=>0.8)
+      @bgm.play(:loop=>true, :volume=>0.6)
       @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>32, :data=>24, :copyright=>28})
       @bgm_info.mode = :run
 
@@ -691,7 +725,7 @@ class GameScene < Scene::Base
         @bgm.stop
       end
       @bgm = @@alert_bgm
-      @bgm.play(:loop=>true, :volume=>0.8)
+      @bgm.play(:loop=>true, :volume=>0.6)
 
     when :boss
 
@@ -700,7 +734,7 @@ class GameScene < Scene::Base
         @bgm.stop
       end
       @bgm = @@boss_bgm
-      @bgm.play(:loop=>true, :volume=>0.8)
+      @bgm.play(:loop=>true, :volume=>0.6)
       @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>24, :data=>24, :copyright=>28})
       @bgm_info.mode = :run
     end

@@ -47,10 +47,14 @@ class Weed < Sprite
     @id = id
     @name = "weed"
     @is_drag = is_drag
+    @mode = :wait
   end
 
   def update
-
+    case @mode
+    when :reserved
+      @mode = :wait
+    end
   end
 
   def hit(obj)
