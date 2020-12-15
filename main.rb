@@ -185,7 +185,7 @@ BOSS_BGM_DATE = ["ボス・パニック大行進", "Composed by iPad", "しゅんじ" + TILDE]
 MAIN_ALERT_STRING = "警告！ ボス金魚出現！"
 SUB_ALERT_STRING = "WARNING!"
 
-TECHNICAL_POINT_UP_RANGE = 1000
+CHALLENGE_POINT_UP_RANGE = 1000
 
 
 # タイトル・シーン
@@ -434,7 +434,7 @@ class GameScene < Scene::Base
     @splashs = []
 
     @technical_point = 0
-    @technical_point_diff = 0
+    @challenge_point = 0
 
     @stage_number = FIRST_STAGE_NUMBER - 1
     self.change_mode(FIRST_MODE)
@@ -543,7 +543,7 @@ class GameScene < Scene::Base
 
         if swimer.mode == :reserved then
           splash = Splash.new(SPLASH_IMAGE, 10, 1)
-          splash.run(swimer.x + swimer.center_x - (splash.width * 0.5), swimer.y + swimer.center_y - (splash.height * 0.5), swimer, swimer.width * 4.0, 0.8)
+          splash.run(swimer.x + swimer.center_x - (splash.width * 0.5), swimer.y + swimer.center_y - (splash.height * 0.5), swimer, swimer.height * 2.0, 0.8)
           if swimer.name == "boss" then
             @@splash_rarge_se.play
           else
@@ -745,26 +745,33 @@ class GameScene < Scene::Base
   def scoring(targets)
 
     score_diff = 0
+    technical_point_diff = 0
+
     targets.each do |target|
       score_diff += (BASE_SCORES[target.name] * target.height * 0.01).round
     end
     @score += score_diff * targets.size
     @score_label.string = "SCORE : #{@score}点"
 
-    @technical_point_diff += 50
+    technical_point_diff += 50
+    @technical_point += technical_point_diff
 
+    @challenge_point += technical_point_diff
     boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved}
-    if @technical_point_diff >= TECHNICAL_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
+    if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
       self.change_mode(:alert)
-      @technical_point += @technical_point_diff
-      @technical_point_diff = 0
+      @challenge_point = 0
     end
+
+
   end
 
   def did_disappear
-    @bgm.stop
-    @bgm.free
-    Bass.free
+    if @bgm then
+      @bgm.stop
+      @bgm.free
+      Bass.free
+    end
   end
 end
 
