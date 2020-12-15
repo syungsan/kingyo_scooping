@@ -54,6 +54,7 @@ require "boss"
 require "bgm_info"
 require "alert"
 require "splash"
+require "SampleMapping"
 
 # システム・パラメータ #################################################################################################
 # アプリケーション設定
@@ -109,6 +110,7 @@ ALERT_BGM = "./sounds/nc40157.wav"
 BOSS_BGM = "./sounds/boss_panic_big_march.mp3"
 SPLASH_SMALL_SE = "./sounds/water-drop3.wav"
 SPLASH_RARGE_SE = "./sounds/water-throw-stone2.wav"
+START_SE = "./sounds/sei_ge_bubble06.wav"
 
 # 画像
 STONE_TILE_IMAGE = "./images/stone_tile.png"
@@ -186,6 +188,8 @@ MAIN_ALERT_STRING = "警告！ ボス金魚出現！"
 SUB_ALERT_STRING = "WARNING!"
 
 CHALLENGE_POINT_UP_RANGE = 1000
+
+START_MAX_COUNT = 180
 
 
 # タイトル・シーン
@@ -338,18 +342,12 @@ class GameScene < Scene::Base
 
   @@clickSE = Sound.new(CLICK_SE)
 
+  @@start_se = Sound.new(START_SE)
   @@splash_small_se = Sound.new(SPLASH_SMALL_SE)
   @@splash_rarge_se = Sound.new(SPLASH_RARGE_SE)
   @@stone_tile_image = Image.load(STONE_TILE_IMAGE)
   @@aquarium_back_image = Image.load(AQUARIUM_BACK_IMAGE)
-
-  line_width = 50
-  border_top = Border.new(0, -1 * line_width, Window.width, line_width, 0)
-  border_left = Border.new(-1 * line_width, 0, line_width, Window.height, 1)
-  border_right = Border.new(Window.width, 0, line_width, Window.height, 2)
-  border_bottom = Border.new(0, Window.height, Window.width, line_width, 3)
-  @@borders = [border_top, border_left, border_right, border_bottom]
-
+  
   Bass.init(Window.hWnd)
   @@main_bgm = Bass.loadSample(MAIN_BGM)
   @@alert_bgm = Bass.loadSample(ALERT_BGM)
@@ -395,14 +393,19 @@ class GameScene < Scene::Base
 
     # Write your code...
     @score = 0
-    @score_label = Fonts.new(0, 0, "SCORE : #{@score}点", Window.height * 0.05, C_GREEN, 0, "score_font", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
+    @score_label = Fonts.new(0, 0, "SCORE : #{@score}点", Window.height * 0.05, C_GREEN, 0, "score_Label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
     @score_label.set_z(Z_POSITION_TOP)
 
     stone_tile_image_scale = 0.5
-    stone_tile_rt = RenderTarget.new(@@stone_tile_image.width * stone_tile_image_scale, @@stone_tile_image.height * stone_tile_image_scale)
-    stone_tile_rt.draw_scale(@@stone_tile_image.width * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image.height * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image, stone_tile_image_scale, stone_tile_image_scale)
-    @stone_tile_image = stone_tile_rt.to_image
+    stone_tile_src_rt = RenderTarget.new(@@stone_tile_image.width * stone_tile_image_scale, @@stone_tile_image.height * stone_tile_image_scale)
+    stone_tile_src_rt.draw_scale(@@stone_tile_image.width * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image.height * (stone_tile_image_scale - 1.0) * 0.5, @@stone_tile_image, stone_tile_image_scale, stone_tile_image_scale)
+    stone_tile_src_image = stone_tile_src_rt.to_image
     @@stone_tile_image.dispose
+    stone_tile_src_rt.dispose
+    stone_tile_rt = RenderTarget.new(Window.width, Window.height)
+    stone_tile_rt.drawTile(0, 0, [[0]], [stone_tile_src_image], nil, nil, nil, nil)
+    @stone_tile_image = stone_tile_rt.to_image
+    stone_tile_src_image.dispose
     stone_tile_rt.dispose
 
     aquarium_back_rt = RenderTarget.new(Window.width, Window.height)
@@ -411,9 +414,16 @@ class GameScene < Scene::Base
     @@aquarium_back_image.dispose
     aquarium_back_rt.dispose
 
+    line_width = 50
+    border_top = Border.new(0, -1 * line_width, Window.width, line_width, 0)
+    border_left = Border.new(-1 * line_width, 0, line_width, Window.height, 1)
+    border_right = Border.new(Window.width, 0, line_width, Window.height, 2)
+    border_bottom = Border.new(0, Window.height, Window.width, line_width, 3)
+    @borders = [border_top, border_left, border_right, border_bottom]
+
     @container = Container.new(0, 0, 0.8)
-    @container.x = 300 # @@borders[2].x - @container.width
-    @container.y = 300 # @@borders[3].y - @container.height
+    @container.x = 300 # @borders[2].x - @container.width
+    @container.y = 300 # @borders[3].y - @container.height
     @container.z = Z_POSITION_DOWN
 
     @poi = Poi.new(0, 0, 0.8, @mouse, @container, self)
@@ -436,33 +446,38 @@ class GameScene < Scene::Base
     @technical_point = 0
     @challenge_point = 0
 
-    @stage_number = FIRST_STAGE_NUMBER - 1
+    @wave_shader = SampleMappingShader.new
+    @shader_rt = RenderTarget.new(Window.width, Window.height)
+    @start_count = 0
+
+    @stage_info_label = Fonts.new(0, 0, "", Window.height * 0.2, C_BROWN, 0, "stage_info_label", {:fontType=>LIGHT_NOVEL_POP_FONT_TYPE})
+
+    @stage_number = FIRST_STAGE_NUMBER
     self.change_mode(FIRST_MODE)
   end
 
   def stage_init
 
     weeds = []
-    WEED_NUMBERS[@stage_number].times do |index|
-      weed = Weed.new(0, 0, rand(360), rand_float(WEED_SCALE_RANGES[@stage_number][0], WEED_SCALE_RANGES[@stage_number][1]), index)
-      weed.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - weed.width)
-      weed.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - weed.height)
+    WEED_NUMBERS[@stage_number - 1].times do |index|
+      weed = Weed.new(0, 0, rand(360), rand_float(WEED_SCALE_RANGES[@stage_number - 1][0], WEED_SCALE_RANGES[@stage_number - 1][1]), index)
+      weed.x = random_int(@borders[1].x + @borders[1].width, @borders[2].x - weed.width)
+      weed.y = random_int(@borders[0].y + @borders[0].height, @borders[3].y - weed.height)
       weed.z = Z_POSITION_TOP
       weeds.push(weed)
     end
 
     kingyos = []
-    KINGYO_NUMBERS[@stage_number].times do |index|
-      kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number][0], KINGYO_SCALE_RANGES[@stage_number][1]), index, KINGYO_SPEED_RANGES[@stage_number], KINGYO_MODE_RANGES[@stage_number])
-      kingyo.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - kingyo.width)
-      kingyo.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - kingyo.height)
+    KINGYO_NUMBERS[@stage_number - 1].times do |index|
+      kingyo = Kingyo.new(0, 0, KIND_OF_KINGYOS[rand(2)], rand(360), rand_float(KINGYO_SCALE_RANGES[@stage_number - 1][0], KINGYO_SCALE_RANGES[@stage_number - 1][1]), index, KINGYO_SPEED_RANGES[@stage_number - 1], KINGYO_MODE_RANGES[@stage_number - 1])
+      kingyo.x = random_int(@borders[1].x + @borders[1].width, @borders[2].x - kingyo.width)
+      kingyo.y = random_int(@borders[0].y + @borders[0].height, @borders[3].y - kingyo.height)
       kingyo.z = Z_POSITION_TOP
       kingyos.push(kingyo)
     end
 
     @swimers = weeds + kingyos
     fisher_yates(@swimers)
-
   end
 
   def boss_init
@@ -470,8 +485,8 @@ class GameScene < Scene::Base
     bosss = []
     BOSS_NUMBERS.times do |index|
       boss = Boss.new(0, 0, rand(360), rand_float(BOSS_SCALE_RANGES[0], BOSS_SCALE_RANGES[1]), index, BOSS_SPEED_RANGES, BOSS_MODE_RANGES)
-      boss.x = random_int(@@borders[1].x + @@borders[1].width, @@borders[2].x - boss.width)
-      boss.y = random_int(@@borders[0].y + @@borders[0].height, @@borders[3].y - boss.height)
+      boss.x = random_int(@borders[1].x + @borders[1].width, @borders[2].x - boss.width)
+      boss.y = random_int(@borders[0].y + @borders[0].height, @borders[3].y - boss.height)
       boss.z = Z_POSITION_TOP
       bosss.push(boss)
     end
@@ -496,6 +511,17 @@ class GameScene < Scene::Base
       exit
     end
 
+    case @mode
+
+    when :start
+      if @start_count < START_MAX_COUNT then
+        @wave_shader.update if @wave_shader
+        @start_count += 1
+      else
+        self.change_mode(:normal)
+      end
+    end
+
     # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
     self.mouseProcess if @mouse
 
@@ -515,7 +541,7 @@ class GameScene < Scene::Base
       end
     end
 
-    if @poi and @poi.mode == :try_catch then
+    if @poi and @poi.mode == :try_catch and not @mode == :start then
       catch_objects = []
       if @swimers and not @swimers.empty? then
         @swimers.each do |swimer|
@@ -531,8 +557,8 @@ class GameScene < Scene::Base
     end
 
     # swimerに対するメインループ
-    if @swimers and not @swimers.empty?
-      @swimers.each do |swimer|
+    if @swimers and not @swimers.empty? and not @mode == :start
+    @swimers.each do |swimer|
         if not swimer.mode == :catched and not swimer.is_reserved then
           if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 + ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <= (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
             swimer.z = Z_POSITION_BOTTOM
@@ -565,7 +591,7 @@ class GameScene < Scene::Base
       end
     end
 
-    if @splashs and not @splashs.empty?
+    if @splashs and not @splashs.empty? and not @mode == :start
       @splashs.each do |splash|
         if splash.mode == :finish then
           @splashs.delete(splash)
@@ -575,9 +601,9 @@ class GameScene < Scene::Base
       end
     end
 
-    @bgm_info.update if @bgm_info and @bgm_info.mode == :run
+    @bgm_info.update if @bgm_info and @bgm_info.mode == :run and not @mode == :start
 
-    if @alert and @alert.mode == :run then
+    if @alert and @alert.mode == :run and not @mode == :start then
       @alert.update
     elsif @alert and @alert.mode == :finish
       @alert.mode = :wait
@@ -592,7 +618,7 @@ class GameScene < Scene::Base
 =end
 
     # Write your code...
-    if @swimers and not @swimers.empty? then
+    if @swimers and not @swimers.empty? and not @mode == :start then
       @swimers.each do |swimer|
         swimer.update
       end
@@ -600,17 +626,22 @@ class GameScene < Scene::Base
 
     @poi.update if @poi
 
-    Sprite.check(@@borders + @swimers + [@container]) if @@borders and not @@borders.empty? and @swimers and not @swimers.empty? and @container
+    Sprite.check(@borders + @swimers + [@container]) if @borders and not @borders.empty? and @swimers and not @swimers.empty? and @container and not @mode == :start
   end
 
   def render
 
     # Write your code...
-    Window.drawTile(0, 0, [[0]], [@stone_tile_image], nil, nil, nil, nil) if @stone_tile_image
+    Window.draw(0, 0, @stone_tile_image) if @stone_tile_image
     Window.draw_ex(0, 0, @aquarium_back_image, :alpha=>180) if @aquarium_back_image
 
-    if @@borders and not @@borders.empty?
-      @@borders.each do |border|
+    @shader_rt.draw(0, 0, @aquarium_back_image) if @mode == :start
+    Window.draw_shader(0, 0, @shader_rt, @wave_shader) if @mode == :start
+
+    @stage_info_label.render if @mode == :start
+
+    if @borders and not @borders.empty? and not @mode == :start
+      @borders.each do |border|
         border.draw
       end
     end
@@ -625,16 +656,16 @@ class GameScene < Scene::Base
     Sprite.draw(@item) if @item
 =end
 
-    @container.draw if @container
+    @container.draw if @container and not @mode == :start
     @poi.draw if @poi
 
-    if @swimers and not @swimers.empty? then
+    if @swimers and not @swimers.empty? and not @mode == :start then
       @swimers.each do |swimer|
         swimer.draw
       end
     end
 
-    if @splashs and not @splashs.empty?
+    if @splashs and not @splashs.empty? and not @mode == :start
       @splashs.each do |splash|
         splash.draw
       end
@@ -643,9 +674,9 @@ class GameScene < Scene::Base
     @exitButton.render
     @windowModeButton.render
 
-    @score_label.render if @score_label
-    @bgm_info.draw if @bgm_info and @bgm_info.mode == :run
-    @alert.draw if @alert and @alert.mode == :run
+    @score_label.render if @score_label and not @mode == :start
+    @bgm_info.draw if @bgm_info and @bgm_info.mode == :run and not @mode == :start
+    @alert.draw if @alert and @alert.mode == :run and not @mode == :start
   end
 
   # キャラクタ・スプライトのマウスイベントを処理する場合はコメント外す
@@ -705,11 +736,17 @@ class GameScene < Scene::Base
 
     case mode
 
-    when :normal
-
     when :start
 
+      @@start_se.play if @@start_se
       self.stage_init
+
+      @stage_info_label.string = "ステージ#{@stage_number}"
+      @stage_info_label.x = (Window.width - @stage_info_label.get_width) * 0.5
+      @stage_info_label.y = (Window.height - @stage_info_label.get_height) * 0.5
+
+    when :normal
+
       if @bgm then
         @bgm.stop
       end
@@ -762,8 +799,6 @@ class GameScene < Scene::Base
       self.change_mode(:alert)
       @challenge_point = 0
     end
-
-
   end
 
   def did_disappear
