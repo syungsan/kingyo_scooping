@@ -9,10 +9,11 @@ require "dxruby"
 class ScoreListBox
 
   attr_accessor :name,:id, :is_drag
-  attr_reader :width, :height
+  attr_reader :width, :height, :mode
 
   SHADOW_OFFSET_X = 10
   SHADOW_OFFSET_Y = 10
+  FONT_SIZE_RATO = 0.8
 
   def initialize(x=0, y=0, width=640, height=480, radius=20, fill_color=C_DEFAULT, border_color=C_BLUE,
                  frame_thickness=10, max_page_number=10, name="list_box", id=0, target=Window)
@@ -30,34 +31,46 @@ class ScoreListBox
       self.roundbox(index, index, @width - 1 - index, @height - 1 - index, radius, border_color, @frame_image)
     end
     @shadow = @frame_image.flush([64, 0, 0, 0])
-    @down_layer = Image.new(@width - (@frame_thickness * 2), @height - (@frame_thickness * 2) * max_page_number)
-    @up_layer = Image.new(@width - (@frame_thickness * 2), @height - (@frame_thickness * 2))
+    @max_page_number = max_page_number
+    @down_layer = Image.new(@width - (@frame_thickness * 2), (@height - (@frame_thickness * 2)) * @max_page_number)
+    @up_layer = Image.new(@width - (@frame_thickness * 2), @height - (@frame_thickness * 2), C_BLACK)
     @scroll_count = 0
   end
 
-  def setItems(items, horizontal_division_ratios, colors, color_target_index, vertical_division=10)
-    items.each_with_index do |item, i|
-      vartical_part_height = (@height - (@frame_thickness * 2)) / vertical_division
-      vertical_position = vartical_part_height * i
-      horizontal_position = 0
-      item.each_with_index do |itm, j|
-        horizontal_division = (@width - (@frame_thickness * 2)) * horizontal_division_ratios[j] / horizontal_division_ratios.inject(:+).to_f
-        p font_size = [horizontal_division / itm.length * 2, vartical_part_height].min
-        font = Font.new(font_size)
-        if j == color_target_index then
-          color = colors[i]
-        else
-          color = C_ROYAL_BLUE
+  def set_items(items, horizontal_division_ratios, default_text_color, target_colors, color_target_index, vertical_division=10)
+    if items.size <= vertical_division * @max_page_number then
+      items.each_with_index do |item, i|
+        vertical_part_height = (@height - (@frame_thickness * 2)) / vertical_division
+        horizontal_position = 0
+        item.each_with_index do |itm, j|
+          horizontal_division = (@width - (@frame_thickness * 2)) * horizontal_division_ratios[j] / horizontal_division_ratios.inject(:+).to_f
+          font_size = [horizontal_division / itm.length * 2, vertical_part_height].min * FONT_SIZE_RATO
+          font = Font.new(font_size)
+          if j == color_target_index then
+            color = target_colors[i]
+          else
+            color = default_text_color
+          end
+          vertical_position = vertical_part_height * i + ((vertical_part_height - font_size) * 0.5)
+          @down_layer.draw_font_ex(horizontal_position, vertical_position, itm, font, {:color=>color, :shadow=>true, :shadow_color=>[64, 64, 64]})
+          horizontal_position += horizontal_division
         end
-        @down_layer.draw_font_ex(horizontal_position, vertical_position, itm, font, {:color=>color, :shadow=>true, :shadow_color=>[64, 64, 64]})
-        horizontal_position += horizontal_division
       end
+      @up_layer.draw(0, 0, @down_layer)
     end
-    @up_layer.draw(0, 0, @down_layer)
+  end
+
+  def scroll_up
+    @mode = :up
+  end
+
+  def scroll_down
+    @mode = :down
   end
 
   def update
-    # @scroll_count += 5
+    @scroll_count -= 5 if @mode == :up
+    @scroll_count += 5 if @mode == :down
   end
 
   def draw
@@ -103,15 +116,25 @@ if __FILE__ == $0 then
   Window.height = 720
 
   items = [["1位", "非常勤講師", "10000点", "金魚神"], ["2位", "アルバイト募集", "1000点", "金魚人"], ["3位", "ちづる", "100点", "レジェンドン"],
-           ["4位", "神じゃね？", "10点", "スーパーカブ"], ["5位", "落ちこぼれ野郎", "1点", "良しヲくん"]]
-  colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
+           ["4位", "神じゃね？", "10点", "スーパーカブ"], ["5位", "落ちこぼれ野郎", "1点", "良しヲくん"],["6位", "非常勤講師", "10000点", "金魚神"],
+           ["7位", "アルバイト募集", "1000点", "金魚人"], ["8位", "ちづる", "100点", "レジェンドン"], ["9位", "神じゃね？", "10点", "スーパーカブ"],
+           ["10位", "落ちこぼれ野郎", "1点", "良しヲくん"], ["11位", "非常勤講師", "10000点", "金魚神"], ["12位", "アルバイト募集", "1000点", "金魚人"],
+           ["13位", "ちづる", "100点", "レジェンドン"], ["14位", "神じゃね？", "10点", "スーパーカブ"], ["100位", "落ちこぼれ野郎乙", "100000000点", "良しヲくん"]]
+  colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE,
+    C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
 
   list_box = ScoreListBox.new(25, 25, 1230, 670)
-  list_box.setItems(items, [2, 7, 6, 4], colors, 3)
+  list_box.set_items(items, [3, 8, 7, 4], C_ROYAL_BLUE, colors, 3)
 
   Window.bgcolor = [127, 255, 212]
   Window.loop do
     list_box.update
     list_box.draw
+    if Input.key_push?(K_UP) then
+      list_box.scroll_up
+    end
+    if Input.key_push?(K_DOWN) then
+      list_box.scroll_down
+    end
   end
 end

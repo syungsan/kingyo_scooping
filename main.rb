@@ -57,6 +57,7 @@ require "splash"
 require "SampleMapping"
 require "name_entry"
 require "confetti"
+require "score_list_box"
 
 require "net/http"
 require "time"
@@ -1369,7 +1370,7 @@ class NameEntryScene < Scene::Base
             when "decision_button"
               @clickSE.play
               self.did_disappear
-              self.sendToDatabase
+              # self.sendToDatabase
               self.next_scene = RankingScene
 
             when "reset_button"
@@ -1452,6 +1453,20 @@ class RankingScene < Scene::Base
     @clickSE = Sound.new(CLICK_SE)
 
     # self.makeResultLabel
+    self.temp
+  end
+
+  def temp
+    items = [["1位", "非常勤講師", "10000点", "金魚神"], ["2位", "アルバイト募集", "1000点", "金魚人"], ["3位", "ちづる", "100点", "レジェンドン"],
+             ["4位", "神じゃね？", "10点", "スーパーカブ"], ["5位", "落ちこぼれ野郎", "1点", "良しヲくん"],["6位", "非常勤講師", "10000点", "金魚神"],
+             ["7位", "アルバイト募集", "1000点", "金魚人"], ["8位", "ちづる", "100点", "レジェンドン"], ["9位", "神じゃね？", "10点", "スーパーカブ"],
+             ["10位", "落ちこぼれ野郎", "1点", "良しヲくん"], ["11位", "非常勤講師", "10000点", "金魚神"], ["12位", "アルバイト募集", "1000点", "金魚人"],
+             ["13位", "ちづる", "100点", "レジェンドン"], ["14位", "神じゃね？", "10点", "スーパーカブ"], ["100位", "落ちこぼれ野郎乙", "100000000点", "良しヲくん"]]
+    colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE,
+              C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE, C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
+
+    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350)
+    @list_box.set_items(items, [3, 8, 7, 4], C_ROYAL_BLUE, colors, 3)
   end
 
   def loadFromDatabase
@@ -1524,9 +1539,19 @@ class RankingScene < Scene::Base
       @clickSE.play
       self.next_scene = TitleScene
     end
+
+    @list_box.update
+    if Input.key_push?(K_UP) then
+      @list_box.scroll_up
+    end
+    if Input.key_push?(K_DOWN) then
+      @list_box.scroll_down
+    end
   end
 
   def render
+    @list_box.draw
+
     @titleLabel.render
     @exitButton.render
     @windowModeButton.render
