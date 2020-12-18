@@ -8,8 +8,9 @@ require "jcode"
 require "dxruby"
 
 if __FILE__ == $0
-  Dir.chdir("#{Dir.pwd}/../")
-  require "./lib/dxruby/button"
+  Dir.chdir("../") do
+    require "./lib/dxruby/button"
+  end
 end
 
 
@@ -73,9 +74,14 @@ class NameEntry
             kanaButton.set_pos(self.x + ((kanaButton.w + 1) * i), self.y + ((kanaButton.h + 1) * j))
           end
 
-          kanaButton.color(@baseColor)
-          kanaButton.font_color(@strColor)
-          kanaButton.fontType = @fontType
+          if @is_image_object_set then
+            @image_object_clone = @image_object.clone
+            kanaButton.set_image_and_text(@image_object_clone, KANA[i][j], @fontSize, @strColor, @fontType)
+          else
+            kanaButton.color(@baseColor)
+            kanaButton.font_color(@strColor)
+            kanaButton.fontType = @fontType
+          end
 
           @kanaButtons << kanaButton
         end
@@ -91,6 +97,12 @@ class NameEntry
   def setImage(filename)
     @isImageSet = true
     @filename = filename
+    self.makeKeyboard
+  end
+
+  def set_image_object(image_object)
+    @is_image_object_set = true
+    @image_object = image_object
     self.makeKeyboard
   end
 

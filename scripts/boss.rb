@@ -50,6 +50,7 @@ class Boss < Sprite
     self.x = x
     self.y = y
     self.image = @images[0][0]
+    @shadow_image = @images[1][0]
     @width = self.image.width
     @height = self.image.height
     self.collision = [0, 0, @width, @height]

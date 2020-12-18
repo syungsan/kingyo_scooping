@@ -32,4 +32,8 @@ module Color
   C_DARK_BLUE = [0, 0, 51]
   C_BROWN = [165, 42, 42]
   C_GOLD = [255, 215, 0]
+  C_MISTY_ROSE = [255, 228, 225]
+  C_PURPLE = [128, 0, 128]
+  C_AQUAMARINE = [127, 255, 212]
+  C_ROYAL_BLUE = [65, 105, 255]
 end

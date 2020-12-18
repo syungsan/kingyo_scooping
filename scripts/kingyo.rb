@@ -52,6 +52,7 @@ class Kingyo < Sprite
     self.x = x
     self.y = y
     self.image = @images[KIND_OF_KINGYOS.index(@kind_of)][0][0]
+    @shadow_image = @images[KIND_OF_KINGYOS.index(@kind_of)][1][0]
     @width = self.image.width
     @height = self.image.height
     self.collision = [0, 0, @width, @height]

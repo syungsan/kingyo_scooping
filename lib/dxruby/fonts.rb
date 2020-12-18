@@ -97,6 +97,6 @@ if __FILE__ == $0
   testLabel.fit(300)
 
   Window.loop do
-    testLabel.render
+    testLa
   end
 end

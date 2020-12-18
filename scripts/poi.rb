@@ -45,7 +45,7 @@ class Poi <Sprite
 
   include Easing
 
-  attr_accessor :id, :name, :is_drag, :mode
+  attr_accessor :id, :name, :is_drag, :mode, :catch_count
   attr_reader :width, :height
 
   def initialize(x, y, scale=1, follow_target=nil, transport_target=nil, parent=nil, id=0, target=Window, is_drag=true)
@@ -81,12 +81,12 @@ class Poi <Sprite
     @is_drag = is_drag
     @gaze_area_radius = @width * POI_GAZE_AREA_RADIUS_AGAINST_POI_PAPER_RATIO
     @gaze_count = 0
-    @div_catch_count = 1 / POI_CATCH_COUNT.to_f
     @catch_range_scale = 0
     @transport_count = 0
     @follow_target = follow_target
     @transport_target = transport_target
     @parent = parent
+    @catch_count = POI_CATCH_COUNT
     @mode = :normal
   end
 
@@ -120,8 +120,8 @@ class Poi <Sprite
   def try_gaze
 
     if @follow_target and (@follow_target.x - (self.x + (@width * 0.5))) ** 2 + ((@follow_target.y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5) ** 2 then
-      if @gaze_count < POI_CATCH_COUNT then
-        @catch_range_scale = @div_catch_count * @gaze_count.to_f
+      if @gaze_count < @catch_count then
+        @catch_range_scale = 1 / @catch_count.to_f * @gaze_count.to_f
         @gaze_count += 1
       else
         @catch_range_scale = 0

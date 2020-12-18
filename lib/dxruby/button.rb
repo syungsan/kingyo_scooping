@@ -11,10 +11,10 @@ require "dxruby"
 
 class Button
 
-  attr_accessor :x, :y, :name, :id, :target, :scaleX, :scaleY, :angle
+  attr_accessor :x, :y, :name, :id, :target, :scaleX, :scaleY, :angle, :isHover
   attr_reader :w, :h, :text
 
-  def initialize(x, y, w=100, h=40, string="", font_size=36, color=[120, 120, 120], str_color=[255, 255, 255], gr_color1=[220, 220, 220], gr_color2=[70, 70, 70], id=0, name="Button", option={})
+  def initialize(x=0, y=0, w=100, h=40, string="", font_size=36, color=[120, 120, 120], str_color=[255, 255, 255], gr_color1=[220, 220, 220], gr_color2=[70, 70, 70], id=0, name="Button", option={})
     option = {:target=>Window, :fontType=>"‚l‚r ‚oƒSƒVƒbƒN", :isHover=>true}.merge(option)
 
     self.target = option[:target]
@@ -118,7 +118,7 @@ class Button
     self.drawString
   end
 
-  def isHover=(isHover)
+  def setHover=(isHover)
     @isHover = isHover
     self.construct
     self.drawString
@@ -170,14 +170,6 @@ class Button
     mouseX = Input.mousePosX
     mouseY = Input.mousePosY
 
-    if @isHover then
-      if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h and @isImageSet and !@click then
-        @image = @images[2]
-      elsif !@click
-        @image = @images[0]
-      end
-    end
-
     if Input.mousePush?(M_LBUTTON) and !@click then
       if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h then
 
@@ -202,10 +194,40 @@ class Button
     mouseX = Input.mousePosX
     mouseY = Input.mousePosY
 
-    if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h and @isImageSet and !@click then
+    if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h and @isImageSet and !@click and @isHover then
+      @image = @images[2]
       return true
-    else
+    elsif !@click
+      @image = @images[0]
       return false
+    end
+  end
+
+  def set_image_and_text(image_object, text="", font_size=20, font_color=C_BLACK, font_type="‚l‚r ‚oƒSƒVƒbƒN")
+
+    image = image_object
+    @w = image.width
+    @h = image.height
+    @images = []
+    @images.push(image)
+    if @isHover then
+      @images << image.change_hls(0, -20, 0)
+      @images << image.change_hls(0, 20, 0)
+    end
+    @image = @images[0]
+    @isImageSet = true
+    @text = text
+    @font_size = font_size
+    @str_color = font_color
+    @fontType = font_type
+    self.drawString
+  end
+
+  def blink
+    if @image == @images[2] then
+      @image = @images[0]
+    else
+      @image = @images[2]
     end
   end
 end
