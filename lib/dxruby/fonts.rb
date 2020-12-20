@@ -14,14 +14,14 @@ class Fonts
   attr_accessor :x, :y, :string, :z, :color, :shadow, :shadow_color,
                 :alpha, :angle, :edge, :edge_color, :edge_width, :edge_level, :name, :id, :target
 
-  def initialize(x=0, y=0, string="", size=28, color=C_WHITE, option={}, name="Fonts", id=0, target=Window)
-    option = {:font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :italic=>false, :weight=>400, :auto_fitting=>false,
-              :alpha=>255, :angle=>0, :shadow=>true, :shadow_color=>[64, 64, 64],
+  def initialize(x=0, y=0, string="", size=28, color=C_WHITE, option={})
+    option = {:name=>"Fonts", :id=>0, :target=>Window, :z=>0, :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :italic=>false, :weight=>400,
+              :auto_fitting=>false, :alpha=>255, :angle=>0, :shadow=>true, :shadow_color=>[64, 64, 64],
               :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4}.merge(option)
 
     @x = x
     @y = y
-    @z = 0
+    @z = option[:z]
     @string = string
     @size = size
     @font_name = option[:font_name]
@@ -37,9 +37,9 @@ class Fonts
     @edge_color = option[:edge_color]
     @edge_width = option[:edge_width]
     @edge_level = option[:edge_level]
-    @name = name
-    @id = id
-    @target = target
+    @name = option[:name]
+    @id = option[:id]
+    @target = option[:target]
     self.constract
   end
 
@@ -81,7 +81,7 @@ class Fonts
 
   # ŠeŽíƒQƒbƒ^[
   def width
-    return @font.getWidth(@string)
+    return @font.get_width(@string)
   end
 
   def height
@@ -89,27 +89,31 @@ class Fonts
   end
 
   def draw
-    self.target.drawFontEx(@x, @y, @string, @font, {:z=>@z, :color=>@color, :shadow=>@shadow, :shadow_color=>@shadow_color,
+    @target.draw_font_ex(@x, @y, @string, @font, {:z=>@z, :color=>@color, :shadow=>@shadow, :shadow_color=>@shadow_color,
                                                     :alpha=>@alpha, :angle=>@angle, :edge=>@edge, :edge_color=>@edge_color,
                                                     :edge_width=>@edge_width, :edge_level=>@edge_level})
+  end
+
+  def vanish
+    @font.dispose
   end
 end
 
 
 if __FILE__ == $0
 
-  testLabel = Fonts.new(0, 0, "FONTS")
+  test_label = Fonts.new(0, 0, "FONTS")
 
-  testLabel.set_italic = true
-  testLabel.set_weight = 800
-  testLabel.fit(500)
-  testLabel.edge = true
+  test_label.set_italic = true
+  test_label.set_weight = 800
+  test_label.fit(500)
+  test_label.edge = true
 
-  testLabel.set_pos((Window.width - testLabel.width) * 0.5, (Window.height - testLabel.height) * 0.5)
-  testLabel.angle = 30
+  test_label.set_pos((Window.width - test_label.width) * 0.5, (Window.height - test_label.height) * 0.5)
+  test_label.angle = 30
 
   Window.bgcolor = C_GREEN
   Window.loop do
-    testLabel.draw
+    test_label.draw
   end
 end

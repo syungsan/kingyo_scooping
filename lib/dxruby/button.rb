@@ -11,154 +11,209 @@ require "dxruby"
 
 class Button
 
-  attr_accessor :x, :y, :scaleX, :scaleY, :angle, :isHover,:name, :id, :target
-  attr_reader :w, :h, :text
+  attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z, :name, :id, :target
+  attr_reader :width, :height, :string
 
-  def initialize(x=0, y=0, w=100, h=40, string="", font_size=36, color=[120, 120, 120], str_color=[255, 255, 255], gr_color1=[220, 220, 220], gr_color2=[70, 70, 70], id=0, name="Button", option={})
-    option = {:target=>Window, :fontType=>"ÇlÇr ÇoÉSÉVÉbÉN", :isHover=>true}.merge(option)
+  def initialize(x=0, y=0, width=100, height=40, string="", font_size=36, option={})
+    option = {:color=>[120 ,120, 120], :str_color=>[255, 255, 255], :font_name=>"ÇlÇr ÇoÉSÉVÉbÉN", :gr_color1=>[220, 220, 220],
+              :gr_color2=>[70, 70, 70], :is_hoverable=>true, :scale_x=>1, :scale_y=>1, :alpha=>255, :angle=>0, :z=>0,
+              :str_weight=>400, :str_italic=>false, :str_auto_fitting=>false, :str_shadow=>false, :str_shadow_color=>[0, 0, 0],
+              :str_alpha=>0, :str_angle=>0, :str_edge=>false, :str_edge_color=>[0, 0, 0], :str_edge_width=>2, :str_edge_level=>4,
+              :name=>"Button", :id=>0, :target=>Window}.merge(option)
 
-    self.target = option[:target]
-    self.x = x
-    self.y = y
-    @w = w
-    @h = h
-    self.name = name
-    self.id = id
-    @color = color
-    @frameColor = [gr_color1, gr_color2]
-    @images = []
-    self.construct
-    @image = @images[0]
-    @text = string
+    @x = x
+    @y = y
+    @z = option[:z]
+    @width = width
+    @height = height
+    @string = string
     @font_size = font_size
-    @str_color = str_color
-    @fontType = option[:fontType]
-    self.drawString
-    @scaleX = 1.0
-    @sclleY = 1.0
-    @angle = 0.0
-    @click = false
-    @isImageSet = false
-    @isHover = option[:isHover]
-  end
+    @color = option[:color]
+    @str_color = option[:str_color]
+    @font_name = option[:font_name]
+    @frame_color = [option[:gr_color1], option[:gr_color2]]
+    @scale_x = option[:scale_x]
+    @scale_y = option[:scale_y]
+    @alpha = option[:alpha]
+    @angle = option[:angle]
+    @is_hoverable = option[:is_hoverable]
+    @name = option[:name]
+    @id = option[:id]
+    @target = option[:target]
+    @images = []
 
-  #ï`âÊà íuÇÃê›íË
-  def set_pos(x, y)
-    self.x, self.y = x, y
-  end
+    @str_weight = option[:weight]
+    @str_italic = option[:italic]
+    @str_auto_fitting = option[:auto_fitting]
+    @str_shadow = option[:shadow]
+    @str_shadow_color = option[:shadow_color]
+    @str_alpha = option[:alpha]
+    @str_angle = option[:angle]
+    @str_edge = option[:edge]
+    @str_edge_color = option[:edge_color]
+    @str_edge_width = option[:edge_width]
+    @str_edge_level = option[:edge_level]
 
-  def color(color)
-    @color = color
+    @has_imageSet = false
+    @is_click = false
+
     self.construct
-    @image = @images[0]
-    self.drawString
-  end
-
-  def image(filename, scaleX=1.0, scaleY=1.0, angle=0)
-    @filename = filename
-    @scaleX = scaleX
-    @scaleY = scaleY
-    @angle = angle
-    @isImageSet = true
-    self.construct
-    self.drawString
+    self.draw_string
   end
 
   def construct
 
-    if !@images.empty? then
-      for image in @images
-        image.dispose if image and !image.disposed?
-      end
-      @images = []
-    end
-
-    unless @isImageSet then
-      2.times do
-        image = Image.new(@w, @h, @color)
-        image.boxFill(0, 0, @w, 2, @frameColor[0])
-        image.boxFill(0, 0, 2, @h, @frameColor[0])
-        image.boxFill(@w - 2, 0, @w, @h, @frameColor[1])
-        image.boxFill(0, @h - 2, @w, @h, @frameColor[1])
-        @images << image
-        @frameColor.reverse!
-      end
-    else
-      image = Image.load(@filename)
-
-      @w = image.width
-      @h = image.height
-
-      @images << image
-
-      if @isHover then
-        @images << image.change_hls(0, -20, 0)
-        @images << image.change_hls(0, 20, 0)
-      end
+    @images.clear unless @images.empty?
+    2.times do
+      image = Image.new(@width, @height, @color)
+      image.boxFill(0, 0, @width, 2, @frame_color[0])
+      image.boxFill(0, 0, 2, @height, @frame_color[0])
+      image.boxFill(@width - 2, 0, @width, @height, @frame_color[1])
+      image.boxFill(0, @height - 2, @width, @height, @frame_color[1])
+      @images.push(image)
+      @frame_color.reverse!
     end
     @image = @images[0]
   end
 
-  def string(string, font_size)
-    @font_size = font_size
-    @text = string
-    self.construct
-    self.drawString
-  end
-
-  def font_color(font_color)
-    @str_color = font_color
-    self.construct
-    self.drawString
-  end
-
-  def fontType=(fontType)
-    @fontType = fontType
-    self.construct
-    self.drawString
-  end
-
-  def setHover=(isHover)
-    @isHover = isHover
-    self.construct
-    self.drawString
-  end
-
-  def frame(color, frame_size=1)
-    @image.box_fill(0, 0, @w, frame_size - 1, color) # è„ï”
-    @image.box_fill(0, 0, frame_size - 1, @h, color) # ç∂ï”
-    @image.box_fill(@w - frame_size, 0, @w, @h, color) # âEï”
-    @image.box_fill(0, @h - frame_size, @w, @h, color) # ç∂ï”
-  end
-
-  def drawString
-    if @text != "" then
-      @font = Font.new(@font_size, @fontType)
-      stringWidth = @font.getWidth(@text)
-      @images.size.times do |i|
-        @images[i].drawFont((@w - stringWidth) * 0.5, (@h - @font.size) * 0.5, @text, @font, @str_color)
+  def draw_string
+    unless @string == "" then
+      font = Font.new(@font_size, @font_name, {:weight=>@str_weight, :italic=>@str_italic, :auto_fitting=>@str_auto_fitting})
+      string_width = font.get_width(@string)
+      @images.each do |image|
+        image.draw_font_ex((@width - string_width) * 0.5, (@height - font.size) * 0.5, @string, font,
+                        {:color=>@str_color, :shadow=>@str_shadow, :shadow_color=>@str_shadow_color, :alpha=>@str_alpha, :angle=>@str_angle,
+                         :edge=>@str_edge, :edge_color=>@str_edge_color, :edge_width=>@str_edge_width, :edge_level=>@str_edge_level})
       end
+      font.dispose
     end
   end
 
-  def render
-    self.target.drawEx(self.x, self.y, @image, {:scale_x=>@scaleX, :scale_y=>@scaleY, :angle=>@angle})
+  #ï`âÊà íuÇÃê›íË
+  def set_pos(x, y)
+    @x = x
+    @y = y
   end
 
-  def scale_render(sx, sy)
-    self.target.draw_scale(self.x, self.y, @image, sx, sy, 0, 0)
+  def set_string(string, font_size=36, font_name="ÇlÇr ÇoÉSÉVÉbÉN", option={})
+    option = {:weight=>400, :italic=>false, :auto_fitting=>false, :color=>[255, 255, 255], :shadow=>false, :shadow_color=>[0, 0, 0],
+              :alpha=>0, :angle=>0, :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4}.merge(option)
+
+    @string = string
+    @font_size = font_size
+    @font_name = font_name
+    @str_color = option[:color]
+    @str_weight = option[:weight]
+    @str_italic = option[:italic]
+    @str_auto_fitting = option[:auto_fitting]
+    @str_shadow = option[:shadow]
+    @str_shadow_color = option[:shadow_color]
+    @str_alpha = option[:alpha]
+    @str_angle = option[:angle]
+    @str_edge = option[:edge]
+    @str_edge_color = option[:edge_color]
+    @str_edge_width = option[:edge_width]
+    @str_edge_level = option[:edge_level]
+
+    unless @has_image_set then
+      self.construct
+    else
+      self.image_reconstract
+    end
+    self.draw_string
   end
 
-  def rot_render(angle)
-    self.target.drawRot(self.x, self.y, @image, angle)
+  def color=(color)
+    unless @has_image_set then
+      @color = color
+      self.construct
+      self.draw_string
+    end
+  end
+
+  def font_color=(font_color)
+    @str_color = font_color
+    unless @has_image_set then
+      self.construct
+    else
+      self.image_reconstract
+    end
+    self.draw_string
+  end
+
+  def font_name=(font_name)
+    @font_name= font_name
+    unless @has_image_set then
+      self.construct
+    else
+      self.image_reconstract
+    end
+    self.draw_string
+  end
+
+  def image_reconstract
+
+    @images.clear unless @images.empty?
+    @images = @org_images.clone
+
+    if @is_hoverable and @images.size <= 1 then
+      @images.push(@images[0].change_hls(0, -20, 0))
+      @images.push(@images[0].change_hls(0, 20, 0))
+    end
+    @image = @images[0]
+    @has_image_set = true
+  end
+
+  def set_image(image)
+
+    @width = image.width
+    @height = image.height
+
+    @images.clear unless @images.empty?
+
+    @images.push(image)
+    if @is_hoverable then
+      @images.push(image.change_hls(0, -20, 0))
+      @images.push(image.change_hls(0, 20, 0))
+    end
+
+    @org_images = @images.clone
+    @image = @images[0]
+
+    @has_image_set = true
+    self.draw_string
+  end
+
+  def hover=(is_hoverable)
+    if @has_image_set then
+      @is_hoverable = is_hoverable
+      self.image_reconstract
+      self.draw_string
+    end
+  end
+
+  def frame(color, frame_size=1)
+
+    unless @has_image_set then
+      self.construct
+    else
+      self.image_reconstract
+    end
+    @image.box_fill(0, 0, @width, frame_size - 1, color) # è„ï”
+    @image.box_fill(0, 0, frame_size - 1, @height, color) # ç∂ï”
+    @image.box_fill(@width - frame_size, 0, @width, @height, color) # âEï”
+    @image.box_fill(0, @height - frame_size, @width, @height, color) # ç∂ï”
+
+    self.draw_string
   end
 
   # âüâ∫ÇµÇƒÇ¢ÇÈÇ©ÇÃîªíË
   def pushing?
-    mouseX = Input.mousePosX
-    mouseY = Input.mousePosY
 
-    if Input.mouseDown?(M_LBUTTON) and mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h then
+    mouse_x = Input.mouse_pos_x
+    mouse_y = Input.mouse_pos_y
+
+    if Input.mouse_down?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
       return true
     else
       return false
@@ -167,60 +222,45 @@ class Button
 
   #É{É^ÉìÇâüâ∫ÇµÇΩéûÇÃèàóù
   def pushed?
-    mouseX = Input.mousePosX
-    mouseY = Input.mousePosY
 
-    if Input.mousePush?(M_LBUTTON) and !@click then
-      if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h then
+    mouse_x = Input.mouse_pos_x
+    mouse_y = Input.mouse_pos_y
+
+    if Input.mouse_push?(M_LBUTTON) and not @is_click then
+      if mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
 
         @image = @images[1] if @images[1]
 
-        @click = true
+        @is_click = true
         return false
       end
 
-    elsif !Input.mouseDown?(M_LBUTTON) and @click then
+    elsif not Input.mouse_down?(M_LBUTTON) and @is_click then
 
-      @image = @images[0]
+      @image = @images[0] if @images[0]
 
-      @click = false
-      return true if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h
+      @is_click = false
+      return true if mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height
     else
       return false
     end
   end
 
   def hovered?
-    mouseX = Input.mousePosX
-    mouseY = Input.mousePosY
 
-    if mouseX >= self.x and mouseX <= self.x + @w and mouseY >= self.y and mouseY <= self.y + @h and @isImageSet and !@click and @isHover then
-      @image = @images[2]
+    mouse_x = Input.mouse_pos_x
+    mouse_y = Input.mouse_pos_y
+
+    if mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height and
+      @has_image_set and not @is_click and @is_hoverable then
+
+      @image = @images[2] if @images[2]
       return true
-    elsif !@click
-      @image = @images[0]
+
+    elsif not @is_click
+      @image = @images[0] if @images[0]
       return false
     end
-  end
-
-  def set_image_and_text(image_object, text="", font_size=20, font_color=C_BLACK, font_type="ÇlÇr ÇoÉSÉVÉbÉN")
-
-    image = image_object
-    @w = image.width
-    @h = image.height
-    @images = []
-    @images.push(image)
-    if @isHover then
-      @images << image.change_hls(0, -20, 0)
-      @images << image.change_hls(0, 20, 0)
-    end
-    @image = @images[0]
-    @isImageSet = true
-    @text = text
-    @font_size = font_size
-    @str_color = font_color
-    @fontType = font_type
-    self.drawString
   end
 
   def blink
@@ -230,28 +270,42 @@ class Button
       @image = @images[2]
     end
   end
+
+  def draw
+    @target.draw_ex(@x, @y, @image, {:scale_x=>@scale_x, :scale_y=>@scale_y, :alpha=>@alpha, :angle=>@angle, :x=>@z})
+  end
+
+  def vanish
+    unless @images.empty then
+      @images.each do |image|
+        image.dispose unless image.disposed?
+      end
+      @images.clear
+    end
+  end
 end
 
 
 if __FILE__ == $0
 
-  button = Button.new(300, 300, 100, 40, "BUTTON")
-  button.color(C_BLUE)
-  button.font_color(C_RED)
-  button.string("OK", 42)
+  button = Button.new(0, 0, 300, 100, "ÉeÉXÉgÉ{É^Éì", font_size=54)
+  button.set_pos((Window.width - button.width) * 0.5, (Window.height - button.height) * 0.5)
 
-  p button.w
+  button.set_string("åä∑ÇµÇ‹ÇµÇΩ", 24)
+  button.color = C_BLUE
+  button.font_color = C_RED
+  button.angle = 30
 
-  # button.image("sample.png", 0.5, 0.5, 20)
-  # button.string = ("BAD", 30)
-  button.angle = 45
-
-  button.frame(C_WHITE, 10)
+  image = Image.load("../../images/m_1.png")
+  button.set_image(image)
+  # button.frame(C_WHITE, 10)
+  # button.hover = false
 
   Window.loop do
-    button.render
+    button.draw
     if button.pushed? then
       p "pushed!"
     end
+    button.hovered?
   end
 end

@@ -11,66 +11,35 @@ end
 # この実行スクリプトのあるディレクトリに移動
 Dir.chdir(File.expand_path("..", __FILE__))
 
-
-
-
-# 各種ライブラリの場所一括設定
-$LOAD_PATH.push("./lib", "./scripts", "./lib/dxruby", "./lib/audio")
-
-# 使用しないライブラリはコメントアウト
 require "dxruby" # DXRuby本体
-
-require "scene" # 画面遷移
-require "fonts" # ラベル作成
-require "button" # ボタン作成
-require "color" # カラー情報（モジュールなので要include）
-require "ui" # その他のユーザインタフェース
-# require "files" # ファイル操作（モジュールなので要include） log.rbを使うときも必要
-require "images" # 画像オブジェクト一般
-require "common" # Ruby汎用ライブラリ（モジュールなので要include）
-# require "excel" # Excel操作用
-# require "sqlite3" # データベース
-# require "weighted_randomizer" # 重み付き乱択
-require "encode" # 文字コード変換
-require "json/pure" # JSON
-# require "linear_algebra" # 線形代数
-# require "win32/open3" # 外部コマンド実行
-
-# Audio解析関連
-# require "wav-file"
-# require "mciver3"
-# require "wav_analyze"
+require "./lib/dxruby/scene" # 画面遷移
 
 
 
 
+# require "./lib/encode" # 文字コード変換
+# require "./lib/json/pure" # JSON
+
+# require "./scripts/stracture"
+# require "./scripts/kingyo"
+# require "./scripts/poi"
+# require "./scripts/container"
+# require "./scripts/weed"
+# require "./scripts/boss"
+# require "./scripts/bgm_info"
+# require "./scripts/alert"
+# require "./scripts/splash"
+# require "./scripts/SampleMapping"
+# require "./scripts/name_entry"
+# require "./scripts/confetti"
+# require "./scripts/score_list_box"
+# require "./scripts/bubble"
+
+# require "net/http"
+# require "time"
 
 
 
-
-
-require "stracture"
-require "kingyo"
-require "poi"
-require "container"
-require "weed"
-require "boss"
-require "bgm_info"
-require "alert"
-require "splash"
-require "SampleMapping"
-require "name_entry"
-require "confetti"
-require "score_list_box"
-require "bubble"
-
-require "net/http"
-require "time"
-
-
-
-
-# ゲーム・パラメータ #
 # 音
 
 MAIN_BGM = "./sounds/minamo.mp3"
@@ -87,11 +56,11 @@ NAME_ENTRY_BGM = "./sounds/yuugure.mp3"
 STONE_TILE_IMAGE = "./images/stone_tile.png"
 AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
 SPLASH_IMAGE = "./images/water_splash.png"
-START_BUTTON_IMAGE = "./images/start_button.png"
+
 NAME_ENTRY_BUTTON_IMAGE = "./images/942037.png"
 
-EXIT_BUTTON_IMAGE = "./images/s_3.png"
-WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+
+
 FLOOR_IMAGE = "./images/floor1.jpg"
 RESET_BUTTON_IMAGE = "./images/m_1.png"
 DECITION_BUTTON_IMAGE = "./images/m_2.png"
@@ -100,36 +69,6 @@ OK_BUTTON_IMAGE = "./images/m_4.png"
 PAGE_UP_BUTTON = "./images/1396945_up.png"
 PAGE_DOWN_BUTTON = "./images/1396945_down.png"
 
-# フォント
-TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
-TANUKI_MAGIC_FONT_TYPE = "たぬき油性マジック"
-JIYUNO_TSUBASA_FONT = "./fonts/JiyunoTsubasa.ttf"
-JIYUNO_TSUBASA_FONT_TYPE = "自由の翼フォント"
-CHECK_POINT_FONT = "./fonts/CP Font.ttf"
-CHECK_POINT_FONT_TYPE = "チェックポイントフォント"
-LIGHT_NOVEL_POP_FONT = "./fonts/ラノベPOP.otf"
-LIGHT_NOVEL_POP_FONT_TYPE = "07ラノベPOP"
-AR_KYOUKASYOTAI_M_FONT = "./fonts/JTST00M.TTC"
-AR_KYOUKASYOTAI_M_FONT_TYPE = "AR教科書体M"
-MIKACHAN_FONT = "./fonts/mikachanALL.ttc"
-MIKACHAN_FONT_TYPE = "みかちゃん"
-NIKUMARU_FONT = "./fonts/07にくまるフォント.otf"
-NIKUMARU_FONT_TYPE = "07にくまるフォント"
-BALL_PARK_FONT = "./fonts/BALLW___.TTF"
-BALL_PARK_FONT_TYPE = "Ballpark"
-
-# フォントのインストール
-Font.install(TANUKI_MAGIC_FONT)
-Font.install(JIYUNO_TSUBASA_FONT)
-Font.install(CHECK_POINT_FONT)
-Font.install(LIGHT_NOVEL_POP_FONT)
-Font.install(AR_KYOUKASYOTAI_M_FONT)
-Font.install(MIKACHAN_FONT)
-Font.install(NIKUMARU_FONT)
-Font.install(BALL_PARK_FONT)
-
-
-########################################################################################################################
 
 
 MAX_NAME_INPUT_NUMBER = 8
@@ -155,7 +94,7 @@ BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}
 WEED_NUMBERS = [1]
 WEED_SCALE_RANGES = [[0.4, 0.8]]
 
-POINT_COUNT_IN_WINDOW = 60
+
 POI_CATCH_ADJUST_RANGE_RATIO = 0.9
 
 CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
@@ -163,9 +102,9 @@ CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
 
 BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
 
-TILDE =  "\x81\x60".encode("BINARY")
-MAIN_BGM_DATE = ["水面", "Composed by iPad", "しゅんじ" + TILDE]
-BOSS_BGM_DATE = ["ボス・パニック大行進", "Composed by iPad", "しゅんじ" + TILDE]
+# TILDE =  "\x81\x60".encode("BINARY")
+# MAIN_BGM_DATE = ["水面", "Composed by iPad", "しゅんじ" + TILDE]
+# BOSS_BGM_DATE = ["ボス・パニック大行進", "Composed by iPad", "しゅんじ" + TILDE]
 
 MAIN_ALERT_STRING = "警告！ ボス金魚出現！"
 SUB_ALERT_STRING = "WARNING!"
@@ -174,7 +113,7 @@ CHALLENGE_POINT_UP_RANGE = 200
 
 START_MAX_COUNT = 180
 
-POI_POINT_COUNT = 30
+
 
 COMMENDATION_POINT = 0
 CONFETTI_MAX_NUMBER = 800
@@ -186,7 +125,15 @@ POST_URL = "http://localhost:3000/kingyo_scoopings/record"
 GET_URL = "http://localhost:3000/kingyo_scoopings/show"
 
 
-
+# インストールするフォント ###
+# たぬき油性マジック
+# 自由の翼フォント
+# チェックポイントフォント
+# 07ラノベPOP
+# AR教科書体M
+# みかちゃん
+# 07にくまるフォント
+# Ballpark
 
 
 
@@ -221,6 +168,15 @@ class Config
 
   DEFAULT_NAME = "ななしさん"
 
+  TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
+  JIYUNO_TSUBASA_FONT = "./fonts/JiyunoTsubasa.ttf"
+  CHECK_POINT_FONT = "./fonts/CP Font.ttf"
+  LIGHT_NOVEL_POP_FONT = "./fonts/ラノベPOP.otf"
+  AR_KYOUKASYOTAI_M_FONT = "./fonts/JTST00M.TTC"
+  MIKACHAN_FONT = "./fonts/mikachanALL.ttc"
+  NIKUMARU_FONT = "./fonts/07にくまるフォント.otf"
+  BALL_PARK_FONT = "./fonts/BALLW___.TTF"
+
   def initialize
 
     $scores = {:name=>DEFAULT_NAME, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
@@ -235,6 +191,16 @@ class Config
     @ver_number = VERSION_NUMBER
 
     @default_name = DEFAULT_NAME
+
+    # フォントのインストール
+    Font.install(TANUKI_MAGIC_FONT)
+    Font.install(JIYUNO_TSUBASA_FONT)
+    Font.install(CHECK_POINT_FONT)
+    Font.install(LIGHT_NOVEL_POP_FONT)
+    Font.install(AR_KYOUKASYOTAI_M_FONT)
+    Font.install(MIKACHAN_FONT)
+    Font.install(NIKUMARU_FONT)
+    Font.install(BALL_PARK_FONT)
 
     initWindowRect = setDisplayFixWindow(WINDOW_SIZE, IS_WINDOW_CENTER)
     if initWindowRect[:windowX] and initWindowRect[:windowY] then
@@ -268,12 +234,21 @@ class TitleScene < Scene::Base
   require "./lib/dxruby/images"
   require "./lib/dxruby/fonts"
   require "./lib/dxruby/color"
+  require "./lib/dxruby/button"
+
+  require "./scripts/poi"
 
   include Color
 
   CLICK_SE = "./sounds/push13.wav"
   START_GAME_SE = "./sounds/decision27.wav"
   BACK_GROUND_IMAGE = "./images/VectorNaturalGreenBackground_S.png"
+  START_BUTTON_IMAGE = "./images/start_button.png"
+  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+
+  POI_POINT_COUNT = 30
+  POINT_COUNT_IN_WINDOW = 60
   
   def init
 
@@ -281,64 +256,57 @@ class TitleScene < Scene::Base
     $scores = {:name=>$config.default_name, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
                :total_move_distance=>0, :cognomen=>nil, :color=>nil}
 
-    @clickSE = Sound.new(CLICK_SE)
+    @click_se = Sound.new(CLICK_SE)
     @start_game_se = Sound.new(START_GAME_SE)
-
-
-    start_button_image = Image.load(START_BUTTON_IMAGE)
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-
-
-
-
 
     background_image = Image.load(BACK_GROUND_IMAGE)
     @background_image = Images.fit_resize(background_image, Window.width, Window.height)
 
-    @titleLabel = Fonts.new(0, 0, $config.app_name, Window.height * 0.2, C_RED,
-                            {:font_name=>"チェックポイントフォント"}, "title_label")
-    @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.3)
+    @title_label = Fonts.new(0, 0, $config.app_name, Window.height * 0.2, C_RED,
+                            {:font_name=>"チェックポイントフォント", :name=>"title_label"})
+    @title_label.set_pos((Window.width - @title_label.width) * 0.5, (Window.height - @title_label.height) * 0.3)
 
     @sub_title_label = Fonts.new(0, 0, $config.app_sub_title, Window.height * 0.1, C_ORANGE,
-                                 {:font_name=>"AR教科書体M"}, "sub_title_label")
+                                 {:font_name=>"AR教科書体M", :name=>"sub_title_label"})
     @sub_title_label.set_pos((Window.width - @sub_title_label.width) * 0.5, (Window.height - @sub_title_label.height) * 0.12)
 
-    @versionNumberLabel = Fonts.new(0, 0, "Version #{$config.ver_number}", @titleLabel.height * 0.3, C_GREEN,
-                                    {:font_name=>"自由の翼フォント"}, "version_number_label")
-    @versionNumberLabel.set_pos(@titleLabel.x + @titleLabel.width - @versionNumberLabel.width, @titleLabel.y + @titleLabel.height)
+    @version_number_label = Fonts.new(0, 0, "Version #{$config.ver_number}", @title_label.height * 0.3, C_GREEN,
+                                    {:font_name=>"自由の翼フォント", :name=>"version_number_label"})
+    @version_number_label.set_pos(@title_label.x + @title_label.width - @version_number_label.width, @title_label.y + @title_label.height)
 
-    @copyrightLabel = Fonts.new(0, 0, $config.copyright, Window.height * 0.08, C_BLACK,
-                                {:font_name=>"07ラノベPOP"}, "copyright_label")
-    @copyrightLabel.set_pos((Window.width - @copyrightLabel.width) * 0.5, (Window.height - @copyrightLabel.height) * 0.9)
+    @copyright_label = Fonts.new(0, 0, $config.copyright, Window.height * 0.08, C_BLACK,
+                                {:font_name=>"07ラノベPOP", :name=>"copyright_label"})
+    @copyright_label.set_pos((Window.width - @copyright_label.width) * 0.5, (Window.height - @copyright_label.height) * 0.9)
 
+    start_button_image = Image.load(START_BUTTON_IMAGE)
+    start_button_scale = Window.height * 0.06 / start_button_image.height
+    start_button_converted_image = Images.scale_resize(start_button_image, start_button_scale)
+    @start_button = Button.new
+    @start_button.name = "start_button"
+    @start_button.set_image(start_button_converted_image)
+    @start_button.set_pos((Window.width - @start_button.width) * 0.5, (Window.height - @start_button.height) * 0.7)
 
+    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
+    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale)
+    @exit_button = Button.new
+    @exit_button.name = "exit_button"
+    @exit_button.set_image(exit_button_converted_image)
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_pos(Window.width - @exit_button.width, 0)
 
-    startButtonHeight = Window.height * 0.06
-    start_button_scale = startButtonHeight / start_button_image.height.to_f
-    start_button_converted_image = RenderTarget.new(start_button_image.width * start_button_scale, start_button_image.height * start_button_scale).draw_scale(0, 0, start_button_image, start_button_scale, start_button_scale, 0, 0).to_image
-    @startButton = Button.new()
-    @startButton.name = "start_button"
-    @startButton.set_image_and_text(start_button_converted_image)
-    start_button_image.dispose
+    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale)
+    @window_mode_button = Button.new
+    @window_mode_button.name = "window_mode_button"
+    @window_mode_button.set_image(window_mode_button_converted_image)
+    @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
+                                   "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
 
-    exitButtonHeight = Window.height * 0.05
-    exit_button_scale = exitButtonHeight / exit_button_image.height
-    exit_button_converted_image = RenderTarget.new(exit_button_image.width * exit_button_scale, exit_button_image.height * exit_button_scale).draw_scale(0, 0, exit_button_image, exit_button_scale, exit_button_scale, 0, 0).to_image
-    @exitButton = Button.new()
-    @exitButton.name = "exit_button"
-    @exitButton.set_image_and_text(exit_button_converted_image, "Exit", exit_button_converted_image.height * 0.7, C_DARK_BLUE, LIGHT_NOVEL_POP_FONT_TYPE)
-    exit_button_image.dispose
+    @buttons = [@start_button, @exit_button, @window_mode_button]
 
-    windowModeButtonHeight = Window.height * 0.05
-    window_mode_button_scale = windowModeButtonHeight / window_mode_button_image.height
-    window_mode_button_converted_image = RenderTarget.new(window_mode_button_image.width * window_mode_button_scale, window_mode_button_image.height * window_mode_button_scale).draw_scale(0, 0, window_mode_button_image, window_mode_button_scale, window_mode_button_scale, 0, 0).to_image
-    @windowModeButton = Button.new()
-    @windowModeButton.name = "window_mode_button"
-    @windowModeButton.set_image_and_text(window_mode_button_converted_image, "Full/Win", window_mode_button_converted_image.height * 0.5, C_DARK_BLUE, LIGHT_NOVEL_POP_FONT_TYPE)
-    window_mode_button_image.dispose
-
-    # Write your code...
     @is_start_button_blink = false
     @start_button_blink_count = 0
     @wait_stage_change_count = 0
@@ -348,48 +316,31 @@ class TitleScene < Scene::Base
 
     @poi = Poi.new(0, 0, 0.5, @mouse, nil, self)
     @poi.catch_count = POI_POINT_COUNT
-
-    @buttons = [@startButton, @exitButton, @windowModeButton]
-    @windows = []
-
-    self.setPosition
-  end
-
-  def setPosition
-
-
-
-
-    @startButton.set_pos((Window.width - @startButton.w) * 0.5, (Window.height - @startButton.h) * 0.7)
-    @exitButton.set_pos(Window.width - @exitButton.w, 0)
-    @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
-
-    # Write your code...
-
-
     @poi.x = (Window.width - @poi.width) * 0.5
     @poi.y = (Window.height - @poi.height) * 0.5
+
+    @windows = []
   end
 
   def update
 
-    if @startButton.pushed? then
+    if @start_button.pushed? then
       @is_start_button_blink = true unless @is_start_button_blink
-      @startButton.isHover = false
+      @start_button.isHover = false
       @start_game_se.play
       @wait_stage_change_count = 0
     end
 
-    if @windowModeButton.pushed? then
+    if @window_mode_button.pushed? then
       if Window.windowed? then
         Window.windowed = false
       else
         Window.windowed = true
       end
-      @clickSE.play
+      @click_se.play
     end
 
-    if @exitButton.pushed? or Input.key_push?(K_ESCAPE) then
+    if @exit_button.pushed? or Input.key_push?(K_ESCAPE) then
       self.did_disappear
       exit
     end
@@ -400,7 +351,6 @@ class TitleScene < Scene::Base
       end
     end
 
-    # Write your code...
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
     if @poi and @poi.is_drag then
@@ -429,7 +379,9 @@ class TitleScene < Scene::Base
     if @poi and @poi.mode == :try_catch then
       if @buttons and not @buttons.empty? then
         @buttons.each do |button|
-          if @mouse.x >= button.x and @mouse.x <= button.x + button.w and @mouse.y >= button.y and @mouse.y <= button.y + button.h then
+
+          if @mouse.x >= button.x and @mouse.x <= button.x + button.width and
+            @mouse.y >= button.y and @mouse.y <= button.y + button.height then
 
             case button.name
 
@@ -450,7 +402,7 @@ class TitleScene < Scene::Base
               else
                 Window.windowed = true
               end
-              @clickSE.play
+              @click_se.play
               @poi.mode = :normal
             end
           end
@@ -479,13 +431,14 @@ class TitleScene < Scene::Base
   def render
 
     Window.draw(0, 0, @background_image)
-    @titleLabel.draw
+
+    @title_label.draw
     @sub_title_label.draw
-    @versionNumberLabel.draw
-    @copyrightLabel.draw
-    @startButton.render
-    @exitButton.render
-    @windowModeButton.render
+    @version_number_label.draw
+    @copyright_label.draw
+    @start_button.draw
+    @exit_button.draw
+    @window_mode_button.draw
 
     @poi.draw if @poi
   end
@@ -505,7 +458,7 @@ class GameScene < Scene::Base
 
   require "./scripts/gauge"
 
-  include Common
+  # include Common
   
   def init
 
@@ -1090,7 +1043,7 @@ end
 
 class ResultScene < Scene::Base
 
-  include Common
+  # include Common
 
   def init
 
@@ -1492,7 +1445,7 @@ end
 
 class RankingScene < Scene::Base
 
-  include Common
+  # include Common
 
   def init
 
@@ -1692,10 +1645,11 @@ end
 
 class EndingScene < Scene::Base
 
-  require "csv"
   require "./lib/common"
   require "./lib/files"
+  require "./lib/dxruby/images"
   require "./lib/dxruby/color"
+
   require "./scripts/sprite_font"
   require "./scripts/illust"
 
@@ -1705,11 +1659,13 @@ class EndingScene < Scene::Base
 
   BACKGROUND_IMAGE = "./images/BG00a1_80a.jpg"
   STAFF_DATA_FILE = "./data/staff.csv"
+  ENDING_BGM = "./sounds/itsuka_miagete_ta_tooi_sora.mp3"
+
   BASE_FONT_SIZE = 64
   FONT_SHADOW_OFF_SET_X = 3
   FONT_SHADOW_OFF_SET_Y = 3
   BASE_Y_INTERVAL = 100
-  ENDING_BGM = "./sounds/itsuka_miagete_ta_tooi_sora.mp3"
+
   BGM_TIME = 89
   MAX_NEXT_SCENE_WAIT_COUNT = 240
   ILLUST_RELATIVE_SCALES = [0.2, 0.15, 0.2, 0.25, 0.4, 0.27]
@@ -1731,14 +1687,12 @@ class EndingScene < Scene::Base
       sprite_font.set_pos((Window.width - sprite_font.width) * 0.5, Window.height + sum_interval)
       @sprite_fonts.push(sprite_font)
     end
+
     max_scroll_range = @sprite_fonts[-1].y + (Window.height + @sprite_fonts[-1].height) * 0.6
     @scroll_speed = max_scroll_range / BGM_TIME / 60
 
-    # @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_SKY_BLUE)
     background_image = Image.load(BACKGROUND_IMAGE)
-    @background_image = RenderTarget.new(Window.width, Window.height).draw_scale(0, 0, background_image, Window.width / background_image.width.to_f,
-                                                                                 Window.height / background_image.height.to_f, 0, 0).to_image
-    background_image.dispose
+    @background_image = Images.fit_resize(background_image, Window.width, Window.height)
 
     @illusts = []
     ILLUST_MAX_NUMBER.times do
@@ -1789,7 +1743,7 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop TitleScene, $config.fps, $config.frame_step
+Scene.main_loop RankingScene, $config.fps, $config.frame_step
 
 
 =begin
