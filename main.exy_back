@@ -13,7 +13,7 @@ resource:
       width : 256
       height: 256
       color : 32
-      file  : ./images/simple_goldfish.ico
+      file  : ./images/icon.ico
 
 file:
   main.rb:

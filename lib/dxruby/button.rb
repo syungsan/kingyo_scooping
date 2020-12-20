@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# button.rb Ver 1.0
+# button.rb Ver 1.1
 # ボタン作成用ライブラリ
 
 require "dxruby"
@@ -11,7 +11,7 @@ require "dxruby"
 
 class Button
 
-  attr_accessor :x, :y, :name, :id, :target, :scaleX, :scaleY, :angle, :isHover
+  attr_accessor :x, :y, :scaleX, :scaleY, :angle, :isHover,:name, :id, :target
   attr_reader :w, :h, :text
 
   def initialize(x=0, y=0, w=100, h=40, string="", font_size=36, color=[120, 120, 120], str_color=[255, 255, 255], gr_color1=[220, 220, 220], gr_color2=[70, 70, 70], id=0, name="Button", option={})

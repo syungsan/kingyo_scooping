@@ -26,7 +26,7 @@ module Color
   C_IVORY = [222, 210, 191]
   C_GRAY = [128, 128, 128]
   C_MIKUSAN = [149, 237, 207]
-  C_SHADOW = [64, 64, 64]
+  C_SHADOW = [128, 64, 64, 64]
   C_ORANGE = [255, 122, 66]
   C_CREAM = [255, 255, 204]
   C_DARK_BLUE = [0, 0, 51]
@@ -34,6 +34,7 @@ module Color
   C_GOLD = [255, 215, 0]
   C_MISTY_ROSE = [255, 228, 225]
   C_PURPLE = [128, 0, 128]
-  C_AQUAMARINE = [127, 255, 212]
+  C_AQUA_MARINE = [127, 255, 212]
   C_ROYAL_BLUE = [65, 105, 255]
+  C_SKY_BLUE = [135, 206, 235]
 end

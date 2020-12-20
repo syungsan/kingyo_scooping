@@ -8,11 +8,19 @@ require "dxruby"
 
 class Confetti < Sprite
 
+  if __FILE__ == $0 then
+    require "../lib/common"
+  else
+    require "./lib/common"
+  end
+
   CONFETTI_ALPHA = 128
   SIGN = [-1, 1]
 
   attr_accessor :id, :name, :is_drag
   attr_reader :width, :height
+
+  include Common
 
   def initialize(max_y=0, x_ranges=[0, 800], y_ranges=[0, 300], size_ranges=[1, 5], accel_ranges=[1, 5], amp_ranges=[1, 5], rot_speed_ranges=[1, 5],
                  angular_velo_ranges=[1, 5], id=0, target=Window, is_drag=false)
@@ -78,10 +86,6 @@ class Confetti < Sprite
   def draw
     self.target.draw_ex(self.x, self.y, self.image, {:angle=>self.angle, :alpha=>self.alpha}) if not self.image.disposed?
   end
-
-  def rand_float(min, max)
-    return rand() * (max - min) + min
-  end
 end
 
 
@@ -103,11 +107,11 @@ if __FILE__ == $0 then
 
   confettis = []
   600.times do
-    confetti = Confetti.new(Window.height, [0, 800], [0, 300], [confetti_size_min, confetti_size_max],
+    confetti = Confetti.new(Window.height, [0, 800], [-600, 0], [confetti_size_min, confetti_size_max],
                             [confetti_accel_min, confetti_accel_max], [confetti_amp_min, confetti_amp_max],
                             [confetti_rot_speed_min, confetti_rot_speed_max], [confetti_angular_velo_min, confetti_angular_velo_max])
     confetti.set_x([-1 * confetti.width * Math.sqrt(2), Window.width + (confetti.width * Math.sqrt(2))])
-    confetti.set_y([-1 * confetti.width * Math.sqrt(2), -2 * (Window.width + (confetti.width * Math.sqrt(2)))])
+    confetti.set_y([-1 * confetti.height * Math.sqrt(2), -1 * Window.height + confetti.height * Math.sqrt(2)])
     confettis.push(confetti)
   end
 

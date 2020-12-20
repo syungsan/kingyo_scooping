@@ -125,7 +125,7 @@ class Kingyo < Sprite
     if @move_count > @move_length then
       self.change_mode(:wait)
     else
-      radian = (self.angle + 270) * (Math::PI / 180)
+      radian = (self.angle - 90) * (Math::PI / 180)
       self.x += Math.cos(radian) * @speed
       self.y += Math.sin(radian) * @speed
       @move_count += 1

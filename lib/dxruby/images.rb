@@ -329,6 +329,26 @@ class Images
   def rot_render(angle)
     self.target.drawRot(self.x, self.y, @image, angle)
   end
+
+
+  class << self
+
+    def fit_resize(image, width, height)
+      render_target = RenderTarget.new(width, height)
+      dist_image = render_target.draw_scale(0, 0, image, width / image.width.to_f, height / image.height.to_f, 0, 0).to_image
+      image.dispose
+      render_target.dispose
+      return dist_image
+    end
+
+    def scale_resize(image, scale)
+      render_target = RenderTarget.new(image.width * scale, image.height * scale)
+      dist_image = render_target.draw_scale(0, 0, image, scale, scale, 0, 0).to_image
+      image.dispose
+      render_target.dispose
+      return dist_image
+    end
+  end
 end
 
 

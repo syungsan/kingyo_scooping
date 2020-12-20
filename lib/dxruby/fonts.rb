@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# fonts.rb Ver 1.0
+# fonts.rb Ver 1.1
 # ƒ‰ƒxƒ‹ì¬—pƒ‰ƒCƒuƒ‰ƒŠ
 
 require "dxruby"
@@ -11,78 +11,87 @@ require "dxruby"
 
 class Fonts
 
-  attr_accessor :x, :y, :id, :name, :string, :st_color, :isShadow, :target
+  attr_accessor :x, :y, :string, :z, :color, :shadow, :shadow_color,
+                :alpha, :angle, :edge, :edge_color, :edge_width, :edge_level, :name, :id, :target
 
-  def initialize(x=0, y=0, string="", font_size=28, st_color=C_WHITE, id=0, name="Fonts", option={})
-    option = {:isShadow=>true, :target=>Window, :fontType=>"‚l‚r ‚oƒSƒVƒbƒN", :isItalic=>false, :isBold=>false}.merge(option)
+  def initialize(x=0, y=0, string="", size=28, color=C_WHITE, option={}, name="Fonts", id=0, target=Window)
+    option = {:font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :italic=>false, :weight=>400, :auto_fitting=>false,
+              :alpha=>255, :angle=>0, :shadow=>true, :shadow_color=>[64, 64, 64],
+              :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4}.merge(option)
 
-    self.target = option[:target]
-    self.x = x
-    self.y = y
-    self.id = id
-    self.name = name
-    self.string = string
-    self.st_color = st_color
-    self.isShadow = option[:isShadow]
-    @font_size = font_size
-    @fontType = option[:fontType]
-    @isItalic = option[:isItalic]
-    @isBold = option[:isBold]
+    @x = x
+    @y = y
+    @z = 0
+    @string = string
+    @size = size
+    @font_name = option[:font_name]
+    @weight = option[:weight]
+    @italic = option[:italic]
+    @auto_fitting = option[:auto_fitting]
+    @color = color
+    @alpha = option[:alpha]
+    @angle = option[:angle]
+    @shadow = option[:shadow]
+    @shadow_color = option[:shadow_color]
+    @edge = option[:edge]
+    @edge_color = option[:edge_color]
+    @edge_width = option[:edge_width]
+    @edge_level = option[:edge_level]
+    @name = name
+    @id = id
+    @target = target
+    self.constract
+  end
 
-    @font = nil
-    self.build
+  def constract
+    @font.dispose if @font
+    @font = Font.new(@size, @font_name, {:weight=>@weight, :italic=>@italic, :auto_fitting=>@auto_fitting})
   end
 
   # ŠeŽíƒZƒbƒ^[
   def set_pos(x, y)
-    self.x, self.y = x, y
+    @x = x
+    @y = y
   end
 
-  def font_size=(size)
-    @font_size = size
-    self.build
+  def set_size=(size)
+    @size = size
+    self.constract
   end
 
-  def fontType=(type)
-    @fontType = type
-    self.build
+  def set_font_name=(font_name)
+    @font_name = font_name
+    self.constract
   end
 
-  def isBold=(isBold)
-    @isBold = isBold
-    self.build
+  def set_weight=(weight)
+    @weight = weight
+    self.constract
   end
 
-  def isItalic=(isItalic)
-    @isItalic = isItalic
-    self.build
+  def set_italic=(italic)
+    @italic = italic
+    self.constract
   end
 
   def fit(width)
-    @font_size = width / self.string.split(//).size
-    self.build
+    @size = width / @string.split(//).size
+    self.constract
   end
 
   # ŠeŽíƒQƒbƒ^[
-  def get_width
-    return @font.getWidth(self.string)
+  def width
+    return @font.getWidth(@string)
   end
 
-  def get_height
+  def height
     return @font.size
   end
 
-  def set_z(z)
-    @z = z
-  end
-
-  def build
-    @font.dispose if !@font.nil?
-    @font = Font.new(@font_size, @fontType, {:weight=>@isBold, :italic=>@isItalic})
-  end
-
-  def render
-    self.target.drawFontEx(self.x, self.y, self.string, @font, {:z=>@z, :color=>self.st_color, :shadow=>self.isShadow, :shadow_color=>[64, 64, 64]})
+  def draw
+    self.target.drawFontEx(@x, @y, @string, @font, {:z=>@z, :color=>@color, :shadow=>@shadow, :shadow_color=>@shadow_color,
+                                                    :alpha=>@alpha, :angle=>@angle, :edge=>@edge, :edge_color=>@edge_color,
+                                                    :edge_width=>@edge_width, :edge_level=>@edge_level})
   end
 end
 
@@ -91,12 +100,16 @@ if __FILE__ == $0
 
   testLabel = Fonts.new(0, 0, "FONTS")
 
-  testLabel.isItalic = true
-  testLabel.isBold = true
+  testLabel.set_italic = true
+  testLabel.set_weight = 800
+  testLabel.fit(500)
+  testLabel.edge = true
 
-  testLabel.fit(300)
+  testLabel.set_pos((Window.width - testLabel.width) * 0.5, (Window.height - testLabel.height) * 0.5)
+  testLabel.angle = 30
 
+  Window.bgcolor = C_GREEN
   Window.loop do
-    testLa
+    testLabel.draw
   end
 end

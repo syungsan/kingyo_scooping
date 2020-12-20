@@ -115,6 +115,18 @@ module Common
     time = (time_f * 100).to_i / 100.0 # ¬”“_‘æ2ˆÊ–¢–‚ğØ‚èÌ‚Ä
     return time
   end
+
+  def hex_to_rgb(hex=0xffeedd)
+    rgb = {}
+    %w(r g b).inject(hex) {|a,i| rest, rgb[i] = a.divmod 256; rest}
+    return rgb
+  end
+
+  def calc_geometric_center(point_xs, point_ys)
+    center_x = point_xs.inject(:+) / point_xs.size
+    center_y = point_ys.inject(:+) /point_ys.size
+    return [center_x, center_y]
+  end
 end
 
 
@@ -134,4 +146,5 @@ if __FILE__ == $0
 
   include Common
   play_beep
+  p hex_to_rgb("0080FF".hex)
 end
