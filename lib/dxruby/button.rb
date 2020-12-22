@@ -11,8 +11,8 @@ require "dxruby"
 
 class Button
 
-  attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z, :name, :id, :target
-  attr_reader :width, :height, :string
+  attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z, :name, :id, :target, :is_gazed #=> is_gaze‚ÍŽ‹ü“ü—Í—p‚É’Ç‰Á‚µ‚½
+  attr_reader :width, :height, :string, :is_hoverable
 
   def initialize(x=0, y=0, width=100, height=40, string="", font_size=36, option={})
     option = {:color=>[120 ,120, 120], :str_color=>[255, 255, 255], :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :gr_color1=>[220, 220, 220],
@@ -54,7 +54,7 @@ class Button
     @str_edge_width = option[:edge_width]
     @str_edge_level = option[:edge_level]
 
-    @has_imageSet = false
+    @has_image_set = false
     @is_click = false
 
     self.construct
@@ -77,6 +77,7 @@ class Button
   end
 
   def draw_string
+
     unless @string == "" then
       font = Font.new(@font_size, @font_name, {:weight=>@str_weight, :italic=>@str_italic, :auto_fitting=>@str_auto_fitting})
       string_width = font.get_width(@string)

@@ -8,11 +8,11 @@ require "dxruby"
 
 class LifeGauge
 
-  attr_accessor :name, :id, :has_out_of_life, :z
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :target, :has_out_of_life, :z
   attr_reader :width, :height
 
-  SHADOW_OFF_SET_X = 3
-  SHADOW_OFF_SET_Y = 3
+  SHADOW_OFFSET_X = 5
+  SHADOW_OFFSET_Y = 5
   SPEED_UNIT = 0.01
   DEFAULT_COLOR = C_GREEN
   ALERT_COLOR = C_RED
@@ -36,6 +36,7 @@ class LifeGauge
     @name = name
     @id = 0
     @target = target
+
     @x = 0
     @y = 0
     @z = 0
@@ -45,6 +46,9 @@ class LifeGauge
     @current_width = @width
     @points = []
     @has_out_of_life = false
+
+    @shadow_x = SHADOW_OFFSET_X
+    @shadow_y = SHADOW_OFFSET_Y
 
     self.change_gauge(@current_width)
   end
@@ -61,7 +65,7 @@ class LifeGauge
 
   def change_gauge(change_width)
     @image.clear
-    if change_width <= @width * 30 / 100 then
+    if change_width <= @width * 30 / 100.to_f then
       @color = ALERT_COLOR
     else
       @color = DEFAULT_COLOR
@@ -100,19 +104,24 @@ class LifeGauge
   end
 
   def draw
-    @target.draw(@x + SHADOW_OFF_SET_X, @y + SHADOW_OFF_SET_Y, @shadow, @z - 1) if @shadow
+    @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z - 1) if @shadow
     @target.draw(@x, @y, @image, @z) if @image
+  end
+
+  def vanish
+    @shadow.dispose
+    @image.dispose
   end
 end
 
 
 class PoiGage
 
-  attr_accessor :name, :id, :z
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :z
   attr_reader :width, :height
 
-  SHADOW_OFF_SET_X = 3
-  SHADOW_OFF_SET_Y = 3
+  SHADOW_OFFSET_X = 5
+  SHADOW_OFFSET_Y = 5
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
@@ -122,11 +131,16 @@ class PoiGage
     MINI_POI_IMAGE = "./images/mini_poi.png"
   end
 
-  def initialize(relative_size=100, name="poi_gauge", id=0, target=Window)
+  def initialize(width=100, height=100, name="poi_gauge", id=0, target=Window)
 
-    image_src = Image.load(MINI_POI_IMAGE)
-    scale = relative_size / image_src.height
-    @image = Images.scale_resize(image_src, scale)
+    image = Image.load(MINI_POI_IMAGE)
+
+    scale_x = width / image.width.to_f if width
+    scale_y = height / image.height.to_f if height
+    scale_x = scale_y unless width
+    scale_y = scale_x unless height
+
+    @image = Images.scale_resize(image, scale_x, scale_y)
     @shadow = @image.flush([64, 0, 0, 0])
 
     @width = @image.width
@@ -138,6 +152,9 @@ class PoiGage
     @x = 0
     @y = 0
     @z = 0
+
+    @shadow_x = SHADOW_OFFSET_X
+    @shadow_y = SHADOW_OFFSET_Y
   end
 
   def set_pos(x, y)
@@ -146,7 +163,7 @@ class PoiGage
   end
 
   def draw
-    @target.draw(@x + SHADOW_OFF_SET_X, @y + SHADOW_OFF_SET_Y, @shadow, @z - 1) if @shadow
+    @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z - 1) if @shadow
     @target.draw(@x, @y, @image, @z) if @image
   end
 
@@ -173,7 +190,7 @@ if __FILE__ == $0 then
   poi_gauges = []
 
   5.times do |index|
-    poi_gauge = PoiGage.new(poi_gauge_relative_size)
+    poi_gauge = PoiGage.new(nil, poi_gauge_relative_size)
     poi_gauge.set_pos((Window.width - poi_gauge.width) * 0.85 + (poi_gauge_interval * index), (Window.height - poi_gauge.height) * 0.96)
     poi_gauges.push(poi_gauge)
   end

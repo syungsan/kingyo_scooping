@@ -341,9 +341,9 @@ class Images
       return dist_image
     end
 
-    def scale_resize(image, scale)
-      render_target = RenderTarget.new(image.width * scale, image.height * scale)
-      dist_image = render_target.draw_scale(0, 0, image, scale, scale, 0, 0).to_image
+    def scale_resize(image, scale_x, scale_y)
+      render_target = RenderTarget.new(image.width * scale_x, image.height * scale_y)
+      dist_image = render_target.draw_scale(0, 0, image, scale_x, scale_y, 0, 0).to_image
       image.dispose
       render_target.dispose
       return dist_image

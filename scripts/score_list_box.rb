@@ -8,7 +8,7 @@ require "dxruby"
 
 class ScoreListBox
 
-  attr_accessor :name,:id, :is_drag
+  attr_accessor :name,:id, :target, :is_drag
   attr_reader :width, :height, :mode
 
   SHADOW_OFFSET_X = 10

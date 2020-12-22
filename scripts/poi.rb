@@ -4,32 +4,15 @@ $KCODE = "s"
 require "jcode"
 
 require "dxruby"
-require "bigdecimal"
 
-if __FILE__ == $0 then
-  require "../lib/dxruby/easing"
-  POI_FRAME_IMAGE = "../images/poi_frame.png"
-  POI_SHADOW_IMAGE = "../images/poi_frame_shadow.png"
-  POI_PAPER_NORMAL_IMAGE = "../images/poi_paper_0.png"
-  POI_PAPER_BREAK_IMAGE = "../images/poi_paper_1.png"
-else
-  require "./lib/dxruby/easing"
-  POI_FRAME_IMAGE = "./images/poi_frame.png"
-  POI_SHADOW_IMAGE = "./images/poi_frame_shadow.png"
-  POI_PAPER_NORMAL_IMAGE = "./images/poi_paper_0.png"
-  POI_PAPER_BREAK_IMAGE = "./images/poi_paper_1.png"
-end
 
-POI_SHADOW_OFFSET_X = 5
-POI_SHADOW_OFFSET_Y = 5
 
-POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X = 0.03
-POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y = 0.03
 
-POI_GAZE_AREA_RADIUS_AGAINST_POI_PAPER_RATIO = 0.5
-POI_POINT_COUNT_IN_GAZE_AREA = 30
 
-POI_CATCH_COUNT = 60
+
+
+
+
 POI_TRANSPORT_DURATION = 0.5
 POI_RESERVE_DURATION = 0.3
 POI_REVERSE_DURATION = 0.4
@@ -41,59 +24,115 @@ POI_RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
 POI_RELEASE_POSITION_ADJUST_RATIO = 0.7
 POI_TRANSPORT_FIRST_VELOSITY = 0
 
+
 class Poi <Sprite
+
+  attr_accessor :name, :id, :is_drag, :mode
+  attr_reader :width, :height
+
+  require "bigdecimal"
+
+  if __FILE__ == $0 then
+    require "../lib/dxruby/images"
+    require "../lib/dxruby/easing"
+    FRAME_IMAGE = "../images/poi_frame.png"
+    SHADOW_IMAGE = "../images/poi_frame_shadow.png"
+    PAPER_NORMAL_IMAGE = "../images/poi_paper_0.png"
+    PAPER_BREAK_IMAGE = "../images/poi_paper_1.png"
+  else
+    require "./lib/dxruby/images"
+    require "./lib/dxruby/easing"
+    FRAME_IMAGE = "./images/poi_frame.png"
+    SHADOW_IMAGE = "./images/poi_frame_shadow.png"
+    PAPER_NORMAL_IMAGE = "./images/poi_paper_0.png"
+    PAPER_BREAK_IMAGE = "./images/poi_paper_1.png"
+  end
 
   include Easing
 
-  attr_accessor :id, :name, :is_drag, :mode, :catch_count
-  attr_reader :width, :height
+  SHADOW_OFFSET_X = 5
+  SHADOW_OFFSET_Y = 5
 
-  def initialize(x, y, scale=1, follow_target=nil, transport_target=nil, parent=nil, id=0, target=Window, is_drag=true)
+  PAPER_OFFSET_RATIO_AGAINST_FRAME_X = 0.03
+  PAPER_OFFSET_RATIO_AGAINST_FRAME_Y = 0.03
+
+
+
+
+
+  def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, option={})
+    option = {:max_count_in_window=>60, :gaze_radius_ratio=>0.5, :max_count_in_gaze_area=>30,
+              :name=>"poi", :id=>0, :target=>Window, :is_drag=>true}.merge(option)
     super()
 
-    poi_frame_image = Image.load(POI_FRAME_IMAGE)
-    poi_shadow_image0 = Image.load(POI_SHADOW_IMAGE)
-    poi_shadow_image = poi_shadow_image0.flush([64, 0, 0, 0])
-    poi_paper_normal_image = Image.load(POI_PAPER_NORMAL_IMAGE)
-    poi_paper_break_image = Image.load(POI_PAPER_BREAK_IMAGE)
+    frame_image = Image.load(FRAME_IMAGE)
+    shadow_image0 = Image.load(SHADOW_IMAGE)
+    shadow_image = shadow_image0.flush([64, 0, 0, 0])
+    paper_normal_image = Image.load(PAPER_NORMAL_IMAGE)
+    paper_break_image = Image.load(PAPER_BREAK_IMAGE)
+    shadow_image0.dispose
 
-    poi_images = [poi_frame_image, poi_shadow_image, poi_paper_normal_image, poi_paper_break_image]
+    images = [frame_image, shadow_image, paper_normal_image, paper_break_image]
 
-    @poi_images = []
-    poi_images.each do |poi_image|
-      render_target = RenderTarget.new(poi_image.width * scale, poi_image.height * scale)
-      render_target.draw_scale(poi_image.width * (scale - 1.0) * 0.5, poi_image.height * (scale - 1.0) * 0.5, poi_image, scale, scale)
-      @poi_images.push(render_target.to_image)
-      poi_image.dispose
-      render_target.dispose
+    scale_x = width / frame_image.width.to_f if width
+    scale_y = height / frame_image.height.to_f if height
+    scale_x = scale_y unless width
+    scale_y = scale_x unless height
+
+    @images = []
+    images.each do |image|
+      @images.push(Images.scale_resize(image, scale_x, scale_y))
     end
 
     self.x = x
     self.y = y
-    self.image = @poi_images[2]
+    self.image = @images[2]
     @width = self.image.width
     @height = self.image.height
     self.collision = [@width * 0.5, @height * 0.5, @width * 0.5]
-    self.target = target
-    @catch_range_image = Image.new(@width, @height + 10).circle_fill(@width * 0.5, @width * 0.5, @width * 0.5, C_RED)
-    @id = id
-    @name = "poi"
-    @is_drag = is_drag
-    @gaze_area_radius = @width * POI_GAZE_AREA_RADIUS_AGAINST_POI_PAPER_RATIO
+    self.target = option[:target]
+    @gaze_range_image = Image.new(@width, @height * 1.05).circle_fill(@width * 0.5, @width * 0.5, @width * 0.5, C_RED)
+
+    @id = option[:id]
+    @name = option[:name]
+    @is_drag = option[:is_drag]
+
+    @pointer = pointer
+    @max_count_in_window = option[:max_count_in_window]
+    @gaze_radius = @width * option[:gaze_radius_ratio]
+    @count_in_gaze_area = option[:max_count_in_gaze_area]
     @gaze_count = 0
-    @catch_range_scale = 0
-    @transport_count = 0
-    @follow_target = follow_target
-    @transport_target = transport_target
+    @max_gaze_count = max_gaze_count
+    @gaze_range_scale = 0
     @parent = parent
-    @catch_count = POI_CATCH_COUNT
-    @mode = :normal
+
+    @windows = []
+    @mode = :search
+
+
+    @transport_count = 0
+    #  @transport_target = transport_target
+
+  end
+
+  def set_pos(x, y)
+    self.x = x
+    self.y = y
   end
 
   def update
 
+    if @is_drag then
+      self.x = @pointer.x - (@width * 0.5)
+      self.y = @pointer.y - (@height * 0.5)
+    end
+
     case @mode
-    when :normal
+
+    when :silent
+
+    when :search
+      self.search
 
     when :try_gaze
       self.try_gaze
@@ -103,14 +142,32 @@ class Poi <Sprite
     end
   end
 
-  def search_gaze_point(windows)
+  def search
 
-    inner_point_count = 0
-    windows.each do |window|
-      inner_point_count += 1 if (window[0] - (self.x + (@width * 0.5))) ** 2 + ((window[1] - (self.y + (@height * 0.5))) ** 2) <= @gaze_area_radius ** 2
+    if (@windows.size <= @max_count_in_window) then
+      @windows.push([@pointer.x, @pointer.y])
+    else
+      @windows.shift(1)
     end
 
-    if inner_point_count >= POI_POINT_COUNT_IN_GAZE_AREA then
+    if @windows.size >= @max_count_in_window then
+      if self.gaze_point? then
+        @windows.clear
+        @mode = :try_gaze
+        @is_drag = false
+      end
+    end
+  end
+
+  def gaze_point?
+
+    inner_point_count = 0
+    @windows.each do |window|
+      inner_point_count += 1 if
+        (window[0] - (self.x + (@width * 0.5))) ** 2 + ((window[1] - (self.y + (@height * 0.5))) ** 2) <= @gaze_radius ** 2
+    end
+
+    if inner_point_count >= @count_in_gaze_area then
       return true
     else
       return false
@@ -119,23 +176,27 @@ class Poi <Sprite
 
   def try_gaze
 
-    if @follow_target and (@follow_target.x - (self.x + (@width * 0.5))) ** 2 + ((@follow_target.y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5) ** 2 then
-      if @gaze_count < @catch_count then
-        @catch_range_scale = 1 / @catch_count.to_f * @gaze_count.to_f
+    if @pointer and (@pointer.x - (self.x + (@width * 0.5))) ** 2 + ((@pointer.y - (self.y + (@height * 0.5))) ** 2) <= (@width * 0.5) ** 2 then
+      if @gaze_count < @max_gaze_count then
+        @gaze_range_scale = 1 / @max_gaze_count.to_f * @gaze_count.to_f
         @gaze_count += 1
       else
-        @catch_range_scale = 0
+        @gaze_range_scale = 0
         @gaze_count = 0
         @is_drag = true
-        @mode = :try_catch
+        @parent.gazed(self.x + (@width * 0.5), self.y + (@height * 0.5)) if @parent
+        @mode = :search
       end
     else
-      @catch_range_scale = 0
+      @gaze_range_scale = 0
       @gaze_count = 0
       @is_drag = true
-      @mode = :normal
+      @mode = :search
     end
   end
+
+
+
 
   def try_catch(catch_objects)
 
@@ -196,65 +257,37 @@ class Poi <Sprite
   end
 
   def draw
-    self.target.draw(self.x + POI_SHADOW_OFFSET_X, self.y + POI_SHADOW_OFFSET_Y, @poi_images[1], self.z)
-    self.target.draw_ex(self.x + (@poi_images[0].width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@poi_images[0].height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), self.image, {:z=>self.z, :alpha=>128})
-    self.target.draw_ex(self.x + (@catch_range_image.width * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_X), self.y + (@catch_range_image.height * POI_PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), @catch_range_image, {:z=>self.z, :scale_x=>@catch_range_scale, :scale_y=>@catch_range_scale, :alpha=>128}) if @mode == :try_gaze
-    self.target.draw(self.x, self.y, @poi_images[0], self.z)
+    self.target.draw(self.x + SHADOW_OFFSET_X, self.y + SHADOW_OFFSET_Y, @images[1], self.z)
+    self.target.draw_ex(self.x + (@images[0].width * PAPER_OFFSET_RATIO_AGAINST_FRAME_X),
+                        self.y + (@images[0].height * PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), self.image, {:z=>self.z, :alpha=>128})
+    self.target.draw_ex(self.x + (@gaze_range_image.width * PAPER_OFFSET_RATIO_AGAINST_FRAME_X),
+                        self.y + (@gaze_range_image.height * PAPER_OFFSET_RATIO_AGAINST_FRAME_Y),
+                        @gaze_range_image, {:z=>self.z, :scale_x=>@gaze_range_scale, :scale_y=>@gaze_range_scale, :alpha=>128}) if @mode == :try_gaze
+    self.target.draw(self.x, self.y, @images[0], self.z)
   end
 end
 
 
 if __FILE__ == $0 then
 
-  class Mouse < Sprite
-    attr_reader :name
-
-    def initialize
-      super()
-      self.collision = [0, 0]
-    end
-  end
-  @mouse = Mouse.new
-
-  @poi = Poi.new(0, 0, 0.8, @mouse)
-
-  def mouseProcess
-
-    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
-
-    if @poi.is_drag then
-      @poi.x = @mouse.x - (@poi.width * 0.5)
-      @poi.y = @mouse.y - (@poi.height * 0.5)
-    end
-  end
-
-  Window.width = 1920
+  Window.width = 1980
   Window.height = 1080
 
-  windows = []
+  MAX_COUNT_IN_WINDOW = 60
+  MAX_COUNT_IN_GAZE_AREA = 30
+  MAX_GAZE_COUNT = 60
 
-  POINT_COUNT_IN_WINDOW = 60
+  POI_HEIGHT_SIZE = Window.height * 0.4
+  POI_GAZE_RADIUS_RATIO = 0.5
+
+  @mouse = Sprite.new(0, 0)
+  @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+                 MAX_GAZE_COUNT, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                  :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
 
   Window.bgcolor = C_GREEN
   Window.loop do
-
-    mouseProcess
-
-    unless @poi.mode == :try_gaze then
-      if (windows.size <= POI_POINT_COUNT_IN_WINDOW) then
-        windows.push([@mouse.x, @mouse.y])
-      else
-        windows.shift(1)
-      end
-
-      if windows.size >= POI_POINT_COUNT_IN_WINDOW then
-        if @poi.search_gaze_point(windows) then
-          windows.clear
-          @poi.mode = :try_gaze
-          @poi.is_drag = false
-        end
-      end
-    end
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
     @poi.update
     @poi.draw
   end

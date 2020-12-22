@@ -5,75 +5,118 @@ require "jcode"
 
 require "dxruby"
 
-if __FILE__ == $0 then
-  require "../lib/dxruby/fonts"
-  require "../lib/dxruby/roundbox"
-else
-  require "./lib/dxruby/fonts"
-  require "./lib/dxruby/roundbox"
-end
-
 
 class BgmInfo < Sprite
 
-  attr_accessor :id, :name, :is_drag, :mode
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :acceleration, :initial_velocity
   attr_reader :width, :height
 
+  if __FILE__ == $0 then
+    require "../lib/dxruby/fonts"
+    require "../lib/dxruby/roundbox"
+  else
+    require "./lib/dxruby/fonts"
+    require "./lib/dxruby/roundbox"
+  end
 
-  def initialize(x, y, z, width=300, height=100, max_wait_count=120, border_width=1, radius=10, bg_color=C_WHITE, border_color=C_GREEN, id=0, target=Window, is_drag=false)
+  SHADOW_OFFSET_X = 5
+  SHADOW_OFFSET_Y = 5
+
+  def initialize(x=0, y=0, width=300, height=100, option={})
+    option = {:frame_thickness=>2, :radius=>10, :bg_color=>C_WHITE, :frame_color=>C_GREEN, :max_wait_count=>120,
+              :acceleration=>-9.8, :initial_velocity=>-82.0, :name=>"bgm_info", :id=>0, :target=>Window, :is_drag=>false}.merge(option)
     super()
 
-    @width = width
-    @height = height
-    @border_width = border_width
-    @radius = radius
-    @bg_color = bg_color
-    @border_color = border_color
+    @frame_thickness = option[:frame_thickness]
+    @radius = option[:radius]
+    @bg_color = option[:bg_color]
+    @frame_color = option[:frame_color]
+    @max_wait_count = option[:max_wait_count]
 
-    self.init_image
     self.x = x
     self.y = y
-    @z = z
-    self.target = target
+    @width = width
+    @height = height
 
-    @id = id
-    @name = "bgm_info"
-    @is_drag = is_drag
+    self.target = option[:target]
+    @id = option[:id]
+    @name = option[:name]
+    @is_drag = option[:is_drag]
+
+    @shadow_x = SHADOW_OFFSET_X
+    @shadow_y = SHADOW_OFFSET_Y
+
+    @acceleration = option[:acceleration]
+    @initial_velocity = option[:initial_velocity]
+
     @first_pos_x = x
-    @acceleration = -9.8
-    @initial_velocity = -80.0
     @frame = 0
-    @max_wait_count = max_wait_count
     @wait_count = 0
     @mode = :wait
+
+    self.image = Image.new(@width, @height)
+
+    @title_label = Fonts.new()
+    @data_label = Fonts.new()
+    @copyright_label = Fonts.new()
+
+    @title_label.target = self.image
+    @data_label.target = self.image
+    @copyright_label.target = self.image
+
+    self.constract
   end
 
-  def init_image
+  def constract
 
-    self.image.dispose if self.image and not self.image.disposed?
+    self.image.clear
+    self.image.roundbox_fill(0, 0, @width, @height, @radius, [128] + @bg_color)
 
-    image = Image.new(@width, @height).roundbox_fill(0, 0, @width - @border_width, @height - @border_width, @radius, @bg_color.unshift(128))
-    frame = Image.new(@width, @height).roundbox(0, 0, @width - @border_width, @height - @border_width, @radius, @border_color)
-    image.draw(0, 0, frame)
-    @shadow = image.flush([64, 0, 0, 0])
-    self.image = image
+    @frame_thickness.times do |index|
+      self.image.roundbox(index, index, @width - 1 - index, @height - 1 - index, @radius, @frame_color)
+    end
+    @shadow = self.image.flush([64, 0, 0, 0])
   end
 
-  def set_info(info={:title=>nil, :data=>nil, :copyright=>nil}, font_type={:title=>nil, :data=>nil, :copyright=>nil}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE}, font_size={:title=>30, :data=>24, :copyright=>28}, italic={:title=>false, :data=>true, :copyright=>false}, weight={:title=>800, :data=>800, :copyright=>800})
+  def set_info(info={:title=>nil, :data=>nil, :copyright=>nil}, font_name={:title=>nil, :data=>nil, :copyright=>nil},
+               font_size={:title=>30, :data=>24, :copyright=>28}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE},
+               italic={:title=>false, :data=>true, :copyright=>false}, weight={:title=>800, :data=>800, :copyright=>800})
 
-    font0 = Fonts.new(0, 0, info[:title], font_size[:title], font_color[:title], 0, "title_font", {:target=>self.image, :fontType=>font_type[:title], :isItalic=>italic[:title], :isBold=>weight[:title]})
-    font1 = Fonts.new(0, 0, info[:data], font_size[:data], font_color[:data], 0, "data_font", {:target=>self.image, :fontType=>font_type[:data], :isItalic=>italic[:data], :isBold=>weight[:data]})
-    font2 = Fonts.new(0, 0, info[:copyright], font_size[:copyright], font_color[:copyright], 0, "copyright_font", {:target=>self.image, :fontType=>font_type[:copyright], :isItalic=>italic[:copyright], :isBold=>weight[:copyright]})
+    self.constract
 
-    margin_y = (@height - (font0.get_height + font0.get_height + font1.get_height)) * 0.5
+    @title_label.string = info[:title]
+    @data_label.string = info[:data]
+    @copyright_label.string = info[:copyright]
 
-    font0.set_pos((@width - font0.get_width) * 0.5, margin_y)
-    font1.set_pos((@width - font1.get_width) * 0.5, margin_y + font0.get_height)
-    font2.set_pos((@width - font2.get_width) * 0.5, margin_y + font0.get_height + font1.get_height)
+    @title_label.set_size = font_size[:title]
+    @data_label.set_size = font_size[:data]
+    @copyright_label.set_size = font_size[:copyright]
 
-    font0.render
-    font1.render
-    font2.render
+    @title_label.color = font_color[:title]
+    @data_label.color = font_color[:data]
+    @copyright_label.color = font_color[:copyright]
+
+    @title_label.set_font_name = font_name[:title]
+    @data_label.set_font_name = font_name[:data]
+    @copyright_label.set_font_name = font_name[:copyright]
+
+    @title_label.set_italic = italic[:title]
+    @data_label.set_italic = italic[:data]
+    @copyright_label.set_italic = italic[:copyright]
+
+    @title_label.set_weight = weight[:title]
+    @data_label.set_weight = weight[:data]
+    @copyright_label.set_weight = weight[:copyright]
+
+    margin_y = (@height - (@title_label.height + @data_label.height + @copyright_label.height)) * 0.5
+
+    @title_label.set_pos((@width - @title_label.width) * 0.5, margin_y)
+    @data_label.set_pos((@width - @data_label.width) * 0.5, margin_y + @title_label.height)
+    @copyright_label.set_pos((@width - @copyright_label.width) * 0.5, margin_y + @title_label.height + @data_label.height)
+
+    @title_label.draw
+    @data_label.draw
+    @copyright_label.draw
   end
 
   def update
@@ -91,7 +134,6 @@ class BgmInfo < Sprite
 
         @wait_count += 1 if @wait_count < @max_wait_count
         if self.x >= @first_pos_x
-          self.init_image
           @frame = 0
           @wait_count = 0
           @mode = :wait
@@ -100,12 +142,9 @@ class BgmInfo < Sprite
     end
   end
 
-  def vanish
-
-  end
-
   def draw
-    self.target.draw(self.x, self.y, self.image, @z)
+    self.target.draw(self.x + @shadow_x, self.y + @shadow_y, @shadow, self.z)
+    self.target.draw(self.x, self.y, self.image, self.z)
   end
 end
 
@@ -124,8 +163,14 @@ if __FILE__ == $0 then
 
   MAIN_BGM_DATE = ["…–Ê", "Composed by iPad", "‚µ‚ã‚ñ‚¶" + tilde]
 
-  bgm_info = BgmInfo.new(Window.width, Window.height * 0.04)
-  bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]}, {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE})
+  bgm_info_height = Window.height * 0.15
+  bgm_info_width = bgm_info_height * 2.7
+
+  bgm_info = BgmInfo.new(Window.width, Window.height * 0.04, bgm_info_width, bgm_info_height)
+  bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
+                    {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE},
+                    {:title=>bgm_info.height * 0.3, :data=>bgm_info.height * 0.2, :copyright=>bgm_info.height * 0.25})
+  bgm_info.initial_velocity = -1 * Math.sqrt(Window.height * 8.7)
   bgm_info.mode = :run
 
   Window.bgcolor = C_BLUE
