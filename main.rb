@@ -14,44 +14,6 @@ Dir.chdir(File.expand_path("..", __FILE__))
 require "dxruby" # DXRuby本体
 require "./lib/dxruby/scene" # 画面遷移
 
-# require "./lib/encode" # 文字コード変換
-# require "./lib/json/pure" # JSON
-
-# require "./scripts/name_entry"
-# require "./scripts/confetti"
-# require "./scripts/score_list_box"
-# require "./scripts/bubble"
-
-# require "net/http"
-# require "time"
-
-# 音
-CONGRATULATIONS_SE = "./sounds/nc134713.wav"
-NAME_ENTRY_BGM = "./sounds/yuugure.mp3"
-
-# 画像
-NAME_ENTRY_BUTTON_IMAGE = "./images/942037.png"
-
-FLOOR_IMAGE = "./images/floor1.jpg"
-RESET_BUTTON_IMAGE = "./images/m_1.png"
-DECITION_BUTTON_IMAGE = "./images/m_2.png"
-DELETE_BUTTON_IMAGE = "./images/m_3.png"
-OK_BUTTON_IMAGE = "./images/m_4.png"
-PAGE_UP_BUTTON = "./images/1396945_up.png"
-PAGE_DOWN_BUTTON = "./images/1396945_down.png"
-
-MAX_NAME_INPUT_NUMBER = 8
-
-COMMENDATION_POINT = 0
-CONFETTI_MAX_NUMBER = 800
-
-# データベース POST URL
-POST_URL = "http://localhost:3000/kingyo_scoopings/record"
-
-# データベース GET URL
-GET_URL = "http://localhost:3000/kingyo_scoopings/show"
-
-
 # インストールするフォント ###
 # たぬき油性マジック
 # 自由の翼フォント
@@ -65,7 +27,8 @@ GET_URL = "http://localhost:3000/kingyo_scoopings/show"
 
 class Config
 
-  attr_reader :fps, :frame_step, :app_name, :app_sub_title, :copyright, :ver_number, :default_name
+  attr_reader :fps, :frame_step, :app_name, :app_sub_title, :copyright, :ver_number,
+              :post_url, :get_url, :default_name
 
   require "./lib/display" # ディスプレイ情報取得
 
@@ -75,7 +38,7 @@ class Config
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby & DXRuby."
-  VERSION_NUMBER = "0.8"
+  VERSION_NUMBER = "0.9.1"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -92,6 +55,12 @@ class Config
   # 起動時にウィンドウを画面中央に表示する
   IS_WINDOW_CENTER = true
 
+  # データベース POST URL
+  POST_URL = "http://localhost:3000/kingyo_scoopings/record"
+
+  # データベース GET URL
+  GET_URL = "http://localhost:3000/kingyo_scoopings/show"
+
   DEFAULT_NAME = "ななしさん"
 
   TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
@@ -106,7 +75,7 @@ class Config
   def initialize
 
     $scores = {:name=>DEFAULT_NAME, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>nil, :color=>nil}
+               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>"A52A2A"}
 
     @fps = FPS
     @frame_step = FRAME_STEP
@@ -115,6 +84,9 @@ class Config
     @app_sub_title = APPLICATION_SUB_TITLE
     @copyright = COPYRIGHT
     @ver_number = VERSION_NUMBER
+
+    @post_url = POST_URL
+    @get_url = GET_URL
 
     @default_name = DEFAULT_NAME
 
@@ -184,7 +156,7 @@ class TitleScene < Scene::Base
 
     # 必要最小限のグローバル変数を初期化
     $scores = {:name=>$config.default_name, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>nil, :color=>nil}
+               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>"A52A2A"}
 
     @click_se = Sound.new(CLICK_SE)
     @start_game_se = Sound.new(START_GAME_SE)
@@ -264,7 +236,7 @@ class TitleScene < Scene::Base
       else
         Window.windowed = true
       end
-      @click_se.play
+      @click_se.play if @click_se
     end
 
     if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
@@ -371,7 +343,6 @@ class GameScene < Scene::Base
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
   STONE_TILE_IMAGE = "./images/stone_tile.png"
   AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
-  SPLASH_IMAGE = "./images/water_splash.png"
 
   MAX_COUNT_IN_WINDOW = 60
   MAX_COUNT_IN_GAZE_AREA = 30
@@ -383,21 +354,25 @@ class GameScene < Scene::Base
   FIRST_STAGE_NUMBER = 1
   FIRST_MODE = :start
 
-  KINGYO_NUMBERS = [20]
+  KINGYO_NUMBERS = [5]
   KINGYO_SCALE_RANGES = [[0.5, 1]]
   KINGYO_SPEED_RANGES = [{:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]}]
   KINGYO_MODE_RANGES = [{:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}]
   KIND_OF_KINGYOS = ["red", "black"]
 
-  BOSS_NUMBERS = 3
+  BOSS_NUMBERS = 1
   BOSS_SCALE_RANGES = [0.5, 1]
   BOSS_SPEED_RANGES = {:wait=>[0, 1], :move=>[1, 3], :against=>[1, 3]}
   BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}
 
-  WEED_NUMBERS = [10]
+  WEED_NUMBERS = [2]
   WEED_SCALE_RANGES = [[0.2, 0.5]]
 
   BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
+
+  KINGYO_DAMAGE_UNIT_RATIO = 0.0005
+  WEED_DAMAGE_UNIT_RATIO = 0.0015
+  BOSS_DAMAGE_UNIT_RATIO = 0.0008
 
   CHALLENGE_POINT_UP_RANGE = 200
   MAX_POI_GAUGE_NUMBER = 5
@@ -414,6 +389,8 @@ class GameScene < Scene::Base
   Z_POSITION_BOTTOM = 0
 
   POI_CATCH_ADJUST_RANGE_RATIO = 1.0
+  POI_RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
+
   CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
   CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
 
@@ -479,7 +456,7 @@ class GameScene < Scene::Base
 
     @border = Border.new(0, 0, Window.width, Window.height)
 
-    @container = Container.new(0, 0, nil, Window.height * 0.37)
+    @container = Container.new(0, 0, nil, Window.height * 0.4)
     @container.set_pos(rand_float(@border.x, @border.x + @border.width - @container.width),
                        rand_float(@border.y, @border.y + @border.height - @container.height))
     @container.z = Z_POSITION_DOWN
@@ -499,10 +476,8 @@ class GameScene < Scene::Base
     @bgm_info.initial_velocity = -1 * Math.sqrt(Window.height * 8.7)
     @bgm_info.z = Z_POSITION_TOP
 
-
     life_gauge_width = Window.width * 0.75
     life_gauge_height = Window.height * 0.02
-
     @life_gauge = LifeGauge.new(life_gauge_width, life_gauge_height)
     @life_gauge.set_pos((Window.width - @life_gauge.width) * 0.2, (Window.height - @life_gauge.height) * 0.95)
     @life_gauge.z = Z_POSITION_UP
@@ -595,7 +570,7 @@ class GameScene < Scene::Base
       if @bgm_info then
         @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]},
                            {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                           {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+                           {:title=>@bgm_info.height * 0.24, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
         @bgm_info.mode = :run
       end
     end
@@ -660,7 +635,7 @@ class GameScene < Scene::Base
       else
         Window.windowed = true
       end
-      @click_se.play
+      @click_se.play if @click_se
     end
 
     if @exit_button and (@exit_button.pushed? or @exit_button.is_gazed) or Input.key_push?(K_ESCAPE) then
@@ -686,38 +661,37 @@ class GameScene < Scene::Base
       end
     end
 
+    @bgm_info.update if @bgm_info and @bgm_info.mode == :run and not @mode == :start
 
+    if @alert and @alert.mode == :run and not @mode == :start then
+      @alert.update
+    elsif @alert and @alert.mode == :finish
+      @alert.mode = :wait
+      self.change_mode(:boss)
+    end
 
-
-
-    # swimerに対するメインループ
     if @swimers and not @swimers.empty? and not @mode == :start
-    @swimers.each do |swimer|
+      @swimers.each do |swimer|
+        swimer.update
+
         if not swimer.mode == :catched and not swimer.is_reserved then
-          if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 + ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <= (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
+          if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 +
+            ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <=
+            (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
             swimer.z = Z_POSITION_BOTTOM
           else
             swimer.z = Z_POSITION_TOP
           end
         end
 
-        if swimer.mode == :reserved then
-          splash = Splash.new(SPLASH_IMAGE, 10, 1)
-          splash.run(swimer.x + swimer.center_x - (splash.width * 0.5), swimer.y + swimer.center_y - (splash.height * 0.5), swimer, swimer.height * 2.0, 0.8)
-          if swimer.name == "boss" then
-            @splash_rarge_se.play
-          else
-            @splash_small_se.play
-          end
-          @splashs.push(splash)
-        end
-
         if swimer.is_reserved then
           max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
-          obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
+          obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 +
+                                   ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
 
           if obj_radius >= max_radius then
-            angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y), swimer.x + swimer.center_x - (@container.x + @container.center_x))
+            angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y),
+                               swimer.x + swimer.center_x - (@container.x + @container.center_x))
             swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
             swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
           end
@@ -735,30 +709,7 @@ class GameScene < Scene::Base
       end
     end
 
-    @bgm_info.update if @bgm_info and @bgm_info.mode == :run and not @mode == :start
-
-    if @alert and @alert.mode == :run and not @mode == :start then
-      @alert.update
-    elsif @alert and @alert.mode == :finish
-      @alert.mode = :wait
-      self.change_mode(:boss)
-    end
-
-    if @swimers and not @swimers.empty? and not @mode == :start then
-      @swimers.each do |swimer|
-        swimer.update
-      end
-    end
-
     @poi.update if @poi
-
-    @life_gauge.update
-
-    if @life_gauge.has_out_of_life and not @life_continueble then
-      @poi_gauges[-1].vanish
-      @poi_gauges.delete_at(-1)
-      @life_continueble = true
-    end
 
     @point_label.update if @point_label
     @point_label = nil if @point_label and @point_label.vanished?
@@ -766,19 +717,41 @@ class GameScene < Scene::Base
     Sprite.check(@border.blocks + @swimers + [@container]) if
       @border and @swimers and not @swimers.empty? and @container and not @mode == :start
 
-
     if @poi and @poi.mode == :transport then
       @catch_objects.each do |catch_object|
         catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
 
-        damage_unit = 0.0005 if catch_object[0].name.include?("kingyo")
-        damage_unit = 0.001 if catch_object[0].name == "weed"
+        damage_unit_ratio = KINGYO_DAMAGE_UNIT_RATIO if catch_object[0].name.include?("kingyo")
+        damage_unit_ratio = WEED_DAMAGE_UNIT_RATIO if catch_object[0].name == "weed"
+        damage_unit_ratio = BOSS_DAMAGE_UNIT_RATIO if catch_object[0].name == "boss"
 
-        @life_gauge.change_life(-1 * catch_object[0].height * damage_unit)
+        @life_gauge.change_life(-1 * catch_object[0].height * damage_unit_ratio)
       end
     elsif @poi and @poi.mode == :reserve then
-      @catch_objects.clear
+      catched_objects = []
 
+      @catch_objects.each do |catch_object|
+        if (catch_object[0].x + catch_object[0].center_x - (@container.x + (@container.width * 0.5))) ** 2 +
+          ((catch_object[0].y + catch_object[0].center_y - (@container.y + (@container.height * 0.5))) ** 2) <=
+          (@container.width * 0.5 * POI_RESERVE_ADJUST_TARGET_RANGE_RATIO) ** 2 then
+
+          catch_object[0].z = Z_POSITION_UP
+          catch_object[0].is_reserved = true
+          catch_object[0].mode = :reserved
+          catched_objects.push(catch_object[0])
+          self.reserved(catched_objects)
+        end
+      end
+      @catch_objects.clear
+    end
+
+    @life_gauge.update if @life_gauge
+
+    if @life_gauge.has_out_of_life and not @life_continueble then
+      @poi_gauges[-1].vanish
+      @poi_gauges.delete_at(-1)
+      exit if @poi_gauges.empty? ##############
+      @life_continueble = true
     end
   end
 
@@ -818,6 +791,72 @@ class GameScene < Scene::Base
     end
   end
 
+  def reserved(catched_objects)
+
+    score_diff = 0
+    technical_point_diff = 0
+
+    catched_object_center_xs = []
+    catched_object_center_ys = []
+
+    catched_objects.each do |catched_object|
+
+      score_diff += (BASE_SCORES[catched_object.name] * catched_object.height * 0.01).round
+      catched_object_center_xs.push(catched_object.x + catched_object.center_x)
+      catched_object_center_ys.push(catched_object.y + catched_object.center_y)
+
+      splash = Splash.new(10, 1)
+      splash.run(catched_object.x + catched_object.center_x - (splash.width * 0.5),
+                 catched_object.y + catched_object.center_y - (splash.height * 0.5),
+                 catched_object, catched_object.height * 2.0, 0.8)
+      if catched_object.name == "boss" then
+        @splash_rarge_se.play
+      else
+        @splash_small_se.play
+      end
+      @splashs.push(splash)
+    end
+
+    point = score_diff * catched_objects.size
+    $scores[:score] += point
+    @score_label.string = "SCORE : #{$scores[:score]}点"
+
+    original_points = [@container.x + @container.center_x, @container.y + @container.center_y]
+    geometric_centers = calc_geometric_center(catched_object_center_xs, catched_object_center_ys)
+    diff_vector = [geometric_centers[0] - original_points[0], geometric_centers[1] - original_points[1]]
+    v_changes = [diff_vector[0] * POINT_LABEL_MOVE_SCALE, diff_vector[1] * POINT_LABEL_MOVE_SCALE]
+    weight_ratio = 1 - (1 / (1 + (point.abs * 0.01)))
+
+    point_color = C_RED if point >= 0
+    point_color = C_BLUE if point < 0
+    @point_label = SpriteFont.new(0, 0, "#{point}点", 128, point_color, C_DEFAULT,
+                                  {:font_name=>"みかちゃん", :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
+    @point_label.z = Z_POSITION_TOP
+    @point_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
+
+    @life_continueble = false
+
+    technical_point_diff += 50 ##############
+    $scores[:technical_point] += technical_point_diff
+
+    @challenge_point += technical_point_diff
+    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved}
+    if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
+      self.change_mode(:alert)
+      @challenge_point = 0
+    end
+
+    if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed"}.empty? then
+      @mode = :game_over
+      $scores[:max_combo] = 0
+      $scores[:catched_kingyo_number] = 0
+      $scores[:catched_boss_number] = 0
+      $scores[:total_move_distance] = 0
+      self.did_disappear
+      self.next_scene = ResultScene
+    end
+  end
+
   def render
 
     Window.draw(0, 0, @stone_tile_image) if @stone_tile_image
@@ -825,17 +864,17 @@ class GameScene < Scene::Base
 
     @border.draw if @border and @mode == :start
 
-    @shader_rt.draw(0, 0, @aquarium_back_image) if @mode == :start
-    Window.draw_shader(0, 0, @shader_rt, @wave_shader) if @mode == :start
+    @shader_rt.draw(0, 0, @aquarium_back_image) if @shader_rt and @aquarium_back_image and @mode == :start
+    Window.draw_shader(0, 0, @shader_rt, @wave_shader) if @shader_rt and @wave_shader and @mode == :start
 
-    @stage_info_label.draw if @mode == :start
+    @stage_info_label.draw if @stage_info_label and @mode == :start
 
     @container.draw if @container and not @mode == :start
     @poi.draw if @poi
 
     if @swimers and not @swimers.empty? and not @mode == :start then
       @swimers.each do |swimer|
-        swimer.draw if not swimer.name == "boss" or not @mode == :alert
+        swimer.draw if not (swimer.name == "boss" and not swimer.is_reserved) or not @mode == :alert
       end
     end
 
@@ -864,64 +903,12 @@ class GameScene < Scene::Base
     @alert.draw if @alert and @alert.mode == :run and not @mode == :start
   end
 
-  def scoring(targets)
-
-    score_diff = 0
-    technical_point_diff = 0
-
-    target_center_xs = []
-    target_center_ys = []
-
-    targets.each do |target|
-      score_diff += (BASE_SCORES[target.name] * target.height * 0.01).round
-      target_center_xs.push(target.x + target.center_x)
-      target_center_ys.push(target.y + target.center_y)
-    end
-
-    point = score_diff * targets.size
-    $scores[:score] += point
-    @score_label.string = "SCORE : #{$scores[:score]}点"
-
-    original_points = [@container.x + @container.center_x, @container.y + @container.center_y]
-    geometric_centers = calc_geometric_center(target_center_xs, target_center_ys)
-    diff_vector = [geometric_centers[0] - original_points[0], geometric_centers[1] - original_points[1]]
-    v_changes = [diff_vector[0] * POINT_LABEL_MOVE_SCALE, diff_vector[1] * POINT_LABEL_MOVE_SCALE]
-    weight_ratio = 1 - (1 / (1 + (point.abs * 0.01)))
-
-    @point_label = SpriteFont.new(0, 0, "#{point}点", 128, C_RED, C_DEFAULT,
-                                  {:font_name=>MIKACHAN_FONT_TYPE, :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
-    @point_label.z = Z_POSITION_TOP
-    @point_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
-
-    @life_continueble = false
-
-    technical_point_diff += 50
-    $scores[:technical_point] += technical_point_diff
-
-    @challenge_point += technical_point_diff
-    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved}
-    if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
-      self.change_mode(:alert)
-      @challenge_point = 0
-    end
-
-    if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed"}.empty? then
-      @mode = :game_over
-      $scores[:max_combo] = 0
-      $scores[:catched_kingyo_number] = 0
-      $scores[:catched_boss_number] = 0
-      $scores[:total_move_distance] = 0
-      self.did_disappear
-      self.next_scene = ResultScene
-    end
-
-  end
-
   def did_disappear
     if @bgm then
       @bgm.stop
-      @bgm.free
-      # Bass.free
+      @main_bgm.free if @main_bgm
+      @alert_bgm.free if @alert_bgm
+      @boss_bgm.free if @boss_bgm
     end
   end
 end
@@ -929,60 +916,108 @@ end
 
 class ResultScene < Scene::Base
 
-  # include Common
+  require "./lib/common"
+  require "./lib/dxruby/images"
+  require "./lib/dxruby/color"
+
+  require "./scripts/confetti"
+
+  include Common
+  include Color
+
+  CLICK_SE = "./sounds/push13.wav"
+  CONGRATULATIONS_SE = "./sounds/nc134713.wav"
+  OK_BUTTON_IMAGE = "./images/m_4.png"
+  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+
+  COMMENDATION_POINT = 0
+  CONFETTI_MAX_NUMBER = 800
+
+  MAX_COUNT_IN_WINDOW = 40
+  MAX_COUNT_IN_GAZE_AREA = 30
+
+  POI_HEIGHT_SIZE = Window.height * 0.2
+  MAX_GAZE_COUNT = 15
+  POI_GAZE_RADIUS_RATIO = 0.8
 
   def init
 
-    @clickSE = Sound.new(CLICK_SE)
-    ok_button_image = Image.load(OK_BUTTON_IMAGE)
-
+    @click_se = Sound.new(CLICK_SE)
     @congratulations_se = Sound.new(CONGRATULATIONS_SE)
+
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_MISTY_ROSE)
 
-    $cognomens[:cognomen], $cognomens[:color] = "ウンコちゃん", "A52A2A" if $scores[:technical_point] < 500
-    $cognomens[:cognomen], $cognomens[:color] = "ザコりん", "00FFFF" if $scores[:technical_point] >= 500 and $scores[:technical_point] < 1000
-    $cognomens[:cognomen], $cognomens[:color] = "初心者ペー", "FFFF00" if $scores[:technical_point] >= 1000 and $scores[:technical_point] < 2000
-    $cognomens[:cognomen], $cognomens[:color] = "普通ヲタ", "008000" if $scores[:technical_point] >= 2000 and $scores[:technical_point] < 3000
-    $cognomens[:cognomen], $cognomens[:color] = "良しヲくん", "FFA500" if $scores[:technical_point] >= 3000 and $scores[:technical_point] < 4000
-    $cognomens[:cognomen], $cognomens[:color] = "スーパーカブ", "ff00ff" if $scores[:technical_point] >= 4000 and $scores[:technical_point] < 5000
-    $cognomens[:cognomen], $cognomens[:color] = "レジェンドン", "0000FF" if $scores[:technical_point] >= 5000 and $scores[:technical_point] < 6000
-    $cognomens[:cognomen], $cognomens[:color] = "金魚人", "800080" if $scores[:technical_point] >= 6000 and $scores[:technical_point] < 7000
-    $cognomens[:cognomen], $cognomens[:color] = "金魚神", "FF0000" if $scores[:technical_point] >= 7000
+    $scores[:cognomen], $scores[:color] = "ウンコちゃん", "A52A2A" if $scores[:technical_point] < 500
+    $scores[:cognomen], $scores[:color] = "ザコりん", "00FFFF" if $scores[:technical_point] >= 500 and $scores[:technical_point] < 1000
+    $scores[:cognomen], $scores[:color] = "初心者ペー", "FFFF00" if $scores[:technical_point] >= 1000 and $scores[:technical_point] < 2000
+    $scores[:cognomen], $scores[:color] = "普通ヲタ", "008000" if $scores[:technical_point] >= 2000 and $scores[:technical_point] < 3000
+    $scores[:cognomen], $scores[:color] = "良しヲくん", "FFA500" if $scores[:technical_point] >= 3000 and $scores[:technical_point] < 4000
+    $scores[:cognomen], $scores[:color] = "スーパーカブ", "ff00ff" if $scores[:technical_point] >= 4000 and $scores[:technical_point] < 5000
+    $scores[:cognomen], $scores[:color] = "レジェンドン", "0000FF" if $scores[:technical_point] >= 5000 and $scores[:technical_point] < 6000
+    $scores[:cognomen], $scores[:color] = "金魚人", "800080" if $scores[:technical_point] >= 6000 and $scores[:technical_point] < 7000
+    $scores[:cognomen], $scores[:color] = "金魚神", "FF0000" if $scores[:technical_point] >= 7000
 
-    @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, 0, "title_label", {:fontType=>CHECK_POINT_FONT_TYPE})
-    @titleLabel.set_pos((Window.width - @titleLabel.get_width) * 0.5, Window.height * 0.03)
+    @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, {:font_name=>"チェックポイントフォント"})
+    @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.03)
 
-    @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.05, C_GREEN, 0, "score_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @score_label.set_pos((Window.width - @score_label.get_width) * 0.5, Window.height * 0.15)
+    @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.05, C_GREEN, {:font_name=>"自由の翼フォント"})
+    @score_label.set_pos((Window.width - @score_label.width) * 0.5, (Window.height - @score_label.height) * 0.15)
 
-    @catched_kingyo_number_label = Fonts.new(0, 0, "金魚捕獲数 : #{$scores[:catched_kingyo_number]}匹", Window.height * 0.07, C_RED, 0, "catched_kingyo_number_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @catched_kingyo_number_label.set_pos((Window.width - @catched_kingyo_number_label.get_width) * 0.5, Window.height * 0.23)
+    @catched_kingyo_number_label = Fonts.new(0, 0, "金魚捕獲数 : #{$scores[:catched_kingyo_number]}匹",
+                                             Window.height * 0.07, C_RED, {:font_name=>"自由の翼フォント"})
+    @catched_kingyo_number_label.set_pos((Window.width - @catched_kingyo_number_label.width) * 0.5,
+                                         (Window.height - @catched_kingyo_number_label.height) * 0.23)
 
-    @catched_boss_number_label = Fonts.new(0, 0, "ボス捕獲数 : #{$scores[:catched_boss_number]}匹", Window.height * 0.07, C_RED, 0, "catched_boss_number_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @catched_boss_number_label.set_pos((Window.width - @catched_boss_number_label.get_width) * 0.5, Window.height * 0.33)
+    @catched_boss_number_label = Fonts.new(0, 0, "ボス捕獲数 : #{$scores[:catched_boss_number]}匹",
+                                           Window.height * 0.07, C_RED, {:font_name=>"自由の翼フォント"})
+    @catched_boss_number_label.set_pos((Window.width - @catched_boss_number_label.width) * 0.5,
+                                       (Window.height - @catched_boss_number_label.height) * 0.33)
 
-    @max_combo_label = Fonts.new(0, 0, "MAXコンボ : #{$scores[:max_combo]}", Window.height * 0.07, C_ORANGE, 0, "max_combo_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @max_combo_label.set_pos((Window.width - @max_combo_label.get_width) * 0.5, Window.height * 0.43)
+    @max_combo_label = Fonts.new(0, 0, "MAXコンボ : #{$scores[:max_combo]}",
+                                 Window.height * 0.07, C_ORANGE, {:font_name=>"自由の翼フォント"})
+    @max_combo_label.set_pos((Window.width - @max_combo_label.width) * 0.5, (Window.height - @max_combo_label.height) * 0.43)
 
-    @total_move_distance_label = Fonts.new(0, 0, "総移動距離 : #{$scores[:total_move_distance]}m", Window.height * 0.07, C_GRAY, 0, "total_move_distance_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @total_move_distance_label.set_pos((Window.width - @total_move_distance_label.get_width) * 0.5, Window.height * 0.53)
+    @total_move_distance_label = Fonts.new(0, 0, "総移動距離 : #{$scores[:total_move_distance]}m",
+                                           Window.height * 0.07, C_GRAY, {:font_name=>"自由の翼フォント"})
+    @total_move_distance_label.set_pos((Window.width - @total_move_distance_label.width) * 0.5,
+                                       (Window.height - @total_move_distance_label.height) * 0.53)
 
-    @technical_point_label = Fonts.new(0, 0, "テクニカルポイント : #{$scores[:technical_point]}", Window.height * 0.05, C_DARK_BLUE, 0, "technical_point_label", {:fontType=>JIYUNO_TSUBASA_FONT_TYPE})
-    @technical_point_label.set_pos((Window.width - @technical_point_label.get_width) * 0.5, Window.height * 0.63)
+    @technical_point_label = Fonts.new(0, 0, "テクニカルポイント : #{$scores[:technical_point]}",
+                                       Window.height * 0.05, C_DARK_BLUE, {:font_name=>"自由の翼フォント"})
+    @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5, (Window.height - @technical_point_label.height) * 0.63)
 
-    @cognomen_label = Fonts.new(0, 0, "称号 : #{$cognomens[:cognomen]}", Window.height * 0.1, hex_to_rgb($cognomens[:color].hex).values, 0, "cognomen_label", {:fontType=>TANUKI_MAGIC_FONT_TYPE})
-    @cognomen_label.set_pos((Window.width - @cognomen_label.get_width) * 0.5, Window.height * 0.71)
-    @cognomen_label.isBold = true
+    @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
+                                Window.height * 0.1, hex_to_rgb($scores[:color].hex).values, {:font_name=>"たぬき油性マジック"})
+    @cognomen_label.set_pos((Window.width - @cognomen_label.width) * 0.5, (Window.height - @cognomen_label.height) * 0.75)
+    @cognomen_label.set_weight = true
 
-    ok_button_width_scale = Window.width * 0.2 / ok_button_image.width
-    ok_button_height_scale = Window.height * 0.1 / ok_button_image.height
-    @ok_button = Button.new(Window.width * 0.4, Window.height * 0.85)
-    @ok_button.name = "ok_button"
-    ok_button_converted_image = RenderTarget.new(Window.width * 0.2, Window.height * 0.1).draw_scale(0, 0, ok_button_image, ok_button_width_scale, ok_button_height_scale, 0, 0).to_image
-    @ok_button.set_image_and_text(ok_button_converted_image, text="OK", ok_button_converted_image.height * 0.8, C_MIKUSAN, LIGHT_NOVEL_POP_FONT_TYPE)
-    ok_button_image.dispose
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @ok_button = Button.new(Window.width * 0.4, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "OK",
+                            Window.height * 0.08, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+    @ok_button.set_image(Images.fit_resize(ok_button_image, Window.width * 0.2, Window.height * 0.1))
+
+    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
+    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
+    @exit_button = Button.new
+    @exit_button.set_image(exit_button_converted_image)
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_pos(Window.width - @exit_button.width, 0)
+
+    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    @window_mode_button = Button.new
+    @window_mode_button.set_image(window_mode_button_converted_image)
+    @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
+                                   "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+
+    @buttons = [@ok_button, @exit_button, @window_mode_button]
 
     if $scores[:technical_point] >= COMMENDATION_POINT then
+
       confetti_size_min = Window.height * 0.03
       confetti_size_max = confetti_size_min * 3
       confetti_accel_min = 0.02
@@ -998,13 +1033,22 @@ class ResultScene < Scene::Base
       CONFETTI_MAX_NUMBER.times do
         confetti = Confetti.new(Window.height, [0, 0], [0, 0], [confetti_size_min, confetti_size_max],
                                 [confetti_accel_min, confetti_accel_max], [confetti_amp_min, confetti_amp_max],
-                                [confetti_rot_speed_min, confetti_rot_speed_max], [confetti_angular_velo_min, confetti_angular_velo_max])
+                                [confetti_rot_speed_min, confetti_rot_speed_max],
+                                [confetti_angular_velo_min, confetti_angular_velo_max])
         confetti.set_x([-1 * confetti.width * Math.sqrt(2), Window.width + (confetti.width * Math.sqrt(2))])
         confetti.set_y([-1 * confetti.height * Math.sqrt(2), -1 * Window.height + confetti.height * Math.sqrt(2)])
         @confettis.push(confetti)
       end
       @congratulations_se.play
     end
+
+    @mouse = Sprite.new
+    @mouse.collision = [0, 0]
+
+    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
   end
 
   def update
@@ -1015,15 +1059,53 @@ class ResultScene < Scene::Base
       end
     end
 
-    if @ok_button.pushed? then
-      @clickSE.play
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+      @window_mode_button.is_gazed = false
+      if Window.windowed? then
+        Window.windowed = false
+      else
+        Window.windowed = true
+      end
+      @click_se.play if @click_se
+    end
+
+    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @exit_button.is_gazed = false
+      self.did_disappear
+      exit
+    end
+
+    if @ok_button and (@ok_button.pushed? or @ok_button.is_gazed) then
+      @click_se.play if @click_se
       if $scores[:technical_point] >= COMMENDATION_POINT then
         self.next_scene = EndingScene
       else
         self.next_scene = NameEntryScene
       end
     end
-    @ok_button.hovered?
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        button.hovered?
+      end
+    end
+
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
+
+    @poi.update if @poi
+  end
+
+  def gazed(x, y, center_x, center_y)
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
+          button.is_gazed = true
+        end
+      end
+    end
+    @poi.mode = :search
   end
 
   def render
@@ -1036,170 +1118,206 @@ class ResultScene < Scene::Base
       end
     end
 
-    @titleLabel.render
-    @score_label.render
-    @catched_kingyo_number_label.render
-    @catched_boss_number_label.render
-    @max_combo_label.render
-    @total_move_distance_label.render
-    @technical_point_label.render
-    @cognomen_label.render
-    @ok_button.render
+    @titleLabel.draw if @titleLabel
+    @score_label.draw if @score_label
+    @catched_kingyo_number_label.draw if @catched_kingyo_number_label
+    @catched_boss_number_label.draw if @catched_boss_number_label
+    @max_combo_label.draw if @max_combo_label
+    @total_move_distance_label.draw if @total_move_distance_label
+    @technical_point_label.draw if @technical_point_label
+    @cognomen_label.draw if @cognomen_label
+
+    @ok_button.draw if @ok_button
+    @exit_button.draw if @exit_button
+    @window_mode_button.draw if @window_mode_button
+
+    @poi.draw if @poi
+  end
+
+  def did_disappear
+
   end
 end
 
 
 class NameEntryScene < Scene::Base
 
+  require "net/http"
+  require "./lib/dxruby/images"
+  require "./lib/dxruby/color"
+  require "./lib/common"
+
+  require "./scripts/name_entry"
+
+  include Color
+  include Common
+
+  CLICK_SE = "./sounds/push13.wav"
+  NAME_ENTRY_BGM = "./sounds/yuugure.mp3"
+
+  NAME_ENTRY_BUTTON_IMAGE = "./images/942037.png"
+  FLOOR_IMAGE = "./images/floor1.jpg"
+  RESET_BUTTON_IMAGE = "./images/m_1.png"
+  DECITION_BUTTON_IMAGE = "./images/m_2.png"
+  DELETE_BUTTON_IMAGE = "./images/m_3.png"
+  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+
+  MAX_NAME_INPUT_NUMBER = 8
+
+  MAX_COUNT_IN_WINDOW = 40
+  MAX_COUNT_IN_GAZE_AREA = 30
+
+  POI_HEIGHT_SIZE = Window.height * 0.2
+  MAX_GAZE_COUNT = 15
+  POI_GAZE_RADIUS_RATIO = 0.8
+
   def init
 
-    @clickSE = Sound.new(CLICK_SE)
+    @click_se = Sound.new(CLICK_SE)
     @bgm = Bass.loadSample(NAME_ENTRY_BGM)
 
     floor_image = Image.load(FLOOR_IMAGE)
-    reset_button_image = Image.load(RESET_BUTTON_IMAGE)
-    decision_button_image = Image.load(DECITION_BUTTON_IMAGE)
-    delete_button_image = Image.load(DELETE_BUTTON_IMAGE)
-    name_entry_button_image = Image.load(NAME_ENTRY_BUTTON_IMAGE)
-
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-
-    floor_image_scale = 1.0
-    floor_src_rt = RenderTarget.new(floor_image.width * floor_image_scale, floor_image.height * floor_image_scale)
-    floor_src_rt.draw_scale(0, 0, floor_image, floor_image_scale, floor_image_scale)
-    floor_src_image = floor_src_rt.to_image
-    floor_image.dispose
-    floor_src_rt.dispose
+    floor_src_image = Images.scale_resize(floor_image, 1.0, 1.0)
     floor_rt = RenderTarget.new(Window.width, Window.height)
     floor_rt.drawTile(0, 0, [[0]], [floor_src_image], nil, nil, nil, nil)
     @floor_image = floor_rt.to_image
     floor_src_image.dispose
     floor_rt.dispose
 
-    @titleLabel = Fonts.new(0, 0, "名前の入力", Window.height * 0.05, C_BLACK)
-    @titleLabel.set_pos((Window.width - @titleLabel.get_width) * 0.5, Window.height * 0.06 - (@titleLabel.get_height * 0.5))
-    @titleLabel.fontType = LIGHT_NOVEL_POP_FONT_TYPE
+    @title_label = Fonts.new(0, 0, "名前の入力", Window.height * 0.05, C_ORANGE, {:font_name=>"07ラノベPOP"})
+    @title_label.set_pos((Window.width - @title_label.width) * 0.5, (Window.height - @title_label.height) * 0.02)
 
-    @scoreLabel = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.07, C_GREEN)
-    @scoreLabel.set_pos((Window.width - @scoreLabel.get_width) * 0.5, Window.height * 0.13 - (@scoreLabel.get_height * 0.5))
-    @scoreLabel.fontType = JIYUNO_TSUBASA_FONT_TYPE
+    @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.06, C_GREEN, {:font_name=>"自由の翼フォント"})
 
-    @inputBox = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "")
-    @inputBox.fontSize = @inputBox.w * 0.12
-    @inputBox.string_pos("", @inputBox.font_size, (@inputBox.w - (@inputBox.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5, (@inputBox.h - @inputBox.font_size) * 0.5, C_BLACK)
-    @inputBox.fontType = AR_KYOUKASYOTAI_M_FONT_TYPE
-    @inputBox.frame(C_BROWN, @inputBox.h * 0.05)
+    @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
+                                Window.height * 0.06, hex_to_rgb($scores[:color].hex).values, {:font_name=>"たぬき油性マジック"})
+    @cognomen_label.set_weight = true
 
-    exitButtonHeight = Window.height * 0.05
-    exit_button_scale = exitButtonHeight / exit_button_image.height
-    exit_button_converted_image = RenderTarget.new(exit_button_image.width * exit_button_scale, exit_button_image.height * exit_button_scale).draw_scale(0, 0, exit_button_image, exit_button_scale, exit_button_scale, 0, 0).to_image
-    @exitButton = Button.new()
-    @exitButton.name = "exit_button"
-    @exitButton.set_image_and_text(exit_button_converted_image, "Exit", exit_button_converted_image.height * 0.7, C_DARK_BLUE, LIGHT_NOVEL_POP_FONT_TYPE)
-    exit_button_image.dispose
-    @exitButton.set_pos(Window.width - @exitButton.w, 0)
+    interval_margin = Window.height * 0.05
+    @score_label.set_pos((Window.width - (@score_label.width + @cognomen_label.width + interval_margin)) * 0.5, (Window.height - @score_label.height) * 0.1)
+    @cognomen_label.set_pos(@score_label.x + @score_label.width + interval_margin, (Window.height - @cognomen_label.height) * 0.1)
 
-    windowModeButtonHeight = Window.height * 0.05
-    window_mode_button_scale = windowModeButtonHeight / window_mode_button_image.height
-    window_mode_button_converted_image = RenderTarget.new(window_mode_button_image.width * window_mode_button_scale, window_mode_button_image.height * window_mode_button_scale).draw_scale(0, 0, window_mode_button_image, window_mode_button_scale, window_mode_button_scale, 0, 0).to_image
-    @windowModeButton = Button.new()
-    @windowModeButton.name = "window_mode_button"
-    @windowModeButton.set_image_and_text(window_mode_button_converted_image, "Full/Win", window_mode_button_converted_image.height * 0.5, C_DARK_BLUE, LIGHT_NOVEL_POP_FONT_TYPE)
-    window_mode_button_image.dispose
-    @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
+    @input_box = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "")
+    @input_box.fontSize = @input_box.w * 0.12
+    @input_box.string_pos("", @input_box.font_size, (@input_box.w - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5,
+                         (@input_box.h - @input_box.font_size) * 0.5, C_BLACK)
+    @input_box.fontType = "AR教科書体M"
+    @input_box.frame(C_BROWN, @input_box.h * 0.05)
 
-    name_entry_buttons_size = Window.height * 0.1
-    name_entry_buttons_font_size = name_entry_buttons_size * 0.8
-    name_entry_button_width_scale = name_entry_buttons_size / name_entry_button_image.width
-    name_entry_button_height_scale = name_entry_buttons_size / name_entry_button_image.height
-    name_entry_button_coverted_image = RenderTarget.new(name_entry_buttons_size, name_entry_buttons_size).draw_scale(0, 0, name_entry_button_image, name_entry_button_width_scale, name_entry_button_height_scale, 0, 0).to_image
-    @nameEntry = NameEntry.new(0, 0, name_entry_buttons_size, name_entry_buttons_size, name_entry_buttons_font_size, C_BROWN, C_WHITE, {:fontType=>MIKACHAN_FONT_TYPE})
-    @nameEntry.setPos((Window.width - @nameEntry.width) * 0.5, (Window.height - @nameEntry.height) * 0.65)
-    @nameEntry.set_image_object(name_entry_button_coverted_image)
-    name_entry_button_image.dispose
+    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
+    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
+    @exit_button = Button.new
+    @exit_button.set_image(exit_button_converted_image)
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_pos(Window.width - @exit_button.width, 0)
 
-    decision_button_width_scale = Window.width * 0.2 / decision_button_image.width
-    decision_button_height_scale = Window.height * 0.1 / decision_button_image.height
-    @decisionButton = Button.new(Window.width * 0.4, Window.height * 0.85)
-    @decisionButton.name = "decision_button"
-    decision_button_converted_image = RenderTarget.new(Window.width * 0.2, Window.height * 0.1).draw_scale(0, 0, decision_button_image, decision_button_width_scale, decision_button_height_scale, 0, 0).to_image
-    @decisionButton.set_image_and_text(decision_button_converted_image, text="決定", decision_button_converted_image.height * 0.8, C_BLACK, LIGHT_NOVEL_POP_FONT_TYPE)
-    decision_button_image.dispose
+    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    @window_mode_button = Button.new
+    @window_mode_button.set_image(window_mode_button_converted_image)
+    @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
+                                   "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
 
-    reset_button_width_scale = Window.width * 0.2 / reset_button_image.width
-    reset_button_height_scale = Window.height * 0.1 / reset_button_image.height
-    @resetButton = Button.new(Window.width * 0.2, Window.height * 0.85, Window.width * 0.2)
-    @resetButton.name = "reset_button"
-    reset_button_converted_image = RenderTarget.new(Window.width * 0.2, Window.height * 0.1).draw_scale(0, 0, reset_button_image, reset_button_width_scale, reset_button_height_scale, 0, 0).to_image
-    @resetButton.set_image_and_text(reset_button_converted_image, text="リセット", reset_button_converted_image.height * 0.8, C_BLACK, LIGHT_NOVEL_POP_FONT_TYPE)
+    decision_button_image = Image.load(DECITION_BUTTON_IMAGE)
+    @decision_button = Button.new(Window.width * 0.4, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "決定",
+                                 Window.height * 0.08, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+    @decision_button.set_image(Images.fit_resize(decision_button_image, Window.width * 0.2, Window.height * 0.1))
 
-    delete_button_width_scale = Window.width * 0.2 / delete_button_image.width
-    delete_button_height_scale = Window.height * 0.1 / delete_button_image.height
-    @deleteButton = Button.new(Window.width * 0.6, Window.height * 0.85, Window.width * 0.2)
-    @deleteButton.name = "delete_button"
-    delete_button_converted_image = RenderTarget.new(Window.width * 0.2, Window.height * 0.1).draw_scale(0, 0, delete_button_image, delete_button_width_scale, delete_button_height_scale, 0, 0).to_image
-    @deleteButton.set_image_and_text(delete_button_converted_image, text="一文字消す",delete_button_converted_image.height * 0.8, C_BLACK, LIGHT_NOVEL_POP_FONT_TYPE)
+    reset_button_image = Image.load(RESET_BUTTON_IMAGE)
+    @reset_button = Button.new(Window.width * 0.2, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "リセット",
+                              Window.height * 0.08, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+    @reset_button.set_image(Images.fit_resize(reset_button_image, Window.width * 0.2, Window.height * 0.1))
 
-    @buttons = [@windowModeButton, @exitButton, @decisionButton, @resetButton, @deleteButton]
+    delete_button_image = Image.load(DELETE_BUTTON_IMAGE)
+    @delete_button = Button.new(Window.width * 0.6, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "一文字消す",
+                               Window.height * 0.08, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+    @delete_button.set_image(Images.fit_resize(delete_button_image, Window.width * 0.2, Window.height * 0.1))
 
-    @inputBox.string = $name
+    @buttons = [@window_mode_button, @exit_button, @decision_button, @reset_button, @delete_button]
+
+    name_entry_button_width = Window.height * 0.1
+    name_entry_button_height = Window.height * 0.1
+    name_entry_button_image = Image.load(NAME_ENTRY_BUTTON_IMAGE)
+    name_entry_button_x_scale =  name_entry_button_width / name_entry_button_image.width
+    name_entry_button_y_scale = name_entry_button_height / name_entry_button_image.height
+    name_entry_button_coverted_image = Images.scale_resize(name_entry_button_image, name_entry_button_x_scale, name_entry_button_y_scale)
+    name_entry_buttons_font_size = name_entry_button_height * 0.8
+
+    @name_entry = NameEntry.new(0, 0, name_entry_button_width, name_entry_button_height, name_entry_buttons_font_size,
+                               C_BROWN, C_WHITE, {:font_name=>"みかちゃん"})
+    @name_entry.set_pos((Window.width - @name_entry.width) * 0.5, (Window.height - @name_entry.height) * 0.65)
+    @name_entry.set_image(name_entry_button_coverted_image)
+
+    @input_box.string = $scores[:name]
 
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, 0.5, @mouse, nil, self)
-    @poi.catch_count = POI_POINT_COUNT
-
-    @windows = []
+    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
 
     @bgm.play(:loop=>true, :volume=>0.5)
   end
 
   def update
 
-    if @windowModeButton.pushed? then
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+      @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
       else
         Window.windowed = true
       end
-      @clickSE.play
+      @click_se.play if @click_se
     end
 
-    if @exitButton.pushed? then
+    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @exit_button.is_gazed = false
+      self.did_disappear
       exit
     end
 
-    @nameEntry.kanaButtons.each do |kanaButton|
-      if kanaButton.pushed? then
-        @clickSE.play
-        if $name.size < MAX_NAME_INPUT_NUMBER * 2 then
-          $name += kanaButton.text
-          @inputBox.string = $name
+    if @name_entry then
+      @name_entry.word_buttons.each do |word_button|
+        if word_button.pushed? or word_button.is_gazed then
+          word_button.is_gazed = false
+          @click_se.play if @click_se
+          if $scores[:name].size < MAX_NAME_INPUT_NUMBER * 2 then
+            $scores[:name] += word_button.string
+            @input_box.string = $scores[:name]
+          end
         end
+        word_button.hovered?
       end
-      kanaButton.hovered?
     end
 
-    if @decisionButton.pushed? then
-      @clickSE.play
+    if @decision_button and (@decision_button.pushed? or @decision_button.is_gazed) then
+      @delete_button.is_gazed = false
+      @click_se.play if @click_se
       self.did_disappear
-      self.sendToDatabase
+      self.send_to_database
       self.next_scene = RankingScene
     end
 
-    if @resetButton.pushed? then
-      @clickSE.play
-      $name = ""
-      @inputBox.string = $name
+    if @reset_button and (@reset_button.pushed? or @reset_button.is_gazed) then
+      @reset_button.is_gazed = false
+      @click_se.play if @click_se
+      $scores[:name] = ""
+      @input_box.string = $scores[:name]
     end
 
-    if @deleteButton.pushed? then
-      @clickSE.play
-      if $name.size > 0 then
-        $name.chop!
-        @inputBox.string = $name
+    if @delete_button and (@delete_button.pushed? or @delete_button.is_gazed) then
+      @delete_button.is_gazed = false
+      @click_se.play if @click_se
+      if $scores[:name].size > 0 then
+        $scores[:name].chop!
+        @input_box.string = $scores[:name]
       end
     end
 
@@ -1211,113 +1329,62 @@ class NameEntryScene < Scene::Base
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
-    if @poi and @poi.is_drag then
-      @poi.x = @mouse.x - (@poi.width * 0.5)
-      @poi.y = @mouse.y - (@poi.height * 0.5)
-    end
-
-    if @poi and @poi.mode != :try_gaze then
-      if (@windows.size <= POINT_COUNT_IN_WINDOW) then
-        mouse_x = @poi.x + (@poi.width * 0.5)
-        mouse_y = @poi.y + (@poi.width * 0.5)
-        @windows.push([mouse_x, mouse_y])
-      else
-        @windows.shift(1)
-      end
-
-      if @windows.size >= POINT_COUNT_IN_WINDOW then
-        if @poi.search_gaze_point(@windows) then
-          @windows.clear
-          @poi.mode = :try_gaze
-          @poi.is_drag = false
-        end
-      end
-    end
-
-    if @poi and @poi.mode == :try_catch then
-      if @nameEntry and not @nameEntry.kanaButtons.empty? then
-        @nameEntry.kanaButtons.each do |kanaButton|
-          if @mouse.x >= kanaButton.x and @mouse.x <= kanaButton.x + kanaButton.w and @mouse.y >= kanaButton.y and @mouse.y <= kanaButton.y + kanaButton.h then
-            @clickSE.play
-            if $name.size < MAX_NAME_INPUT_NUMBER * 2 then
-              $name += kanaButton.text
-              @inputBox.string = $name
-            end
-          end
-        end
-      end
-
-      if @buttons and not @buttons.empty? then
-        @buttons.each do |button|
-          if @mouse.x >= button.x and @mouse.x <= button.x + button.w and @mouse.y >= button.y and @mouse.y <= button.y + button.h then
-
-            case button.name
-
-            when "exit_button"
-              self.did_disappear
-              exit
-
-            when "window_mode_button"
-              if Window.windowed? then
-                Window.windowed = false
-              else
-                Window.windowed = true
-              end
-              @clickSE.play
-              @poi.mode = :normal
-
-            when "decision_button"
-              @clickSE.play
-              self.did_disappear
-              # self.sendToDatabase
-              self.next_scene = RankingScene
-
-            when "reset_button"
-              @clickSE.play
-              $name = ""
-              @inputBox.string = $name
-
-            when "delete_button"
-              @clickSE.play
-              if $name.size > 0 then
-                $name.chop!
-                @inputBox.string = $name
-              end
-            end
-          end
-        end
-      end
-      @poi.mode = :normal
-    end
-
     @poi.update if @poi
   end
 
-  def render
-    Window.draw(0, 0, @floor_image) if @floor_image
-    @titleLabel.render
-    @scoreLabel.render
-    @exitButton.render
-    @windowModeButton.render
-    @nameEntry.draw
-    @inputBox.render
-    @decisionButton.render
-    @resetButton.render
-    @deleteButton.render
+  def gazed(x, y, center_x, center_y)
 
-    @poi.draw if @poi
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
+          button.is_gazed = true
+        end
+      end
+    end
+
+    if @name_entry then
+      @name_entry.word_buttons.each do |word_button|
+        if x + center_x >= word_button.x and x + center_x <= word_button.x + word_button.width and
+          y + center_y >= word_button.y and y + center_y <= word_button.y + word_button.height then
+          word_button.is_gazed = true
+        end
+      end
+    end
+
+    @poi.mode = :search
   end
 
-  def sendToDatabase
+  def send_to_database
 
-    uri = URI.parse(POST_URL)
+    uri = URI.parse($config.post_url)
     http = Net::HTTP.new(uri.host, uri.port)
 
     req = Net::HTTP::Post.new(uri.path)
-    req.set_form_data({:name=>$name.encode("UTF-8"), :score=>$scores[:score],
-                       :cognomen=>$cognomens[:cognomen], :cognomen_color=>$cognomens[:color]})
+    req.set_form_data({:name=>$scores[:name].encode("UTF-8"), :score=>$scores[:score],
+                       :cognomen=>$scores[:cognomen], :cognomen_color=>$scores[:cognomen_color]})
 
     http.request(req)
+  end
+
+  def render
+
+    Window.draw(0, 0, @floor_image) if @floor_image
+
+    @title_label.draw if @title_label
+    @score_label.draw if @score_label
+    @cognomen_label.draw if @cognomen_label
+
+    @exit_button.draw if @exit_button
+    @window_mode_button.draw if @window_mode_button
+    @name_entry.draw if @name_entry
+    @input_box.render if @input_box
+
+    @decision_button.draw if @decision_button
+    @reset_button.draw if @reset_button
+    @delete_button.draw if @delete_button
+
+    @poi.draw if @poi
   end
 
   def did_disappear
@@ -1331,55 +1398,84 @@ end
 
 class RankingScene < Scene::Base
 
-  # include Common
+  require "net/http"
+  require "time"
+
+  require "./lib/common"
+  require "./lib/encode" # 文字コード変換
+  require "./lib/dxruby/color"
+  require "./lib/dxruby/images"
+
+  Dir.chdir("./lib") do
+    require "./json/pure" # JSON
+  end
+
+  require "./scripts/score_list_box"
+  require "./scripts/bubble"
+
+  include Common
+  include Color
+
+  CLICK_SE = "./sounds/push13.wav"
+  PAGE_UP_BUTTON = "./images/1396945_up.png"
+  PAGE_DOWN_BUTTON = "./images/1396945_down.png"
+  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+  OK_BUTTON_IMAGE = "./images/m_4.png"
+
+  MAX_COUNT_IN_WINDOW = 40
+  MAX_COUNT_IN_GAZE_AREA = 30
+
+  POI_HEIGHT_SIZE = Window.height * 0.2
+  MAX_GAZE_COUNT = 15
+  POI_GAZE_RADIUS_RATIO = 0.8
 
   def init
 
-    return_button_image = Image.load(OK_BUTTON_IMAGE)
-    page_up_button_image = Image.load(PAGE_UP_BUTTON)
-    page_down_button_image = Image.load(PAGE_DOWN_BUTTON)
-
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_AQUA_MARINE)
 
-    @titleLabel = Fonts.new(0, 0, "ランキング TOP100", Window.height * 0.07, C_DARK_BLUE)
-    @titleLabel.set_pos((Window.width - @titleLabel.get_width) * 0.43, Window.height * 0.07 - (@titleLabel.get_height * 0.5))
-    @titleLabel.fontType = CHECK_POINT_FONT_TYPE
+    @title_label = Fonts.new(0, 0, "ランキング TOP100", Window.height * 0.07, C_DARK_BLUE, {:font_name=>"チェックポイントフォント"})
+    @title_label.set_pos((Window.width - @title_label.width) * 0.5, (Window.height - @title_label.height) * 0.04)
 
-    exitButtonText = "Exit"
-    exitButtonHeight = Window.height * 0.03
-    @exitButton = Button.new(0, 0, exitButtonHeight * exitButtonText.size * 0.5, exitButtonHeight, exitButtonText, exitButtonHeight)
-    @exitButton.set_pos(Window.width - @exitButton.w, 0)
+    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
+    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
+    @exit_button = Button.new
+    @exit_button.set_image(exit_button_converted_image)
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_pos(Window.width - @exit_button.width, 0)
 
-    windowModeButtonText = "Full/Window"
-    windowModeButtonHeight = Window.height * 0.03
-    @windowModeButton = Button.new(0, 0, windowModeButtonHeight * windowModeButtonText.size * 0.5, windowModeButtonHeight, windowModeButtonText, windowModeButtonHeight)
-    @windowModeButton.set_pos(Window.width - (@exitButton.w + @windowModeButton.w), 0)
+    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    @window_mode_button = Button.new
+    @window_mode_button.set_image(window_mode_button_converted_image)
+    @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
+                                   "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
 
-    return_button_width_scale = Window.width * 0.2 / return_button_image.width
-    return_button_height_scale = Window.height * 0.1 / return_button_image.height
-    @return_button = Button.new(Window.width * 0.4, Window.height * 0.85)
-    @return_button.name = "return_button"
-    return_button_converted_image = RenderTarget.new(Window.width * 0.2, Window.height * 0.1).draw_scale(0, 0, return_button_image, return_button_width_scale, return_button_height_scale, 0, 0).to_image
-    @return_button.set_image_and_text(return_button_converted_image, text="タイトルに戻る", return_button_converted_image.height * 0.6, C_BLACK, LIGHT_NOVEL_POP_FONT_TYPE)
-    return_button_image.dispose
+    return_button_image = Image.load(OK_BUTTON_IMAGE)
+    @return_button = Button.new(Window.width * 0.4, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "タイトルに戻る",
+                                Window.height * 0.06, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+    @return_button.set_image(Images.fit_resize(return_button_image, Window.width * 0.2, Window.height * 0.1))
 
+    page_up_button_image = Image.load(PAGE_UP_BUTTON)
     page_up_button_scale = Window.height * 0.15 / page_up_button_image.height
-    @page_up_button = Button.new()
-    @page_up_button.name = "page_up_button"
-    page_up_button_converted_image = RenderTarget.new(page_up_button_image.width * page_up_button_scale, page_up_button_image.height * page_up_button_scale).draw_scale(0, 0, page_up_button_image, page_up_button_scale, page_up_button_scale, 0, 0).to_image
-    @page_up_button.set_image_and_text(page_up_button_converted_image)
-    @page_up_button.set_pos((Window.width - @page_up_button.w) * 0.953, (Window.height - @page_up_button.h) * 0.35)
-    page_up_button_image.dispose
+    page_up_button_converted_image = Images.scale_resize(page_up_button_image, page_up_button_scale, page_up_button_scale)
+    @page_up_button = Button.new
+    @page_up_button.set_image(page_up_button_converted_image)
+    @page_up_button.set_pos((Window.width - @page_up_button.width) * 0.953, (Window.height - @page_up_button.height) * 0.35)
 
+    page_down_button_image = Image.load(PAGE_DOWN_BUTTON)
     page_down_button_scale = Window.height * 0.15 / page_down_button_image.height
+    page_down_button_converted_image = Images.scale_resize(page_down_button_image, page_down_button_scale, page_down_button_scale)
     @page_down_button = Button.new()
-    @page_down_button.name = "page_down_button"
-    page_down_button_converted_image = RenderTarget.new(page_down_button_image.width * page_down_button_scale, page_down_button_image.height * page_down_button_scale).draw_scale(0, 0, page_down_button_image, page_down_button_scale, page_down_button_scale, 0, 0).to_image
-    @page_down_button.set_image_and_text(page_down_button_converted_image)
-    @page_down_button.set_pos((Window.width - @page_down_button.w) * 0.95, (Window.height - @page_down_button.h) * 0.65)
-    page_down_button_image.dispose
+    @page_down_button.set_image(page_down_button_converted_image)
+    @page_down_button.set_pos((Window.width - @page_down_button.width) * 0.95, (Window.height - @page_down_button.height) * 0.65)
 
-    @clickSE = Sound.new(CLICK_SE)
+    @buttons = [@exit_button, @window_mode_button, @return_button, @page_up_button, @page_down_button]
+
+    @click_se = Sound.new(CLICK_SE)
 
     bubble_scale_up_speed_min = 1
     bubble_scale_up_speed_max = bubble_scale_up_speed_min * 1.004
@@ -1392,21 +1488,32 @@ class RankingScene < Scene::Base
 
     @bubbles = []
     700.times do
-      bubble = Bubble.new(-1 * Window.height * 0.5, [0, 0], [0, 0], [bubble_scale_up_speed_min, bubble_scale_up_speed_max],
-                          [bubble_accel_min, bubble_accel_max], [bubble_amplification_speed_min, bubble_amplification_speed_max],
+      bubble = Bubble.new(-1 * Window.height * 0.5, [0, 0], [0, 0],
+                          [bubble_scale_up_speed_min, bubble_scale_up_speed_max],
+                          [bubble_accel_min, bubble_accel_max],
+                          [bubble_amplification_speed_min, bubble_amplification_speed_max],
                           [bubble_angular_velo_up_speed_min, bubble_angular_velo_up_speed_max])
       bubble.set_x([-1 * bubble.width * Math.sqrt(2), Window.width + (bubble.width * Math.sqrt(2))])
       bubble.set_y([Window.height + bubble.height, Window.height * 1.5])
       @bubbles.push(bubble)
     end
 
-    # self.makeResultLabel
+    @mouse = Sprite.new
+    @mouse.collision = [0, 0]
+
+    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
+
     self.temp
   end
 
   def temp
-    items = [["100位", "非常勤講師おなに", "100000点", "スーパーカブ", "2020年12月20日 21時36分19秒"], ["2位", "アルバイト募集", "1000点", "金魚人", "2020年12月20日 21時36分19秒"],
-             ["3位", "ちづる?", "100点", "レジェンドン", "2020年12月20日 21時36分19秒"], ["4位", "神じゃね？", "10点", "スーパーカブ", "2020年12月20日 21時36分19秒"],
+    items = [["100位", "非常勤講師おなに", "100000点", "スーパーカブ", "2020年12月20日 21時36分19秒"],
+             ["2位", "アルバイト募集", "1000点", "金魚人", "2020年12月20日 21時36分19秒"],
+             ["3位", "ちづる?", "100点", "レジェンドン", "2020年12月20日 21時36分19秒"],
+             ["4位", "神じゃね？", "10点", "スーパーカブ", "2020年12月20日 21時36分19秒"],
              ["5位", "落ちこぼれ野郎", "1点", "良しヲくん", "2020年12月20日 21時36分19秒"]]
 
     hex_codes = ["00FFFF", "FFFF00", "008000", "FFA500", "FFA500"]
@@ -1417,12 +1524,12 @@ class RankingScene < Scene::Base
     end
 
     @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350)
-    @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, MIKACHAN_FONT_TYPE)
+    @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, "みかちゃん")
   end
 
-  def loadFromDatabase
+  def load_from_database
 
-    uri = URI.parse(GET_URL)
+    uri = URI.parse($config.get_url)
 
     # 第2引数にHashを指定することでPOSTする際のデータを指定出来る
     response = Net::HTTP.post_form(uri, {})
@@ -1436,7 +1543,7 @@ class RankingScene < Scene::Base
       raws << json["name"].to_s.encode("Shift_JIS")
       raws << json["score"].to_s
       raws << json["cognomen"].to_s.encode("Shift_JIS")
-      raws << json["cognomen_color"].to_s
+      raws << json["color"].to_s
       raws << Time.parse(json["created_at"]).strftime("%Y年%m月%d日 %H時%M分%S秒")
       results << raws
       raws = []
@@ -1446,85 +1553,95 @@ class RankingScene < Scene::Base
 
   def update
 
-    if @windowModeButton.pushed? then
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+      @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
       else
         Window.windowed = true
       end
-      @clickSE.play
+      @click_se.play if @click_se
     end
 
-    if @exitButton.pushed? then
+    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @exit_button.is_gazed = false
+      self.did_disappear
       exit
     end
 
-    if @return_button.pushed? then
-      @clickSE.play
+    if @return_button and (@return_button.pushed? or @return_button.is_gazed) then
+      @return_button.is_gazed = false
+      @click_se.play
       self.next_scene = TitleScene
     end
-    @return_button.hovered?
 
-    @list_box.update
-
-    if @page_up_button.pushed? then
-      @clickSE.play
+    if @page_up_button and (@page_up_button.pushed? or @page_up_button.is_gazed) then
+      @page_up_button.is_gazed = false
+      @click_se.play
       @list_box.scroll_up
     end
-    @page_up_button.hovered?
 
-    if @page_down_button.pushed? then
-      @clickSE.play
+    if @page_down_button and (@page_down_button.pushed? or @page_down_button.is_gazed) then
+      @page_down_button.is_gazed = false
+      @click_se.play
       @list_box.scroll_down
     end
-    @page_down_button.hovered?
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        button.hovered?
+      end
+    end
+
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
+
+    @poi.update if @poi
+
+    @list_box.update
 
     @bubbles.each do |bubble|
       bubble.update
     end
   end
 
+  def gazed(x, y, center_x, center_y)
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
+          button.is_gazed = true
+        end
+      end
+    end
+    @poi.mode = :search
+  end
+
   def render
 
     Window.draw(0, 0, @background) if @background
 
-    @bubbles.each do |bubble|
-      bubble.draw
-    end
-
-    @list_box.draw
-
-    @titleLabel.render
-    @exitButton.render
-    @windowModeButton.render
-    @return_button.render
-
-    @page_up_button.render
-    @page_down_button.render
-
-    if @rankLabels and not @rankLabels.empty? then
-      for rankLabel in @rankLabels do
-        rankLabel.render
+    if @bubbles and not @bubbles.empty? then
+      @bubbles.each do |bubble|
+        bubble.draw
       end
     end
 
-    if @nameLabels and not @nameLabels.empty? then
-      for nameLabel in @nameLabels do
-        nameLabel.render
-      end
-    end
+    @list_box.draw if @list_box
 
-    if @scoreLabels and not @scoreLabels.empty? then
-      for scoreLabel in @scoreLabels do
-        scoreLabel.render
-      end
-    end
+    @title_label.draw if @title_label
+    @exit_button.draw if  @exit_button
+    @window_mode_button.draw if @window_mode_button
+    @return_button.draw if @return_button
 
-    if @datetimeLabels and not @datetimeLabels.empty? then
-      for datetimeLabel in @datetimeLabels do
-        datetimeLabel.render
-      end
-    end
+    @page_up_button.draw if @page_up_button
+    @page_down_button.draw if @page_down_button
+
+    @poi.draw if @poi
+  end
+
+  def did_disappear
+
   end
 end
 
@@ -1546,6 +1663,10 @@ class EndingScene < Scene::Base
   BACKGROUND_IMAGE = "./images/BG00a1_80a.jpg"
   STAFF_DATA_FILE = "./data/staff.csv"
   ENDING_BGM = "./sounds/itsuka_miagete_ta_tooi_sora.mp3"
+  CLICK_SE = "./sounds/push13.wav"
+
+  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
 
   BASE_FONT_SIZE = 64
   FONT_SHADOW_OFF_SET_X = 3
@@ -1555,10 +1676,19 @@ class EndingScene < Scene::Base
   BGM_TIME = 89
   MAX_NEXT_SCENE_WAIT_COUNT = 240
   ILLUST_RELATIVE_SCALES = [0.2, 0.15, 0.2, 0.25, 0.4, 0.27]
-  ILLUST_MAX_NUMBER = 13
+  ILLUST_MAX_NUMBER = 15
   NUMBER_OF_ILLUST = 6
 
+  MAX_COUNT_IN_WINDOW = 40
+  MAX_COUNT_IN_GAZE_AREA = 30
+
+  POI_HEIGHT_SIZE = Window.height * 0.2
+  MAX_GAZE_COUNT = 15
+  POI_GAZE_RADIUS_RATIO = 0.8
+
   def init
+
+    @click_se = Sound.new(CLICK_SE)
 
     staff_datas = csvReadArray(STAFF_DATA_FILE)
 
@@ -1588,6 +1718,33 @@ class EndingScene < Scene::Base
       @illusts.push(illust)
     end
 
+    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
+    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
+    @exit_button = Button.new
+    @exit_button.set_image(exit_button_converted_image)
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_pos(Window.width - @exit_button.width, 0)
+
+    window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    @window_mode_button = Button.new
+    @window_mode_button.set_image(window_mode_button_converted_image)
+    @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
+                                   "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+
+    @buttons = [@exit_button, @window_mode_button]
+
+    @mouse = Sprite.new
+    @mouse.collision = [0, 0]
+
+    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
+
     @bgm = Bass.loadSample(ENDING_BGM)
     @bgm.play(:loop=>false, :volume=>0.8)
 
@@ -1596,7 +1753,7 @@ class EndingScene < Scene::Base
 
   def update
 
-    if @sprite_fonts[-1].y <= (Window.height - @sprite_fonts[-1].height) * 0.6 then
+    if @sprite_fonts and not @sprite_fonts.empty? and @sprite_fonts[-1].y <= (Window.height - @sprite_fonts[-1].height) * 0.6 then
       if @next_scene_wait_count < MAX_NEXT_SCENE_WAIT_COUNT then
         @next_scene_wait_count += 1
       else
@@ -1609,43 +1766,78 @@ class EndingScene < Scene::Base
       end
     end
 
-    @illusts.each do |illust|
-      illust.update
+    if @illusts and not @illusts.empty? then
+      @illusts.each do |illust|
+        illust.update
+      end
     end
+
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+      @window_mode_button.is_gazed = false
+      if Window.windowed? then
+        Window.windowed = false
+      else
+        Window.windowed = true
+      end
+      @click_se.play if @click_se
+    end
+
+    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @exit_button.is_gazed = false
+      self.did_disappear
+      exit
+    end
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        button.hovered?
+      end
+    end
+
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
+
+    @poi.update if @poi
+  end
+
+  def gazed(x, y, center_x, center_y)
+
+    if @buttons and not @buttons.empty? then
+      @buttons.each do |button|
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
+          button.is_gazed = true
+        end
+      end
+    end
+    @poi.mode = :search
   end
 
   def render
 
-    Window.draw(0, 0, @background_image)
+    Window.draw(0, 0, @background_image) if @background_image
 
-    @illusts.each do |illust|
-      illust.draw
+    if @illusts and not @illusts.empty? then
+      @illusts.each do |illust|
+        illust.draw
+      end
     end
 
-    @sprite_fonts.each do |sprite_font|
-      sprite_font.draw
+    if @sprite_fonts and not @sprite_fonts.empty? then
+      @sprite_fonts.each do |sprite_font|
+        sprite_font.draw
+      end
     end
+
+    @exit_button.draw if @exit_button
+    @window_mode_button.draw if @window_mode_button
+
+    @poi.draw if @poi
+  end
+
+  def did_disappear
+
   end
 end
 
 
-Scene.main_loop TitleScene, $config.fps, $config.frame_step
-
-
-=begin
-# win32_open3 example
-# Try each command as you like...
-cmd = "dir /w"
-
-Open3.popen3(cmd) do |io_in, io_out, io_err|
-  error = io_err.read
-  if error && error.length > 0
-    puts 'Error: ' + error
-    break
-  else
-    # puts io_in.write("hoge")
-    output = io_out.read
-    puts 'Output: ' + output if output
-  end
-end
-=end
+Scene.main_loop RankingScene, $config.fps, $config.frame_step

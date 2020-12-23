@@ -23,8 +23,9 @@ class Confetti < Sprite
   include Common
 
   def initialize(max_y=0, x_ranges=[0, 800], y_ranges=[0, 300], size_ranges=[1, 5], accel_ranges=[1, 5], amp_ranges=[1, 5], rot_speed_ranges=[1, 5],
-                 angular_velo_ranges=[1, 5], id=0, target=Window, is_drag=false)
+                 angular_velo_ranges=[1, 5], id=0, name="confetti", target=Window, is_drag=false)
     super()
+
     @max_y = max_y
     @x_ranges = x_ranges
     @y_ranges = y_ranges
@@ -35,10 +36,17 @@ class Confetti < Sprite
     @angular_velo_ranges = angular_velo_ranges
     self.target = target
     self.alpha = CONFETTI_ALPHA
+
     @id = id
-    @name = "confetti"
+    @name = name
     @is_drag = is_drag
-    self.init
+
+    size = self.rand_float(@size_ranges[0], @size_ranges[1])
+    self.image = Image.new(size, size)
+    @width = self.image.width
+    @height = self.image.height
+
+    self.constract
   end
 
   def set_x(x_ranges)
@@ -51,40 +59,44 @@ class Confetti < Sprite
     self.y = self.rand_float(@y_ranges[0], @y_ranges[1]).to_i
   end
 
-  def init
+  def constract
+
+    self.image.clear
     size = self.rand_float(@size_ranges[0], @size_ranges[1])
     color = [rand(256), rand(256), rand(256)]
-    image = Image.new(size, size).box_fill(0, 0, size, size, color)
-    self.image = image
+    self.image.box_fill(0, 0, size, size, color)
     @width = self.image.width
     @height = self.image.height
+
     @accel = self.rand_float(@accel_ranges[0], @accel_ranges[1])
     @amp = self.rand_float(@amp_ranges[0], @amp_ranges[1])
     @rot_speed = self.rand_float(@rot_speed_ranges[0], @rot_speed_ranges[1])
     @angular_velo = self.rand_float(@angular_velo_ranges[0], @angular_velo_ranges[1])
     self.angle = rand(360)
     @sign = SIGN[rand(2)]
+
     @fall_count = 0
     @degree = 0
   end
 
   def update
+
     self.angle += @sign * @rot_speed
     self.y += @accel * @fall_count
     radian = (@degree) * (Math::PI / 180)
     self.x += @amp * Math.sin(radian * @angular_velo)
     @fall_count += 1
     @degree += 1
+
     if self.y > @max_y
-      self.image.dispose if not self.image.disposed?
-      self.init
+      self.constract
       self.set_x(@x_ranges)
       self.set_y(@y_ranges)
     end
   end
 
   def draw
-    self.target.draw_ex(self.x, self.y, self.image, {:angle=>self.angle, :alpha=>self.alpha}) if not self.image.disposed?
+    self.target.draw_ex(self.x, self.y, self.image, {:angle=>self.angle, :alpha=>self.alpha})
   end
 end
 

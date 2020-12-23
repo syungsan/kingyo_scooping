@@ -6,14 +6,6 @@ require "jcode"
 require "dxruby"
 
 
-
-
-RESERVED_OBJECT_Z_POSITION = 200
-DEEP_DIVE_OBJECT_Z_POSITION = 0
-RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
-
-
-
 class Poi <Sprite
 
   attr_accessor :name, :id, :is_drag, :mode, :old_pos

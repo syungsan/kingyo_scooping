@@ -3,20 +3,18 @@
 $KCODE = "s"
 require "jcode"
 
-# name_entry.rb Ver 1.0
+# name_entry.rb Ver 1.1
 
 require "dxruby"
-
-if __FILE__ == $0
-  Dir.chdir("../") do
-    require "./lib/dxruby/button"
-  end
-end
 
 
 class NameEntry
 
-  KANA = [["‚ ", "‚¢", "‚¤", "‚¦", "‚¨"],
+  if __FILE__ == $0
+    require "../lib/dxruby/button"
+  end
+
+  HIRA_GANA = [["‚ ", "‚¢", "‚¤", "‚¦", "‚¨"],
           ["‚©", "‚«", "‚­", "‚¯", "‚±"],
           ["‚³", "‚µ", "‚·", "‚¹", "‚»"],
           ["‚½", "‚¿", "‚Â", "‚Ä", "‚Æ"],
@@ -34,85 +32,80 @@ class NameEntry
           ["‚Î", "‚Ñ", "‚Ô", "‚×", "‚Ú"],
           ["‚Ï", "‚Ò", "‚Õ", "‚Ø", "‚Û"]]
 
-  attr_accessor :x, :y, :name, :id, :target
-  attr_reader :width, :height, :kanaButtons
+  attr_accessor :x, :y, :id, :name, :target
+  attr_reader :width, :height, :word_buttons
 
-  def initialize(x, y, buttonWidth=48, buttonHeight=48, fontSize=40, strColor=C_BLACK, baseColor=C_WHITE, option={})
-    option = {:id=>0, :name=>"NameEntry", :target=>Window, :fontType=>"‚l‚r ‚oƒSƒVƒbƒN"}.merge(option)
+  def initialize(x, y, button_width=48, button_height=48, font_size=40, str_color=C_BLACK, base_color=C_WHITE, option={})
+    option = {:id=>0, :name=>"name_entry", :target=>Window, :font_name=>"‚l‚r ‚oƒSƒVƒbƒN"}.merge(option)
 
-    self.target = option[:target]
-    self.x = x
-    self.y = y
-    @buttonWidth = buttonWidth
-    @buttonHeight = buttonHeight
-    @fontSize = fontSize
-    @width = KANA.size * @buttonWidth
-    @height = KANA[0].size * @buttonHeight
-    @strColor = strColor
-    @baseColor = baseColor
-    @fontType = option[:fontType]
-    self.name = name
-    self.id = id
-    @isImageSet = false
+    @words = HIRA_GANA
 
-    self.makeKeyboard
+    @target = option[:target]
+    @x = x
+    @y = y
+    @button_width = button_width
+    @button_height = button_height
+    @font_size = font_size
+    @width = @words.size * @button_width
+    @height = @words[0].size * @button_height
+    @str_color = str_color
+    @base_color = base_color
+    @font_name = option[:font_name]
+
+    @name = option[:name]
+    @id = option[:id]
+    @is_image_set = false
+
+    self.make_keyboard
   end
 
-  def makeKeyboard
+  def make_keyboard
 
-    @kanaButtons = []
-    for i in 0...KANA.size
-      for j in 0...KANA[i].size
+    @word_buttons = []
+    for i in 0...@words.size
+      for j in 0...@words[i].size
 
-        if KANA[i][j] != "" then
+        if @words[i][j] != "" then
 
           # —×Úƒ{ƒ^ƒ“‚ÌŠÔ‚ð1dotŠJ‚¯‚È‚¢‚Æƒ{ƒ^ƒ“‚ð•¡”‘I‘ð‚µ‚Ä‚µ‚Ü‚¤
-          kanaButton = Button.new(self.x + ((@buttonWidth + 1) * i), self.y + ((@buttonHeight + 1) * j), @buttonWidth, @buttonHeight, KANA[i][j], @fontSize)
+          word_button = Button.new(@x + ((@button_width + 1) * i), @y + ((@button_height + 1) * j),
+                                   @button_width, @button_height, @words[i][j], @font_size,
+                                   {:color=>@base_color, :str_color=>@str_color, :font_name=>@font_name})
 
-          if @isImageSet then
-            kanaButton.image(@filename)
-            kanaButton.set_pos(self.x + ((kanaButton.w + 1) * i), self.y + ((kanaButton.h + 1) * j))
+          if @is_image_set then
+            image_clone = @image.clone
+            word_button.set_image(image_clone)
           end
 
-          if @is_image_object_set then
-            @image_object_clone = @image_object.clone
-            kanaButton.set_image_and_text(@image_object_clone, KANA[i][j], @fontSize, @strColor, @fontType)
-          else
-            kanaButton.color(@baseColor)
-            kanaButton.font_color(@strColor)
-            kanaButton.fontType = @fontType
-          end
-
-          @kanaButtons << kanaButton
+          @word_buttons << word_button
         end
       end
     end
   end
 
-  def setPos(x, y)
-    self.x, self.y = x, y
-    self.makeKeyboard
+  def set_pos(x, y)
+    self.x = x
+    self.y = y
+    self.make_keyboard
   end
 
-  def setImage(filename)
-    @isImageSet = true
-    @filename = filename
-    self.makeKeyboard
-  end
-
-  def set_image_object(image_object)
-    @is_image_object_set = true
-    @image_object = image_object
-    self.makeKeyboard
+  def set_image(image)
+    @is_image_set = true
+    @image = image
+    self.make_keyboard
   end
 
   def update
   end
 
   def draw
-    for kanaButton in @kanaButtons do
-      kanaButton.render
+    for word_button in @word_buttons do
+      word_button.draw
     end
+  end
+
+  def vanish
+
   end
 end
 
@@ -122,15 +115,15 @@ if __FILE__ == $0
   Window.width = 1280
   Window.height = 720
 
-  nameEntry = NameEntry.new(0, 0, 70, 70, 54, C_BLACK, C_WHITE)
-  nameEntry.setPos((Window.width - nameEntry.width) * 0.5, (Window.height - nameEntry.height) * 0.5)
+  name_entry = NameEntry.new(0, 0, 70, 70, 54, C_BLACK, C_WHITE)
+  name_entry.setPos((Window.width - name_entry.width) * 0.5, (Window.height - name_entry.height) * 0.5)
 
   Window.loop do
-    for kanaButton in nameEntry.kanaButtons do
-      if kanaButton.pushed? then
-        p kanaButton.text
+    for word_button in name_entry.word_buttons do
+      if word_button.pushed? then
+        p word_button.string
       end
     end
-    nameEntry.draw
+    name_entry.draw
   end
 end

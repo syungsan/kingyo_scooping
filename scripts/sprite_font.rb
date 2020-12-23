@@ -8,7 +8,7 @@ require "dxruby"
 
 class SpriteFont < Sprite
 
-  attr_accessor :name, :id, :is_drag
+  attr_accessor :id, :name, :is_drag
   attr_reader :width, :height, :mode
 
   if __FILE__ == $0 then
@@ -19,7 +19,7 @@ class SpriteFont < Sprite
   include Easing
 
   def initialize(x=0, y=0, text="sample", font_size=24, font_color=[255, 255, 255], frame_color=[0, 0, 0, 0], option={},
-                 name="sprite_font", id=0, is_drag=false, target=Window)
+                 id=0, name="sprite_font", is_drag=false, target=Window)
     option = {:font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :weight=>400, :italic=>false, :auto_fitting=>false, :edge=>false, :edge_color=>[0, 0, 0],
               :edge_width=>2, :edge_level=>4, :shadow=>false, :shadow_edge=>false, :shadow_color=>[0, 0, 0], :shadow_x=>1, :shadow_y=>1,
               :anti_alias=>true}.merge(option)
