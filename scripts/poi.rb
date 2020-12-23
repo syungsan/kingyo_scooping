@@ -8,26 +8,15 @@ require "dxruby"
 
 
 
+RESERVED_OBJECT_Z_POSITION = 200
+DEEP_DIVE_OBJECT_Z_POSITION = 0
+RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
 
-
-
-
-
-POI_TRANSPORT_DURATION = 0.5
-POI_RESERVE_DURATION = 0.3
-POI_REVERSE_DURATION = 0.4
-
-POI_RESERVED_OBJECT_Z_POSITION = 200
-POI_DEEP_DIVE_OBJECT_Z_POSITION = 0
-
-POI_RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
-POI_RELEASE_POSITION_ADJUST_RATIO = 0.7
-POI_TRANSPORT_FIRST_VELOSITY = 0
 
 
 class Poi <Sprite
 
-  attr_accessor :name, :id, :is_drag, :mode
+  attr_accessor :name, :id, :is_drag, :mode, :old_pos
   attr_reader :width, :height
 
   require "bigdecimal"
@@ -56,11 +45,15 @@ class Poi <Sprite
   PAPER_OFFSET_RATIO_AGAINST_FRAME_X = 0.03
   PAPER_OFFSET_RATIO_AGAINST_FRAME_Y = 0.03
 
+  TRANSPORT_DURATION = 0.5
+  RESERVE_DURATION = 0.3
+  REVERSE_DURATION = 0.4
+
+  RELEASE_POSITION_ADJUST_RATIO = 0.7
+  TRANSPORT_FIRST_VELOSITY = 0
 
 
-
-
-  def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, option={})
+  def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, transport_target=nil, option={})
     option = {:max_count_in_window=>60, :gaze_radius_ratio=>0.5, :max_count_in_gaze_area=>30,
               :name=>"poi", :id=>0, :target=>Window, :is_drag=>true}.merge(option)
     super()
@@ -109,10 +102,8 @@ class Poi <Sprite
     @windows = []
     @mode = :search
 
-
+    @transport_target = transport_target
     @transport_count = 0
-    #  @transport_target = transport_target
-
   end
 
   def set_pos(x, y)
@@ -137,7 +128,7 @@ class Poi <Sprite
     when :try_gaze
       self.try_gaze
 
-    when :transport
+    when :transport, :reserve
       self.transport
     end
   end
@@ -184,8 +175,7 @@ class Poi <Sprite
         @gaze_range_scale = 0
         @gaze_count = 0
         @is_drag = true
-        @parent.gazed(self.x + (@width * 0.5), self.y + (@height * 0.5)) if @parent
-        @mode = :search
+        @parent.gazed(self.x, self.y, @width * 0.5, @height * 0.5) if @parent
       end
     else
       @gaze_range_scale = 0
@@ -195,24 +185,44 @@ class Poi <Sprite
     end
   end
 
-
-
-
-  def try_catch(catch_objects)
-
-    @catch_objects = catch_objects
-    unless @catch_objects.empty? then
-      @old_pos = [self.x, self.y]
-      @mode = :transport
-    else
-      @mode = :normal
-    end
-  end
-
   def transport
 
     @is_drag = false
-    if @transport_count <= POI_TRANSPORT_DURATION then
+    if @transport_count <= TRANSPORT_DURATION then
+      self.set_pos(@old_pos[0] + ease_in_out_quad(@transport_count, TRANSPORT_FIRST_VELOSITY,
+                                                  @transport_target.x - @old_pos[0] + ((@width * 0.5) * RELEASE_POSITION_ADJUST_RATIO),
+                                                  TRANSPORT_DURATION),
+                   @old_pos[1] + ease_in_out_quad(@transport_count, TRANSPORT_FIRST_VELOSITY,
+                                                  @transport_target.y - @old_pos[1] + ((@height * 0.5) * RELEASE_POSITION_ADJUST_RATIO),
+                                                  TRANSPORT_DURATION))
+      @transport_count += 0.01
+
+    elsif @transport_count < TRANSPORT_DURATION + RESERVE_DURATION then
+      @transport_count += 0.01
+
+    elsif BigDecimal(@transport_count.to_s).floor(2).to_f == TRANSPORT_DURATION + RESERVE_DURATION then
+      @old_pos = [self.x, self.y]
+      @transport_count += 0.01
+      @mode = :reserve
+
+    elsif @transport_count <= TRANSPORT_DURATION + RESERVE_DURATION + REVERSE_DURATION then
+      self.set_pos(@old_pos[0] + ease_in_out_quad(@transport_count - (TRANSPORT_DURATION + RESERVE_DURATION), TRANSPORT_FIRST_VELOSITY,
+                                                  @pointer.x - @old_pos[0] - (@width * 0.5), REVERSE_DURATION),
+                   @old_pos[1] + ease_in_out_quad(@transport_count - (TRANSPORT_DURATION + RESERVE_DURATION), TRANSPORT_FIRST_VELOSITY,
+                                                  @pointer.y - @old_pos[1] - (@height * 0.5), REVERSE_DURATION))
+      @transport_count += 0.01
+
+    else
+      @transport_count = 0
+      @is_drag = true
+      @mode = :search
+    end
+  end
+
+  def transport2
+
+    @is_drag = false
+    if @transport_count <= TRANSPORT_DURATION then
       self.x = @old_pos[0] + ease_in_out_quad(@transport_count, POI_TRANSPORT_FIRST_VELOSITY, @transport_target.x - @old_pos[0] + ((@width * 0.5) * POI_RELEASE_POSITION_ADJUST_RATIO), POI_TRANSPORT_DURATION)
       self.y = @old_pos[1] + ease_in_out_quad(@transport_count, POI_TRANSPORT_FIRST_VELOSITY, @transport_target.y - @old_pos[1] + ((@height * 0.5) * POI_RELEASE_POSITION_ADJUST_RATIO), POI_TRANSPORT_DURATION)
 

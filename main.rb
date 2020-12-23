@@ -242,14 +242,14 @@ class TitleScene < Scene::Base
     @mouse.collision = [0, 0]
 
     @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
-                   MAX_GAZE_COUNT, self,{:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                    :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
   end
 
   def update
 
-    if @start_button.pushed? or @start_button.is_gazed then
+    if @start_button and (@start_button.pushed? or @start_button.is_gazed) then
       @start_button.is_gazed = false
       @is_start_button_blink = true unless @is_start_button_blink
       @start_button.hover = false if @start_button.is_hoverable
@@ -257,7 +257,7 @@ class TitleScene < Scene::Base
       @wait_stage_change_count = 0
     end
 
-    if @window_mode_button.pushed? or @window_mode_button.is_gazed then
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -267,7 +267,7 @@ class TitleScene < Scene::Base
       @click_se.play
     end
 
-    if @exit_button.pushed? or Input.key_push?(K_ESCAPE) or @exit_button.is_gazed then
+    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
       self.did_disappear
       exit
@@ -279,7 +279,7 @@ class TitleScene < Scene::Base
       end
     end
 
-    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
     @poi.update if @poi
 
@@ -299,30 +299,31 @@ class TitleScene < Scene::Base
     end
   end
 
-  def gazed(center_x, center_y)
+  def gazed(x, y, center_x, center_y)
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if center_x >= button.x and center_x <= button.x + button.width and
-          center_y >= button.y and center_y <= button.y + button.height then
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
           button.is_gazed = true
         end
       end
     end
+    @poi.mode = :search
   end
 
   def render
 
     Window.draw(0, 0, @background_image)
 
-    @title_label.draw
-    @sub_title_label.draw
-    @version_number_label.draw
-    @copyright_label.draw
+    @title_label.draw if @title_label
+    @sub_title_label.draw if @sub_title_label
+    @version_number_label.draw if @version_number_label
+    @copyright_label.draw if @copyright_label
 
-    @start_button.draw
-    @exit_button.draw
-    @window_mode_button.draw
+    @start_button.draw if @start_button
+    @exit_button.draw if @exit_button
+    @window_mode_button.draw if @window_mode_button
 
     @poi.draw if @poi
   end
@@ -412,7 +413,7 @@ class GameScene < Scene::Base
   Z_POSITION_DOWN = 100
   Z_POSITION_BOTTOM = 0
 
-  POI_CATCH_ADJUST_RANGE_RATIO = 0.9
+  POI_CATCH_ADJUST_RANGE_RATIO = 1.0
   CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
   CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
 
@@ -487,7 +488,7 @@ class GameScene < Scene::Base
     @mouse.collision = [0, 0]
 
     @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
-                   MAX_GAZE_COUNT, self,{:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                   MAX_GAZE_COUNT, self, @container, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                          :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
     @poi.z = Z_POSITION_TOP
@@ -529,6 +530,7 @@ class GameScene < Scene::Base
     @windows = []
     @swimers = []
     @splashs = []
+    @catch_objects = []
 
     @challenge_point = 0
     @start_count = 0
@@ -546,29 +548,38 @@ class GameScene < Scene::Base
       @change_stage_se.play if @change_stage_se
       self.stage_init
 
-      @stage_info_label.string = "ステージ#{@stage_number}"
-      @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+      if @stage_info_label then
+        @stage_info_label.string = "ステージ#{@stage_number}"
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+      end
 
     when :normal
 
       if @bgm then
         @bgm.stop
       end
-      @bgm = @main_bgm
-      @bgm.play(:loop=>true, :volume=>0.5)
-      @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
-                         {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                         {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
-      @bgm_info.mode = :run
+      if @main_bgm then
+        @bgm = @main_bgm
+        @bgm.play(:loop=>true, :volume=>0.5)
+      end
+      if @bgm_info then
+        @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
+                           {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
+                           {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+        @bgm_info.mode = :run
+      end
 
     when :alert
 
-      @alert.mode = :run
+      @alert.mode = :run if @alert
+
       if @bgm then
         @bgm.stop
       end
-      @bgm = @alert_bgm
-      @bgm.play(:loop=>true, :volume=>0.5)
+      if @alert_bgm then
+        @bgm = @alert_bgm
+        @bgm.play(:loop=>true, :volume=>0.5)
+      end
 
       self.boss_init
 
@@ -577,12 +588,16 @@ class GameScene < Scene::Base
       if @bgm then
         @bgm.stop
       end
-      @bgm = @boss_bgm
-      @bgm.play(:loop=>true, :volume=>0.5)
-      @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]},
-                         {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                         {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
-      @bgm_info.mode = :run
+      if @boss_bgm then
+        @bgm = @boss_bgm
+        @bgm.play(:loop=>true, :volume=>0.5)
+      end
+      if @bgm_info then
+        @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]},
+                           {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
+                           {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+        @bgm_info.mode = :run
+      end
     end
 
     @mode = mode
@@ -595,7 +610,7 @@ class GameScene < Scene::Base
       weed_height = Window.height * rand_float(WEED_SCALE_RANGES[@stage_number - 1][0], WEED_SCALE_RANGES[@stage_number - 1][1])
       weed = Weed.new(0, 0, nil, weed_height, rand(360), index)
       weed.set_pos(random_int(@border.x, @border.x + @border.width - weed.width),
-                   random_int(@border.y, @border.y + @border.height - weed.height))
+                   random_int(@border.y, @border.y + @border.height - weed.height)) if @border
       weed.z = Z_POSITION_TOP
       weeds.push(weed)
     end
@@ -608,7 +623,7 @@ class GameScene < Scene::Base
                                   :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)],
                                   :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)]})
       kingyo.set_pos(random_int(@border.x, @border.x + @border.width - kingyo.width),
-                     random_int(@border.y, @border.y + @border.height - kingyo.height))
+                     random_int(@border.y, @border.y + @border.height - kingyo.height)) if @border
       kingyo.z = Z_POSITION_TOP
       kingyos.push(kingyo)
     end
@@ -627,7 +642,7 @@ class GameScene < Scene::Base
                        :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)],
                        :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)]})
       boss.set_pos(random_int(@border.x, @border.x + @border.width - boss.width),
-                   random_int(@border.y, @border.y + @border.height - boss.height))
+                   random_int(@border.y, @border.y + @border.height - boss.height)) if @border
       boss.z = Z_POSITION_TOP
       bosss.push(boss)
     end
@@ -638,7 +653,7 @@ class GameScene < Scene::Base
 
   def update
 
-    if @window_mode_button.pushed? or @window_mode_button.is_gazed then
+    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -648,7 +663,7 @@ class GameScene < Scene::Base
       @click_se.play
     end
 
-    if @exit_button.pushed? or Input.key_push?(K_ESCAPE) or @exit_button.is_gazed then
+    if @exit_button and (@exit_button.pushed? or @exit_button.is_gazed) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
       self.did_disappear
       exit
@@ -660,10 +675,10 @@ class GameScene < Scene::Base
       end
     end
 
-    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
+    @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
     if @mode == :start then
-      if @start_count < START_MAX_COUNT then
+      if @start_count <= START_MAX_COUNT then
         @wave_shader.update if @wave_shader
         @start_count += 1
       else
@@ -671,44 +686,9 @@ class GameScene < Scene::Base
       end
     end
 
-    if @poi and @poi.mode == :try_catch and not @mode == :start then
-      catch_objects = []
 
-      if @swimers and not @swimers.empty? then
-        @swimers.each do |swimer|
-          unless swimer.z == Z_POSITION_BOTTOM then
-            if (swimer.x + swimer.center_x - (@poi.x + @poi.center_x)) ** 2 + ((swimer.y + swimer.center_y - (@poi.y + @poi.center_y)) ** 2) <= (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
-              swimer.mode = :catched
-              catch_objects.push([swimer, [swimer.x - @poi.x, swimer.y - @poi.y]])
-            end
-          end
-        end
-        @poi.try_catch(catch_objects)
-      end
 
-      if @buttons and not @buttons.empty? then
-        @buttons.each do |button|
-          if @mouse.x >= button.x and @mouse.x <= button.x + button.w and @mouse.y >= button.y and @mouse.y <= button.y + button.h then
 
-            case button.name
-
-            when "exit_button"
-              self.did_disappear
-              exit
-
-            when "window_mode_button"
-              if Window.windowed? then
-                Window.windowed = false
-              else
-                Window.windowed = true
-              end
-              @clickSE.play
-              @poi.mode = :normal
-            end
-          end
-        end
-      end
-    end
 
     # swimerに対するメインループ
     if @swimers and not @swimers.empty? and not @mode == :start
@@ -783,16 +763,56 @@ class GameScene < Scene::Base
     @point_label.update if @point_label
     @point_label = nil if @point_label and @point_label.vanished?
 
-    Sprite.check(@border.blocks + @swimers + [@container]) if @border and @swimers and not @swimers.empty? and @container and not @mode == :start
+    Sprite.check(@border.blocks + @swimers + [@container]) if
+      @border and @swimers and not @swimers.empty? and @container and not @mode == :start
+
+
+    if @poi and @poi.mode == :transport then
+      @catch_objects.each do |catch_object|
+        catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
+
+        damage_unit = 0.0005 if catch_object[0].name.include?("kingyo")
+        damage_unit = 0.001 if catch_object[0].name == "weed"
+
+        @life_gauge.change_life(-1 * catch_object[0].height * damage_unit)
+      end
+    elsif @poi and @poi.mode == :reserve then
+      @catch_objects.clear
+
+    end
   end
 
-  def gazed(center_x, center_y)
+  def gazed(x, y, center_x, center_y)
 
-    if @buttons and not @buttons.empty? then
+    if @buttons and not @buttons.empty? and not @mode == :start then
       @buttons.each do |button|
-        if center_x >= button.x and center_x <= button.x + button.width and
-          center_y >= button.y and center_y <= button.y + button.height then
+        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+          y + center_y >= button.y and y + center_y <= button.y + button.height then
           button.is_gazed = true
+        end
+      end
+    end
+
+    if @poi and not @mode == :start then
+      @catch_objects = []
+      if @swimers and not @swimers.empty? then
+
+        @swimers.each do |swimer|
+          unless swimer.z == Z_POSITION_BOTTOM then
+            if (swimer.x + swimer.center_x - (x + center_x)) ** 2 +
+              ((swimer.y + swimer.center_y - (y + center_y)) ** 2) <=
+              (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
+
+              swimer.mode = :catched
+              @catch_objects.push([swimer, [swimer.x - x, swimer.y - y]])
+            end
+          end
+        end
+        unless @catch_objects.empty? then
+          @poi.old_pos = [@poi.x, @poi.y]
+          @poi.mode = :transport
+        else
+          @poi.mode = :search
         end
       end
     end
@@ -874,7 +894,6 @@ class GameScene < Scene::Base
     @point_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
 
     @life_continueble = false
-    @life_gauge.change_life(-10)
 
     technical_point_diff += 50
     $scores[:technical_point] += technical_point_diff
@@ -1610,7 +1629,7 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop GameScene, $config.fps, $config.frame_step
+Scene.main_loop TitleScene, $config.fps, $config.frame_step
 
 
 =begin

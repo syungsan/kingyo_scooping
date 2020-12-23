@@ -161,7 +161,7 @@ class Kingyo < Sprite
   end
 
   def catched
-    @speed = @old_speed * ANIME_SPEED_RATIO if @speed == @old_speed
+    @speed = @old_speed * CATCHED_ANIME_SPEED_RATIO if @speed == @old_speed
   end
 
   def hit(obj)
