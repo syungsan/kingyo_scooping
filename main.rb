@@ -1148,6 +1148,7 @@ class NameEntryScene < Scene::Base
   require "./lib/common"
 
   require "./scripts/name_entry"
+  require "./scripts/message_dialog"
 
   include Color
   include Common
@@ -1162,6 +1163,7 @@ class NameEntryScene < Scene::Base
   DELETE_BUTTON_IMAGE = "./images/m_3.png"
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+  OK_BUTTON_IMAGE = "./images/m_4.png"
 
   MAX_NAME_INPUT_NUMBER = 8
 
@@ -1199,11 +1201,11 @@ class NameEntryScene < Scene::Base
     @cognomen_label.set_pos(@score_label.x + @score_label.width + interval_margin, (Window.height - @cognomen_label.height) * 0.1)
 
     @input_box = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "")
-    @input_box.fontSize = @input_box.w * 0.12
-    @input_box.string_pos("", @input_box.font_size, (@input_box.w - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5,
-                         (@input_box.h - @input_box.font_size) * 0.5, C_BLACK)
-    @input_box.fontType = "AR教科書体M"
-    @input_box.frame(C_BROWN, @input_box.h * 0.05)
+    @input_box.font_size = @input_box.width * 0.12
+    @input_box.string_pos("", @input_box.font_size, (@input_box.width - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5,
+                         (@input_box.height - @input_box.font_size) * 0.5, C_BLACK)
+    @input_box.font_name = "AR教科書体M"
+    @input_box.frame(C_BROWN, @input_box.height * 0.05)
 
     exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
     exit_button_scale = Window.height * 0.05 / exit_button_image.height
@@ -1263,11 +1265,16 @@ class NameEntryScene < Scene::Base
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
 
     @bgm.play(:loop=>true, :volume=>0.5)
+
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [128, 128, 128, 128])
+
+    @is_connect_error = false
+    @is_wait_connect = false
   end
 
   def update
 
-    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_connect_error and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -1277,13 +1284,13 @@ class NameEntryScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+    if (@exit_button and not @is_connect_error and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
       self.did_disappear
       exit
     end
 
-    if @name_entry then
+    if @name_entry and not @is_connect_error then
       @name_entry.word_buttons.each do |word_button|
         if word_button.pushed? or word_button.is_gazed then
           word_button.is_gazed = false
@@ -1297,29 +1304,31 @@ class NameEntryScene < Scene::Base
       end
     end
 
-    if @decision_button and (@decision_button.pushed? or @decision_button.is_gazed) then
+    if @decision_button and not @is_connect_error and (@decision_button.pushed? or @decision_button.is_gazed) then
       @delete_button.is_gazed = false
       @click_se.play if @click_se
 
+      @is_wait_connect = true
       begin
         self.send_to_database
+        @is_wait_connect = false
         self.next_scene = RankingScene
-      rescue => e
-        puts e
-
-        self.next_scene = TitleScene
+      rescue
+        self.view_message_dialog("通信エラー…", "タイトルに戻ります。")
+        @is_connect_error = true
+        self.did_disappear
+        false
       end
-      self.did_disappear
     end
 
-    if @reset_button and (@reset_button.pushed? or @reset_button.is_gazed) then
+    if @reset_button and not @is_connect_error and (@reset_button.pushed? or @reset_button.is_gazed) then
       @reset_button.is_gazed = false
       @click_se.play if @click_se
       $scores[:name] = ""
       @input_box.string = $scores[:name]
     end
 
-    if @delete_button and (@delete_button.pushed? or @delete_button.is_gazed) then
+    if @delete_button and not @is_connect_error and (@delete_button.pushed? or @delete_button.is_gazed) then
       @delete_button.is_gazed = false
       @click_se.play if @click_se
       if $scores[:name].size > 0 then
@@ -1330,8 +1339,13 @@ class NameEntryScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        button.hovered? if not @is_connect_error or button.name == "message_ok_button"
       end
+    end
+
+    if @message_dialog and (@message_dialog.ok_button.pushed? or @message_dialog.ok_button.is_gazed) then
+      @message_dialog.ok_button.is_gazed = false
+      self.next_scene = TitleScene
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
@@ -1339,11 +1353,31 @@ class NameEntryScene < Scene::Base
     @poi.update if @poi
   end
 
+  def view_message_dialog(string, sub_string)
+
+    message_dialog_height = Window.height * 0.4
+    message_dialog_width = message_dialog_height * 2
+    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+                             :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
+    @message_dialog.set_message(string, sub_string, @message_dialog.height * 0.25, C_RED, "みかちゃん")
+    @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
+
+    @message_dialog.ok_button.font_color = C_DARK_BLUE
+    @message_dialog.ok_button.font_name = "07ラノベPOP"
+    @message_dialog.ok_button.name = "message_ok_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @message_dialog.ok_button.set_image(Images.fit_resize(ok_button_image, @message_dialog.ok_button.width, @message_dialog.ok_button.height))
+
+    @buttons.push(@message_dialog.ok_button)
+  end
+
   def gazed(x, y, center_x, center_y)
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if x + center_x >= button.x and x + center_x <= button.x + button.width and
+        if button and x + center_x >= button.x and x + center_x <= button.x + button.width and
           y + center_y >= button.y and y + center_y <= button.y + button.height then
           button.is_gazed = true
         end
@@ -1390,6 +1424,9 @@ class NameEntryScene < Scene::Base
     @decision_button.draw if @decision_button
     @reset_button.draw if @reset_button
     @delete_button.draw if @delete_button
+
+    Window.draw(0, 0, @cover_layer) if @cover_layer and @is_connect_error
+    @message_dialog.draw if @message_dialog
 
     @poi.draw if @poi
   end

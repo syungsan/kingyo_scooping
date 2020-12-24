@@ -306,17 +306,17 @@ class Images
     self.construct
   end
 
-  def width(width)
+  def width=(width)
     @width = width
     self.construct
   end
 
-  def height(height)
+  def height=(height)
     @height = height
     self.construct
   end
 
-  def color(color)
+  def color=(color)
     @color = color
     self.construct
   end

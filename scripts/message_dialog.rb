@@ -47,7 +47,7 @@ class MessageDialog
     @shadow_y = SHADOW_OFFSET_Y
 
     @image = Image.new(@width, @height)
-    @message = Fonts.new()
+    @messages = [Fonts.new(), Fonts.new()]
 
     ok_button_width = @width * 0.3
     ok_button_height = ok_button_width * 0.4
@@ -75,27 +75,39 @@ class MessageDialog
     @shadow = @image.flush([64, 0, 0, 0])
   end
 
-  def set_message(string="", font_size=24, font_color=C_BLACK, font_name="ＭＳ Ｐゴシック", italic=false, weight=false)
+  def set_message(string="", sub_string="", font_size=24, font_color=C_BLACK, font_name="ＭＳ Ｐゴシック", italic=false, weight=false)
 
     self.constract
-    @message.target = @image
 
-    @message.string = string
-    @message.set_size = font_size
-    @message.color = font_color
-    @message.set_font_name = font_name
-    @message.set_italic = italic
-    @message.set_weight = weight
+    strings = [string, sub_string]
+    font_sizes = [font_size, font_size * 0.5]
 
-    @message.set_pos((@width - @message.width) * 0.5, (@height - @message.height) * 0.3)
-
-    @message.draw
+    @messages.each_with_index do |message, index|
+      unless strings[index] == "" then
+        message.target = @image
+        message.string = strings[index]
+        message.set_size = font_sizes[index]
+        message.color = font_color
+        message.set_font_name = font_name
+        message.set_italic = italic
+        message.set_weight = weight
+        message.width
+        message.set_pos((@width - message.width) * 0.5, (@height - message.height) * 0.2 + (message.height * 2 * index))
+        message.draw
+      end
+    end
   end
 
   def draw
     self.target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z)
     self.target.draw(@x, @y, @image, @z)
     @ok_button.draw
+  end
+
+  def vanish
+    @message.vanish
+    @shadow.dispose
+    @image.dispose
   end
 end
 
@@ -107,18 +119,17 @@ if __FILE__ == $0 then
   Window.width = 1280
   Window.height = 720
 
-  TANUKI_MAGIC_FONT = "../fonts/mikachanALL.ttc"
-  Font.install(TANUKI_MAGIC_FONT)
+  MIKACHAN_FONT = "../fonts/mikachanALL.ttc"
+  Font.install(MIKACHAN_FONT)
 
   OK_BUTTON_IMAGE = "../images/m_4.png"
 
   message_dialog_height = Window.height * 0.4
   message_dialog_width = message_dialog_height * 2
-
   message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
                            :bg_color=>[128, 255, 255, 255], :frame_color=>C_YELLOW}
   message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
-  message_dialog.set_message("通信エラー…", message_dialog.height * 0.25, C_RED, "みかちゃん")
+  message_dialog.set_message("通信エラー…", "タイトルに戻ります。", message_dialog.height * 0.25, C_RED, "みかちゃん")
   message_dialog.set_pos((Window.width - message_dialog.width) * 0.5, (Window.height - message_dialog.height) * 0.5)
 
   ok_button_image = Image.load(OK_BUTTON_IMAGE)
@@ -126,6 +137,10 @@ if __FILE__ == $0 then
 
   Window.bgcolor = C_BLUE
   Window.loop do
+    if message_dialog and message_dialog.ok_button.pushed? then
+      p "ok_button pushed"
+    end
+    message_dialog.ok_button.hovered?
     message_dialog.draw if message_dialog
   end
 end
