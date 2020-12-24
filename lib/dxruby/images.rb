@@ -11,117 +11,123 @@ require "dxruby"
 
 class Images
 
-  attr_accessor :x, :y, :id, :name, :isPenActive, :penSize, :penColor, :isInnovativeLine, :isLegacyLine, :target, :scaleX, :scaleY, :angle, :alpha
-  attr_reader :w, :h, :text, :font_size
+  attr_accessor :x, :y, :id, :name, :is_pen_active, :pen_size, :pen_color, :is_innovative_line, 
+                :is_legacy_line, :target, :scale_x, :scale_y, :angle, :alpha
+  attr_reader :width, :height, :string, :font_size
 
-  def initialize(x=0, y=0, w=50, h=40, string= "", font_size=28, color=C_WHITE, st_color=C_BLACK, id=0, name="Images", option={})
-    option = {:fontType=>"ＭＳ Ｐゴシック", :isPenActive=>false, :penSize=>5, :penColor=>C_BLACK, :isInnovativeLine=>true, :isLegacyLine=>false, :target=>Window}.merge(option)
+  def initialize(x=0, y=0, width=50, height=40, string= "", font_size=28, color=C_WHITE, st_color=C_BLACK,
+                 id=0, name="images", option={})
+    option = {:font_name=>"ＭＳ Ｐゴシック", :is_pen_active=>false, :pen_size=>5, :pen_color=>C_BLACK, 
+              :is_innovative_line=>true, :is_legacy_line=>false, :target=>Window}.merge(option)
 
     self.target = option[:target]
     self.x = x
     self.y = y
     @filename = nil
-    @copyName = nil
+    @copy_name = nil
     @stretch_filename = nil
-    @w = w
-    @h = h
+    @width = width
+    @height = height
     @color = color
     @font_size = font_size
     @st_color = st_color
-    @fontType = option[:fontType]
-    @text = string
-    @stringPos = []
+    @font_name = option[:font_name]
+    @string = string
+    @string_pos = []
     self.construct
     self.name = name
     self.id = id
-    self.isPenActive = option[:isPenActive]
-    self.penSize = option[:penSize]
-    self.penColor = option[:penColor]
-    self.isInnovativeLine = option[:isInnovativeLine]
-    self.isLegacyLine = option[:isLegacyLine]
+    self.is_pen_active = option[:is_pen_active]
+    self.pen_size = option[:pen_size]
+    self.pen_color = option[:pen_color]
+    self.is_innovative_line = option[:is_innovative_line]
+    self.is_legacy_line = option[:is_legacy_line]
 
-    @curX, @curY = nil,
-    @isPaint = false
-    @isGrid = false
-    @isFrame = false
+    @cur_x, @cur_y = nil,
+    @is_paint = false
+    @is_grid = false
+    @is_frame = false
   end
 
   def set_pos(x, y)
-    self.x, self.y = x, y
+    self.x = x
+    self.y = y
   end
 
   def construct
 
-    @image.dispose if @image and !@image.disposed?
-    @image = Image.new(@w, @h, @color)
-
-    self.setImage if @filename or @copyName
+    @image.dispose if @image and not @image.disposed?
+    @image = Image.new(@width, @height, @color)
+    
+    self.set_image if @filename or @copy_name
     self.set_stretch_image if @stretch_filename
 
-    self.grid(@divisionNumbers, @gridLineWidth, @gridLineColor) if @isGrid
-    self.frame(@frameColor, @frameSize) if @isFrame
-    self.drawString if @text != ""
+    self.grid(@division_numbers, @grid_line_width, @grid_line_color) if @is_grid
+    self.frame(@frame_color, @frame_size) if @is_frame
+    self.draw_string if @string != ""
   end
 
   def string(string, font_size=28, st_color=C_BLACK)
-    @text = string
+    @string = string
     @font_size = font_size
     @st_color = st_color
     self.construct
   end
 
   def string=(string)
-    @text = string
+    @string = string
     self.construct
   end
 
   def string_pos(string, font_size, x, y, color)
-    @text = string
+    @string = string
     @font_size = font_size
     @st_color = color
-    @stringPos = [x, y]
+    @string_pos = [x, y]
     self.construct
   end
 
-  def fontSize=(fontSize)
-    @font_size = fontSize
+  def font_size=(font_size)
+    @font_size = font_size
     self.construct
   end
 
-  def font_color=(fontColor)
-    @st_color = fontColor
+  def font_color=(font_color)
+    @st_color = font_color
     self.construct
   end
 
-  def fontType=(fontType)
-    @fontType = fontType
+  def font_name=(font_name)
+    @font_name = font_name
     self.construct
   end
 
-  def drawString
+  def draw_string
 
-    @font = Font.new(@font_size, @fontType)
+    @font = Font.new(@font_size, @font_name)
 
-    if @text.include?("\n") then
-      strings = @text.split("\n")
+    if @string.include?("\n") then
+      strings = @string.split("\n")
 
-      for loopID in 0...strings.size do
+      for loop_id in 0...strings.size do
 
-        if !@stringPos.empty? then
-          @image.drawFont(@stringPos[0], @stringPos[1] + @font.size * loopID, strings[loopID], @font, @st_color)
+        unless @string_pos.empty? then
+          @image.draw_font(@string_pos[0], @string_pos[1] + @font.size * loop_id, strings[loop_id], @font, @st_color)
         else
-          stringWidth = @font.getWidth(strings[loopID])
-          @image.drawFont((@w - stringWidth) * 0.5, (@h - (@font.size * strings.size)) * 0.5 + @font.size * loopID, strings[loopID], @font, @st_color)
+          string_width = @font.get_width(strings[loop_id])
+          @image.draw_font((@width - string_width) * 0.5, (@height - (@font.size * strings.size)) * 0.5 + 
+            @font.size * loop_id, strings[loop_id], @font, @st_color)
         end
       end
     else
-      if !@stringPos.empty? then
-        @image.drawFont(@stringPos[0], @stringPos[1], @text, @font, @st_color)
+      unless @string_pos.empty? then
+        @image.draw_font(@string_pos[0], @string_pos[1], @string, @font, @st_color)
       else
-        stringWidth = @font.getWidth(@text)
-        @image.drawFont((@w - stringWidth) * 0.5, (@h - @font.size) * 0.5, @text, @font, @st_color)
+        string_width = @font.get_width(@string)
+        @image.draw_font((@width - string_width) * 0.5, (@height - @font.size) * 0.5, @string, @font, @st_color)
       end
     end
+    @font.dispose
   end
 
   def image(filename)
@@ -129,133 +135,136 @@ class Images
     self.construct
   end
 
-  def setImage
+  def set_image
+    @image.dispose if @image and not @image.disposed?
     image = Image.load(@filename) if @filename
-    image = @copyName if @copyName
-    @w = image.width
-    @h = image.height
+    image = @copy_name if @copy_name
+    @width = image.width
+    @height = image.height
     @image = image
   end
 
   def stretch_image(width, height, stretch_filename)
     @stretch_filename = stretch_filename
-    @w = width
-    @h = height
+    @width = width
+    @height = height
     self.construct
   end
 
   def set_stretch_image
+    @image.dispose if @image and not @image.disposed?
     image = Image.load(@stretch_filename)
-    @image = RenderTarget.new(@w, @h).draw_scale(0, 0, image, @w / image.width.to_f, @h / image.height.to_f, 0, 0).update.to_image
+    @image = RenderTarget.new(@width, @height).draw_scale(0, 0, image, @width / image.width.to_f,
+                                                          @height / image.height.to_f, 0, 0).update.to_image
   end
 
-  def getImage
+  def get_image
     return @image
   end
 
-  def copyImage(copyName)
-    @copyName = copyName
+  def copy_image(copy_name)
+    @copy_name = copy_name
     self.construct
   end
 
-  def frame(frameColor=C_BLACK, frameSize=2)
+  def frame(frame_color=C_BLACK, frame_size=2)
 
-    @frameColor = frameColor
-    @frameSize = frameSize
-    @isFrame = true
+    @frame_color = frame_color
+    @frame_size = frame_size
+    @is_frame = true
 
-    @image.box_fill(0, 0, @w,  @frameSize - 1, @frameColor) # 上辺
-    @image.box_fill(0, 0, @frameSize - 1 , @h, @frameColor) # 左辺
-    @image.box_fill(@w - @frameSize, 0, @w , @h, @frameColor) # 右辺
-    @image.box_fill(0, @h - @frameSize, @w , @h, @frameColor) # 左辺
+    @image.box_fill(0, 0, @width,  @frame_size - 1, @frame_color) # 上辺
+    @image.box_fill(0, 0, @frame_size - 1 , @height, @frame_color) # 左辺
+    @image.box_fill(@width - @frame_size, 0, @width , @height, @frame_color) # 右辺
+    @image.box_fill(0, @height - @frame_size, @width , @height, @frame_color) # 左辺
   end
 
   def update
-    self.pen if self.isPenActive
+    self.pen if self.is_pen_active
   end
 
   def pen
 
-    oldX, oldY = @curX, @curY
-    @curX, @curY = Input.mouse_pos_x - self.x, Input.mouse_pos_y - self.y
+    old_x, old_y = @cur_x, @cur_y
+    @cur_x, @cur_y = Input.mouse_pos_x - self.x, Input.mouse_pos_y - self.y
 
     # ボタンを押している間の処理
     if Input.mouse_down?(M_LBUTTON) then
 
       # エッジに円を描画
-      @image.circleFill(@curX, @curY, self.penSize, self.penColor) unless @isPaint
-      @isPaint = true
-      @image.circleFill(@curX, @curY, self.penSize, self.penColor) if self.isLegacyLine
+      @image.circle_fill(@cur_x, @cur_y, self.pen_size, self.pen_color) unless @is_paint
+      @is_paint = true
+      @image.circle_fill(@cur_x, @cur_y, self.pen_size, self.pen_color) if self.is_legacy_line
 
-      if self.isInnovativeLine then
+      if self.is_innovative_line then
 
         # 円形ペン描画（勝又スペシャル）###################################################
         # line数が多いので割とカクつく
         for i in 0...360 do # 回転角度θをi
-          for j in self.penSize-1..self.penSize do # 円の厚み0からに指定で中実円 かすれない程度に厚く
-            @image.line(@curX+j*Math.cos(i*Math::PI/180), @curY+j*Math.sin(i*Math::PI/180),
-                       oldX+j*Math.cos(i*Math::PI/180),oldY+j*Math.sin(i*Math::PI/180),self.penColor)  # i*j本の線を描画
+          for j in self.pen_size-1..self.pen_size do # 円の厚み0からに指定で中実円 かすれない程度に厚く
+            @image.line(@cur_x+j*Math.cos(i*Math::PI/180), @cur_y+j*Math.sin(i*Math::PI/180),
+                       old_x+j*Math.cos(i*Math::PI/180),old_y+j*Math.sin(i*Math::PI/180),self.pen_color)  # i*j本の線を描画
           end
         end
-        # image.circleFill(@curX, @curY, 10, self.penColor) # jが0からなら要らない書き出しの塗りつぶし用（line数削減で負荷軽減用）
+        # image.circle_fill(@cur_x, @cur_y, 10, self.pen_color) # jが0からなら要らない書き出しの塗りつぶし用（line数削減で負荷軽減用）
       end
 
-      if self.isLegacyLine then
+      if self.is_legacy_line then
 
-        for loopID in 0...self.penSize do
+        for loop_id in 0...self.pen_size do
 
           # エッジの回転アリ（多々納スペシャル）##########################
-          theta = Math.atan2(@curY - oldY, @curX - oldX)
+          theta = Math.atan2(@cur_y - old_y, @cur_x - old_x)
 
-          curRX = loopID * Math.cos((Math::PI * 0.5) + theta) + @curX
-          curRY = loopID * Math.sin((Math::PI * 0.5) + theta) + @curY
+          cur_rx = loop_id * Math.cos((Math::PI * 0.5) + theta) + @cur_x
+          cur_ry = loop_id * Math.sin((Math::PI * 0.5) + theta) + @cur_y
 
-          oldRX = loopID * Math.cos((Math::PI * 0.5) + theta) + oldX
-          oldRY = loopID * Math.sin((Math::PI * 0.5) + theta) + oldY
+          old_rx = loop_id * Math.cos((Math::PI * 0.5) + theta) + old_x
+          old_ry = loop_id * Math.sin((Math::PI * 0.5) + theta) + old_y
 
           # 反対側も
-          curLX = loopID * Math.cos(-1 * (Math::PI * 0.5) + theta) + @curX
-          curLY = loopID * Math.sin(-1 * (Math::PI * 0.5) + theta) + @curY
+          cur_lx = loop_id * Math.cos(-1 * (Math::PI * 0.5) + theta) + @cur_x
+          cur_ly = loop_id * Math.sin(-1 * (Math::PI * 0.5) + theta) + @cur_y
 
-          oldLX = loopID * Math.cos(-1 * (Math::PI * 0.5) + theta) + oldX
-          oldLY = loopID * Math.sin(-1 * (Math::PI * 0.5) + theta) + oldY
+          old_lx = loop_id * Math.cos(-1 * (Math::PI * 0.5) + theta) + old_x
+          old_ly = loop_id * Math.sin(-1 * (Math::PI * 0.5) + theta) + old_y
 
-          @image.line(curLX, curLY, oldLX, oldLY, self.penColor)
-          @image.line(curRX, curRY, oldRX, oldRY, self.penColor)
+          @image.line(cur_lx, cur_ly, old_lx, old_ly, self.pen_color)
+          @image.line(cur_rx, cur_ry, old_rx, old_ry, self.pen_color)
 
           # エッジの回転ナシ（荒木スペシャル）############################
-          new_right_x = @curX + loopID
-          new_left_x = @curX - loopID
-          new_zero_y = @curY
+          new_right_x = @cur_x + loop_id
+          new_left_x = @cur_x - loop_id
+          new_zero_y = @cur_y
 
-          old_right_x = oldX + loopID
-          old_left_x = oldX - loopID
-          old_zero_y = oldY
+          old_right_x = old_x + loop_id
+          old_left_x = old_x - loop_id
+          old_zero_y = old_y
 
-          new_up_y = @curY - loopID
-          new_down_y = @curY + loopID
-          new_zero_x = @curX
+          new_up_y = @cur_y - loop_id
+          new_down_y = @cur_y + loop_id
+          new_zero_x = @cur_x
 
-          old_up_y = oldY - loopID
-          old_down_y = oldY + loopID
-          old_zero_x = oldX
+          old_up_y = old_y - loop_id
+          old_down_y = old_y + loop_id
+          old_zero_x = old_x
 
-          @image.line(new_right_x, new_zero_y, old_right_x, old_zero_y, self.penColor)
-          @image.line(new_left_x, new_zero_y, old_left_x, old_zero_y, self.penColor)
-          @image.line(new_zero_x, new_up_y, old_zero_x, old_up_y, self.penColor)
-          @image.line(new_zero_x, new_down_y, old_zero_x, old_down_y, self.penColor)
+          @image.line(new_right_x, new_zero_y, old_right_x, old_zero_y, self.pen_color)
+          @image.line(new_left_x, new_zero_y, old_left_x, old_zero_y, self.pen_color)
+          @image.line(new_zero_x, new_up_y, old_zero_x, old_up_y, self.pen_color)
+          @image.line(new_zero_x, new_down_y, old_zero_x, old_down_y, self.pen_color)
         end
       end
     else
-      @isPaint = false
+      @is_paint = false
     end
   end
 
-  def getPaintChart
-    if self.isPenActive then
-      if @isPaint then
-        if @curX >= 0 and @curX <= @w and @curY >= 0 and @curY <= @h then
-          chart = [@curX, @curY]
+  def get_paint_chart
+    if self.is_pen_active then
+      if @is_paint then
+        if @cur_x >= 0 and @cur_x <= @width and @cur_y >= 0 and @cur_y <= @height then
+          chart = [@cur_x, @cur_y]
         else
           chart = [nil, nil]
         end
@@ -269,39 +278,41 @@ class Images
     end
   end
 
-  def grid(divisionNumbers, gridLineWidth, gridLineColor)
+  def grid(division_numbers, grid_line_width, grid_line_color)
 
-    @isGrid = true
+    @is_grid = true
 
-    @divisionNumbers = divisionNumbers
-    @gridLineWidth = gridLineWidth
-    @gridLineColor = gridLineColor
+    @division_numbers = division_numbers
+    @grid_line_width = grid_line_width
+    @grid_line_color = grid_line_color
 
-    (@divisionNumbers[0] + 1).times do |loopID|
-      @image.box_fill(0, (@h - @gridLineWidth) / @divisionNumbers[0] * loopID, @w, ((@h - @gridLineWidth) / @divisionNumbers[0] * loopID) + @gridLineWidth, @gridLineColor)
+    (@division_numbers[0] + 1).times do |loop_id|
+      @image.box_fill(0, (@height - @grid_line_width) / @division_numbers[0] * loop_id, 
+                      @width, ((@height - @grid_line_width) / @division_numbers[0] * loop_id) + @grid_line_width, @grid_line_color)
     end
-    (@divisionNumbers[1] + 1).times do |loopID|
-      @image.box_fill((@w - @gridLineWidth) / @divisionNumbers[1] * loopID, 0, ((@w - @gridLineWidth) / @divisionNumbers[1] * loopID) + @gridLineWidth, @h, @gridLineColor)
+    (@division_numbers[1] + 1).times do |loop_id|
+      @image.box_fill((@width - @grid_line_width) / @division_numbers[1] * loop_id, 
+                      0, ((@width - @grid_line_width) / @division_numbers[1] * loop_id) + @grid_line_width, @height, @grid_line_color)
     end
   end
 
   def clear
     @image.dispose if @image
-    @filename = nil if !@filename.nil?
-    @text = "" if @text != ""
-    @isPaint = false
-    @isGrid = false
-    @isFrame = false
+    @filename = nil unless@filename.nil?
+    @string = "" unless @string == ""
+    @is_paint = false
+    @is_grid = false
+    @is_frame = false
     self.construct
   end
 
   def width(width)
-    @w = width
+    @width = width
     self.construct
   end
 
   def height(height)
-    @h = height
+    @height = height
     self.construct
   end
 
@@ -310,24 +321,24 @@ class Images
     self.construct
   end
 
-  def save(filePath)
-    @image.save(filePath)
+  def save(file_path)
+    @image.save(file_path)
   end
 
   def render
-    self.target.drawEx(self.x, self.y, @image, {:scale_x=>self.scaleX, :scale_y=>self.scaleY, :angle=>self.angle, :alpha=>self.alpha})
+    self.target.draw_ex(self.x, self.y, @image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :angle=>self.angle, :alpha=>self.alpha})
   end
 
-  def scale_render(sx,sy)
+  def scale_render(sx, sy)
     self.target.draw_scale(self.x, self.y, @image, sx, sy, 0, 0)
   end
 
   def alpha_render(alpha)
-    self.target.drawAlpha(self.x, self.y, @image, alpha)
+    self.target.draw_alpha(self.x, self.y, @image, alpha)
   end
 
   def rot_render(angle)
-    self.target.drawRot(self.x, self.y, @image, angle)
+    self.target.draw_rot(self.x, self.y, @image, angle)
   end
 
 
@@ -362,35 +373,35 @@ if __FILE__ == $0
 
   Window.bgcolor = C_WHITE
 
-  baseLayer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480)
-  baseLayer.grid([5, 5], 2, C_BLUE)
+  base_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480)
+  base_layer.grid([5, 5], 2, C_BLUE)
 
-  baseLayer.string_pos("これらは\nテストの\nテキストです。", 40, 0, 0, C_RED)
+  base_layer.string_pos("これらは\nテストの\nテキストです。", 40, 0, 0, C_RED)
 
-  # baseLayer.clear
-  baseLayer.width(320)
-  baseLayer.height(240)
+  # base_layer.clear
+  base_layer.width(320)
+  base_layer.height(240)
 
-  baseLayer.angle = 5
-  baseLayer.color(C_GREEN)
+  base_layer.angle = 5
+  base_layer.color(C_GREEN)
 
-  paintLayer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480, "", 0, C_DEFAULT)
-  paintLayer.isPenActive = true
-  paintLayer.penSize = 20
+  paint_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480, "", 0, C_DEFAULT)
+  paint_layer.is_pen_active = true
+  paint_layer.pen_size = 20
 
-  paintLayer.frame(C_RED, 10)
-  # paintLayer.alpha = 128
-  # paintLayer.penColor = [127, 127, 127, 127]
-  paintLayer.penColor = C_BLACK
+  paint_layer.frame(C_RED, 10)
+  # paint_layer.alpha = 128
+  # paint_layer.pen_color = [127, 127, 127, 127]
+  paint_layer.pen_color = C_BLACK
 
-  # canvas.isPenActive = false
+  # canvas.is_pen_active = false
 
   Window.loop do
 
-    baseLayer.render
-    paintLayer.update
-    paintLayer.render
+    base_layer.render
+    paint_layer.update
+    paint_layer.render
 
-    # p paintLayer.getPaintChart
+    # p paint_layer.get_paint_chart
   end
 end

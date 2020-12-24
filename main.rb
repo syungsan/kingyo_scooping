@@ -1300,9 +1300,16 @@ class NameEntryScene < Scene::Base
     if @decision_button and (@decision_button.pushed? or @decision_button.is_gazed) then
       @delete_button.is_gazed = false
       @click_se.play if @click_se
+
+      begin
+        self.send_to_database
+        self.next_scene = RankingScene
+      rescue => e
+        puts e
+
+        self.next_scene = TitleScene
+      end
       self.did_disappear
-      self.send_to_database
-      self.next_scene = RankingScene
     end
 
     if @reset_button and (@reset_button.pushed? or @reset_button.is_gazed) then
@@ -1840,4 +1847,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop RankingScene, $config.fps, $config.frame_step
+Scene.main_loop NameEntryScene, $config.fps, $config.frame_step

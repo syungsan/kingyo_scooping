@@ -15,7 +15,7 @@ class Fonts
                 :alpha, :angle, :edge, :edge_color, :edge_width, :edge_level, :name, :id, :target
 
   def initialize(x=0, y=0, string="", size=28, color=C_WHITE, option={})
-    option = {:name=>"Fonts", :id=>0, :target=>Window, :z=>0, :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :italic=>false, :weight=>400,
+    option = {:name=>"fonts", :id=>0, :target=>Window, :z=>0, :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :italic=>false, :weight=>400,
               :auto_fitting=>false, :alpha=>255, :angle=>0, :shadow=>true, :shadow_color=>[64, 64, 64],
               :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4}.merge(option)
 

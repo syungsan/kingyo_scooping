@@ -19,7 +19,7 @@ class Button
               :gr_color2=>[70, 70, 70], :is_hoverable=>true, :scale_x=>1, :scale_y=>1, :alpha=>255, :angle=>0, :z=>0,
               :str_weight=>400, :str_italic=>false, :str_auto_fitting=>false, :str_shadow=>false, :str_shadow_color=>[0, 0, 0],
               :str_alpha=>0, :str_angle=>0, :str_edge=>false, :str_edge_color=>[0, 0, 0], :str_edge_width=>2, :str_edge_level=>4,
-              :name=>"Button", :id=>0, :target=>Window}.merge(option)
+              :name=>"button", :id=>0, :target=>Window}.merge(option)
 
     @x = x
     @y = y

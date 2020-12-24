@@ -67,6 +67,11 @@ class BgmInfo < Sprite
     self.constract
   end
 
+  def set_pos(x, y)
+    self.x = x
+    self.y = y
+  end
+
   def constract
 
     self.image.clear
