@@ -1175,6 +1175,10 @@ class NameEntryScene < Scene::Base
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
+  RETRY_MAX_COUNT = 3 # 回
+  RETRY_WAIT_TIME = 5 # 秒
+  REQUEST_TIMEOUT = 5 # 秒
+
   def init
 
     @click_se = Sound.new(CLICK_SE)
@@ -1267,7 +1271,7 @@ class NameEntryScene < Scene::Base
 
     @bgm.play(:loop=>true, :volume=>0.5)
 
-    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [128, 128, 128, 128])
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [164, 128, 128, 128])
 
     @is_connect_error = false
     @loading_kingyo = LoadingAnime.new(0, 0, nil, Window.height * 0.3)
@@ -1332,15 +1336,23 @@ class NameEntryScene < Scene::Base
 
       Thread.new do
         @loading_kingyo.is_anime = true
+
+        retry_count = 0
         begin
           self.send_to_database
           @loading_kingyo.is_anime = false
           self.next_scene = RankingScene
         rescue
-          @is_connect_error = true
-          @loading_kingyo.is_anime = false
-          self.did_disappear
-          false
+          if retry_count < RETRY_MAX_COUNT
+            sleep RETRY_WAIT_TIME
+            retry_count += 1
+            retry
+          else
+            @is_connect_error = true
+            @loading_kingyo.is_anime = false
+            self.did_disappear
+            false
+          end
         end
       end
     end
@@ -1411,6 +1423,7 @@ class NameEntryScene < Scene::Base
 
     uri = URI.parse($config.post_url)
     http = Net::HTTP.new(uri.host, uri.port)
+    http.open_timeout = REQUEST_TIMEOUT
 
     req = Net::HTTP::Post.new(uri.path)
     req.set_form_data({:name=>$scores[:name].encode("UTF-8"), :score=>$scores[:score],
@@ -1463,6 +1476,9 @@ class RankingScene < Scene::Base
   require "./lib/dxruby/color"
   require "./lib/dxruby/images"
 
+  require "./scripts/message_dialog"
+  require "./scripts/loading_anime"
+
   Dir.chdir("./lib") do
     require "./json/pure" # JSON
   end
@@ -1486,6 +1502,10 @@ class RankingScene < Scene::Base
   POI_HEIGHT_SIZE = Window.height * 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
+
+  RETRY_MAX_COUNT = 3 # 回
+  RETRY_WAIT_TIME = 5 # 秒
+  REQUEST_TIMEOUT = 5 # 秒
 
   def init
 
@@ -1544,7 +1564,7 @@ class RankingScene < Scene::Base
     bubble_angular_velo_up_speed_max = bubble_angular_velo_up_speed_min * 10
 
     @bubbles = []
-    700.times do
+    800.times do
       bubble = Bubble.new(-1 * Window.height * 0.5, [0, 0], [0, 0],
                           [bubble_scale_up_speed_min, bubble_scale_up_speed_max],
                           [bubble_accel_min, bubble_accel_max],
@@ -1563,25 +1583,56 @@ class RankingScene < Scene::Base
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
 
-    self.temp
-  end
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [164, 128, 128, 128])
 
-  def temp
-    items = [["100位", "非常勤講師おなに", "100000点", "スーパーカブ", "2020年12月20日 21時36分19秒"],
-             ["2位", "アルバイト募集", "1000点", "金魚人", "2020年12月20日 21時36分19秒"],
-             ["3位", "ちづる?", "100点", "レジェンドン", "2020年12月20日 21時36分19秒"],
-             ["4位", "神じゃね？", "10点", "スーパーカブ", "2020年12月20日 21時36分19秒"],
-             ["5位", "落ちこぼれ野郎", "1点", "良しヲくん", "2020年12月20日 21時36分19秒"]]
+    @is_connect_error = false
+    @loading_kingyo = LoadingAnime.new(0, 0, nil, Window.height * 0.3)
+    @loading_kingyo.set_pos(0, Window.height - @loading_kingyo.height)
 
-    hex_codes = ["00FFFF", "FFFF00", "008000", "FFA500", "FFA500"]
+    message_dialog_height = Window.height * 0.4
+    message_dialog_width = message_dialog_height * 2
+    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+                             :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
+    @message_dialog.set_message("通信エラー…", "タイトルに戻ります。", @message_dialog.height * 0.25, C_RED, "みかちゃん")
+    @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
 
-    colors = []
-    hex_codes.each do |hex_code|
-      colors.push(hex_to_rgb(hex_code.hex).values)
+    @message_dialog.ok_button.font_color = C_DARK_BLUE
+    @message_dialog.ok_button.font_name = "07ラノベPOP"
+    @message_dialog.ok_button.name = "message_ok_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @message_dialog.ok_button.set_image(Images.fit_resize(ok_button_image, @message_dialog.ok_button.width, @message_dialog.ok_button.height))
+
+    @buttons.push(@message_dialog.ok_button)
+
+    Thread.new do
+      @loading_kingyo.is_anime = true
+
+      retry_count = 0
+      begin
+        results = self.load_from_database
+        hex_codes = results.map { |raw| raw[3]}
+        items = results.transpose.delete_at(3).transpose
+
+        colors = []
+        hex_codes.each do |hex_code|
+          colors.push(hex_to_rgb(hex_code.hex).values)
+        end
+        self.make_list_box(items, colors)
+        @loading_kingyo.is_anime = false
+      rescue
+        if retry_count < RETRY_MAX_COUNT
+          sleep RETRY_WAIT_TIME
+          retry_count += 1
+          retry
+        else
+          @is_connect_error = true
+          @loading_kingyo.is_anime = false
+          false
+        end
+      end
     end
-
-    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350)
-    @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, "みかちゃん")
   end
 
   def load_from_database
@@ -1590,6 +1641,7 @@ class RankingScene < Scene::Base
 
     # 第2引数にHashを指定することでPOSTする際のデータを指定出来る
     response = Net::HTTP.post_form(uri, {})
+    response.open_timeout = REQUEST_TIMEOUT
 
     jsons = JSON.parse(response.body)
 
@@ -1605,12 +1657,20 @@ class RankingScene < Scene::Base
       results << raws
       raws = []
     end
+
     return results
+  end
+
+  def make_list_box(items, colors)
+    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350)
+    @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, "みかちゃん")
   end
 
   def update
 
-    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_connect_error and not @loading_kingyo.is_anime  and
+      (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -1620,25 +1680,33 @@ class RankingScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+    if (@exit_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+
       @exit_button.is_gazed = false
       self.did_disappear
       exit
     end
 
-    if @return_button and (@return_button.pushed? or @return_button.is_gazed) then
+    if @return_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@return_button.pushed? or @return_button.is_gazed) then
+
       @return_button.is_gazed = false
       @click_se.play
       self.next_scene = TitleScene
     end
 
-    if @page_up_button and (@page_up_button.pushed? or @page_up_button.is_gazed) then
+    if @page_up_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@page_up_button.pushed? or @page_up_button.is_gazed) then
+
       @page_up_button.is_gazed = false
       @click_se.play
       @list_box.scroll_up
     end
 
-    if @page_down_button and (@page_down_button.pushed? or @page_down_button.is_gazed) then
+    if @page_down_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@page_down_button.pushed? or @page_down_button.is_gazed) then
+
       @page_down_button.is_gazed = false
       @click_se.play
       @list_box.scroll_down
@@ -1646,15 +1714,23 @@ class RankingScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        button.hovered? if not @is_connect_error and not @loading_kingyo.is_anime or button.name == "message_ok_button"
       end
+    end
+
+    if @message_dialog and @is_connect_error and (@message_dialog.ok_button.pushed? or @message_dialog.ok_button.is_gazed) then
+      @message_dialog.ok_button.is_gazed = false
+      @click_se.play if @click_se
+      self.next_scene = TitleScene
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
     @poi.update if @poi
 
-    @list_box.update
+    @loading_kingyo.update if @loading_kingyo.is_anime
+
+    @list_box.update if @list_box
 
     @bubbles.each do |bubble|
       bubble.update
@@ -1665,9 +1741,11 @@ class RankingScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if x + center_x >= button.x and x + center_x <= button.x + button.width and
-          y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+        if not @is_connect_error and not @loading_kingyo.is_anime or button.name == "message_ok_button" then
+          if button and x + center_x >= button.x and x + center_x <= button.x + button.width and
+            y + center_y >= button.y and y + center_y <= button.y + button.height then
+            button.is_gazed = true
+          end
         end
       end
     end
@@ -1693,6 +1771,11 @@ class RankingScene < Scene::Base
 
     @page_up_button.draw if @page_up_button
     @page_down_button.draw if @page_down_button
+
+    @loading_kingyo.draw if @loading_kingyo.is_anime
+
+    Window.draw(0, 0, @cover_layer) if @cover_layer and @is_connect_error
+    @message_dialog.draw if @message_dialog and @is_connect_error
 
     @poi.draw if @poi
   end
