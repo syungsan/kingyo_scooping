@@ -52,7 +52,7 @@ class MessageDialog
     ok_button_width = @width * 0.3
     ok_button_height = ok_button_width * 0.4
     @ok_button = Button.new(@x + (@width - ok_button_width) * 0.5, (@y + @height - ok_button_height) * 0.8,
-                            ok_button_width, ok_button_height, string="ok",
+                            ok_button_width, ok_button_height, string="OK",
                             font_size=ok_button_height * 0.8)
 
     self.constract

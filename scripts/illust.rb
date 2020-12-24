@@ -11,11 +11,6 @@ class Illust < Sprite
   attr_accessor :id, :name, :is_drag
   attr_reader :width, :height
 
-  HEAD_THETA_RANGE = 60
-  SIGN = [-1, 1]
-  IN_MARGIN_RATIO = 0.5
-  OUT_MARGIN_RATIO = 0.8
-
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
     require "../lib/common"
@@ -27,6 +22,11 @@ class Illust < Sprite
   end
 
   include Common
+
+  HEAD_THETA_RANGE = 60
+  SIGN = [-1, 1]
+  IN_MARGIN_RATIO = 0.5
+  OUT_MARGIN_RATIO = 0.8
 
   def initialize(illust_number, height_size, bound_rect, speed_ranges=[2.0, 5.0], rotation_speed_ranges=[1, 4],
                  name="illust", id=0, target=Window, is_drag=false)

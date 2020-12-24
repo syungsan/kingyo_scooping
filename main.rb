@@ -38,7 +38,7 @@ class Config
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby & DXRuby."
-  VERSION_NUMBER = "0.9.1"
+  VERSION_NUMBER = "0.9.2"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -1149,6 +1149,7 @@ class NameEntryScene < Scene::Base
 
   require "./scripts/name_entry"
   require "./scripts/message_dialog"
+  require "./scripts/loading_anime"
 
   include Color
   include Common
@@ -1269,12 +1270,31 @@ class NameEntryScene < Scene::Base
     @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [128, 128, 128, 128])
 
     @is_connect_error = false
-    @is_wait_connect = false
+    @loading_kingyo = LoadingAnime.new(0, 0, nil, Window.height * 0.3)
+    @loading_kingyo.set_pos(0, Window.height - @loading_kingyo.height)
+
+    message_dialog_height = Window.height * 0.4
+    message_dialog_width = message_dialog_height * 2
+    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+                             :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
+    @message_dialog.set_message("通信エラー…", "タイトルに戻ります。", @message_dialog.height * 0.25, C_RED, "みかちゃん")
+    @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
+
+    @message_dialog.ok_button.font_color = C_DARK_BLUE
+    @message_dialog.ok_button.font_name = "07ラノベPOP"
+    @message_dialog.ok_button.name = "message_ok_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @message_dialog.ok_button.set_image(Images.fit_resize(ok_button_image, @message_dialog.ok_button.width, @message_dialog.ok_button.height))
+
+    @buttons.push(@message_dialog.ok_button)
   end
 
   def update
 
-    if @window_mode_button and not @is_connect_error and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -1284,13 +1304,14 @@ class NameEntryScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and not @is_connect_error and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+    if (@exit_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
       self.did_disappear
       exit
     end
 
-    if @name_entry and not @is_connect_error then
+    if @name_entry and not @is_connect_error and not @loading_kingyo.is_anime then
       @name_entry.word_buttons.each do |word_button|
         if word_button.pushed? or word_button.is_gazed then
           word_button.is_gazed = false
@@ -1304,31 +1325,36 @@ class NameEntryScene < Scene::Base
       end
     end
 
-    if @decision_button and not @is_connect_error and (@decision_button.pushed? or @decision_button.is_gazed) then
-      @delete_button.is_gazed = false
+    if @decision_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@decision_button.pushed? or @decision_button.is_gazed) then
+      @decision_button.is_gazed = false
       @click_se.play if @click_se
 
-      @is_wait_connect = true
-      begin
-        self.send_to_database
-        @is_wait_connect = false
-        self.next_scene = RankingScene
-      rescue
-        self.view_message_dialog("通信エラー…", "タイトルに戻ります。")
-        @is_connect_error = true
-        self.did_disappear
-        false
+      Thread.new do
+        @loading_kingyo.is_anime = true
+        begin
+          self.send_to_database
+          @loading_kingyo.is_anime = false
+          self.next_scene = RankingScene
+        rescue
+          @is_connect_error = true
+          @loading_kingyo.is_anime = false
+          self.did_disappear
+          false
+        end
       end
     end
 
-    if @reset_button and not @is_connect_error and (@reset_button.pushed? or @reset_button.is_gazed) then
+    if @reset_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@reset_button.pushed? or @reset_button.is_gazed) then
       @reset_button.is_gazed = false
       @click_se.play if @click_se
       $scores[:name] = ""
       @input_box.string = $scores[:name]
     end
 
-    if @delete_button and not @is_connect_error and (@delete_button.pushed? or @delete_button.is_gazed) then
+    if @delete_button and not @is_connect_error and not @loading_kingyo.is_anime and
+      (@delete_button.pushed? or @delete_button.is_gazed) then
       @delete_button.is_gazed = false
       @click_se.play if @click_se
       if $scores[:name].size > 0 then
@@ -1339,52 +1365,37 @@ class NameEntryScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered? if not @is_connect_error or button.name == "message_ok_button"
+        button.hovered? if not @is_connect_error and not @loading_kingyo.is_anime or button.name == "message_ok_button"
       end
     end
 
-    if @message_dialog and (@message_dialog.ok_button.pushed? or @message_dialog.ok_button.is_gazed) then
+    if @message_dialog and @is_connect_error and (@message_dialog.ok_button.pushed? or @message_dialog.ok_button.is_gazed) then
       @message_dialog.ok_button.is_gazed = false
+      @click_se.play if @click_se
       self.next_scene = TitleScene
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y
 
     @poi.update if @poi
-  end
 
-  def view_message_dialog(string, sub_string)
-
-    message_dialog_height = Window.height * 0.4
-    message_dialog_width = message_dialog_height * 2
-    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
-                             :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
-    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
-    @message_dialog.set_message(string, sub_string, @message_dialog.height * 0.25, C_RED, "みかちゃん")
-    @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
-
-    @message_dialog.ok_button.font_color = C_DARK_BLUE
-    @message_dialog.ok_button.font_name = "07ラノベPOP"
-    @message_dialog.ok_button.name = "message_ok_button"
-
-    ok_button_image = Image.load(OK_BUTTON_IMAGE)
-    @message_dialog.ok_button.set_image(Images.fit_resize(ok_button_image, @message_dialog.ok_button.width, @message_dialog.ok_button.height))
-
-    @buttons.push(@message_dialog.ok_button)
+    @loading_kingyo.update if @loading_kingyo.is_anime
   end
 
   def gazed(x, y, center_x, center_y)
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if button and x + center_x >= button.x and x + center_x <= button.x + button.width and
-          y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+        if not @is_connect_error and not @loading_kingyo.is_anime or button.name == "message_ok_button" then
+          if button and x + center_x >= button.x and x + center_x <= button.x + button.width and
+            y + center_y >= button.y and y + center_y <= button.y + button.height then
+            button.is_gazed = true
+          end
         end
       end
     end
 
-    if @name_entry then
+    if @name_entry and not @is_connect_error and not @loading_kingyo.is_anime then
       @name_entry.word_buttons.each do |word_button|
         if x + center_x >= word_button.x and x + center_x <= word_button.x + word_button.width and
           y + center_y >= word_button.y and y + center_y <= word_button.y + word_button.height then
@@ -1425,8 +1436,10 @@ class NameEntryScene < Scene::Base
     @reset_button.draw if @reset_button
     @delete_button.draw if @delete_button
 
+    @loading_kingyo.draw if @loading_kingyo.is_anime
+
     Window.draw(0, 0, @cover_layer) if @cover_layer and @is_connect_error
-    @message_dialog.draw if @message_dialog
+    @message_dialog.draw if @message_dialog and @is_connect_error
 
     @poi.draw if @poi
   end
