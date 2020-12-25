@@ -1499,7 +1499,7 @@ end
 class RankingScene < Scene::Base
 
   require "rubygems"
-  require "json" # JSON gem install -v 1.8.6
+  require "json" # gem install json -v 1.8.6
 
   require "net/http"
   require "time"
