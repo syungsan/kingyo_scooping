@@ -12,7 +12,7 @@ end
 Dir.chdir(File.expand_path("..", __FILE__))
 
 require "dxruby" # DXRuby本体
-require "./lib/dxruby/scene" # 画面遷移
+require "./lib/dxruby/scene"
 
 # インストールするフォント ###
 # たぬき油性マジック
@@ -25,7 +25,7 @@ require "./lib/dxruby/scene" # 画面遷移
 # Ballpark
 
 
-class Config
+class Configuration
 
   attr_reader :fps, :frame_step, :app_name, :app_sub_title, :copyright, :ver_number,
               :post_url, :get_url, :default_name
@@ -125,7 +125,7 @@ Dir.chdir("./lib/dxruby") do
 end
 Bass.init(Window.hWnd)
 
-$config = Config.new
+$config = Configuration.new
 
 
 # タイトル・シーン
@@ -355,20 +355,24 @@ class GameScene < Scene::Base
 
   FIRST_STAGE_NUMBER = 1
   FIRST_MODE = :start
+  MAX_STAGE_NUMBER = 3
 
-  KINGYO_NUMBERS = [5]
-  KINGYO_SCALE_RANGES = [[0.5, 1]]
-  KINGYO_SPEED_RANGES = [{:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]}]
-  KINGYO_MODE_RANGES = [{:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}]
+  KINGYO_NUMBERS = [5, 15, 25]
+  KINGYO_SCALE_RANGES = [[0.1, 0.15], [0.1, 0.2], [0.1, 0.25]]
+  KINGYO_SPEED_RANGES = [{:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]},
+                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]},
+                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]}]
+  KINGYO_MODE_RANGES = [{:wait=>[360, 660], :move=>[0, 100], :escape=>[0, 100]},
+                        {:wait=>[60, 360], :move=>[0, 200], :escape=>[0, 200]},
+                        {:wait=>[0, 60], :move=>[0, 300], :escape=>[0, 300]}]
   KIND_OF_KINGYOS = ["red", "black"]
 
-  BOSS_NUMBERS = 1
-  BOSS_SCALE_RANGES = [0.5, 1]
-  BOSS_SPEED_RANGES = {:wait=>[0, 1], :move=>[1, 3], :against=>[1, 3]}
+  BOSS_SCALE_RANGES = [0.3, 0.7]
+  BOSS_SPEED_RANGES = {:wait=>[0, 0.001], :move=>[0.0005, 0.02], :against=>[0.0005, 0.02]}
   BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}
 
-  WEED_NUMBERS = [2]
-  WEED_SCALE_RANGES = [[0.2, 0.5]]
+  WEED_NUMBERS = [2, 5, 8]
+  WEED_SCALE_RANGES = [[0.1, 0.3], [0.2, 0.4], [0.3, 0.5]]
 
   BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
 
@@ -376,7 +380,7 @@ class GameScene < Scene::Base
   WEED_DAMAGE_UNIT_RATIO = 0.0015
   BOSS_DAMAGE_UNIT_RATIO = 0.0008
 
-  CHALLENGE_POINT_UP_RANGE = 200
+  CHALLENGE_POINT_UP_RANGE = 2000
   MAX_POI_GAUGE_NUMBER = 5
 
   TILDE =  "\x81\x60".encode("BINARY")
@@ -532,10 +536,8 @@ class GameScene < Scene::Base
 
     when :normal
 
-      if @bgm then
-        @bgm.stop
-      end
-      if @main_bgm then
+      @bgm.stop if @bgm and @boss_bgm and @bgm == @boss_bgm
+      if @main_bgm and not @bgm == @main_bgm then
         @bgm = @main_bgm
         @bgm.play(:loop=>true, :volume=>0.5)
       end
@@ -545,6 +547,18 @@ class GameScene < Scene::Base
                            {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
         @bgm_info.mode = :run
       end
+
+    when :game_over
+
+      if @bgm then
+        @bgm.stop
+      end
+      $scores[:max_combo] = 0
+      $scores[:catched_kingyo_number] = 0
+      $scores[:catched_boss_number] = 0
+      $scores[:total_move_distance] = 0
+      self.did_disappear
+      self.next_scene = ResultScene
 
     when :alert
 
@@ -594,11 +608,20 @@ class GameScene < Scene::Base
 
     kingyos = []
     KINGYO_NUMBERS[@stage_number - 1].times do |index|
-      kingyo_height = Window.height * rand_float(0.1, 0.2)
+      kingyo_height = Window.height * rand_float(KINGYO_SCALE_RANGES[@stage_number - 1][0], KINGYO_SCALE_RANGES[@stage_number - 1][1])
       kingyo = Kingyo.new(0, 0, nil, kingyo_height, KIND_OF_KINGYOS[rand(2)], rand(360),
-                          index, {:wait=>[0, Math.sqrt(Window.height * 0.001)],
-                                  :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)],
-                                  :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)]})
+                          index, {:wait=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:wait][0]),
+                                          Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:wait][1])],
+                                  :move=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:move][0]),
+                                          Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:move][1])],
+                                  :escape=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:escape][0]),
+                                            Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:escape][1])]},
+                          {:wait=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:wait][0]),
+                                   Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:wait][1])],
+                           :move=>[Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:move][0]),
+                                   Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:move][1])],
+                           :escape=>[Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:escape][0]),
+                                     Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:escape][1])]})
       kingyo.set_pos(random_int(@border.x, @border.x + @border.width - kingyo.width),
                      random_int(@border.y, @border.y + @border.height - kingyo.height)) if @border
       kingyo.z = Z_POSITION_TOP
@@ -612,12 +635,15 @@ class GameScene < Scene::Base
   def boss_init
 
     bosss = []
-    BOSS_NUMBERS.times do |index|
-      boss_height = Window.height * rand_float(0.3, 0.6)
+    @poi_gauges.size.times do |index|
+      boss_height = Window.height * rand_float(BOSS_SCALE_RANGES[0], BOSS_SCALE_RANGES[1])
       boss = Boss.new(0, 0, nil, boss_height, rand(360), index,
-                      {:wait=>[0, Math.sqrt(Window.height * 0.001)],
-                       :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)],
-                       :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)]})
+                      {:wait=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:wait][0]),
+                               Math.sqrt(Window.height * BOSS_SPEED_RANGES[:wait][1])],
+                       :move=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:move][0]),
+                               Math.sqrt(Window.height * BOSS_SPEED_RANGES[:move][1])],
+                       :escape=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:against][0]),
+                                 Math.sqrt(Window.height * BOSS_SPEED_RANGES[:against][1])]})
       boss.set_pos(random_int(@border.x, @border.x + @border.width - boss.width),
                    random_int(@border.y, @border.y + @border.height - boss.height)) if @border
       boss.z = Z_POSITION_TOP
@@ -659,6 +685,7 @@ class GameScene < Scene::Base
         @wave_shader.update if @wave_shader
         @start_count += 1
       else
+        @start_count = 0
         self.change_mode(:normal)
       end
     end
@@ -752,7 +779,7 @@ class GameScene < Scene::Base
     if @life_gauge.has_out_of_life and not @life_continueble then
       @poi_gauges[-1].vanish
       @poi_gauges.delete_at(-1)
-      exit if @poi_gauges.empty? ##############
+      self.change_mode(:game_over) if @poi_gauges.empty?
       @life_continueble = true
     end
   end
@@ -849,13 +876,13 @@ class GameScene < Scene::Base
     end
 
     if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed"}.empty? then
-      @mode = :game_over
-      $scores[:max_combo] = 0
-      $scores[:catched_kingyo_number] = 0
-      $scores[:catched_boss_number] = 0
-      $scores[:total_move_distance] = 0
-      self.did_disappear
-      self.next_scene = ResultScene
+
+      if @stage_number < MAX_STAGE_NUMBER then
+        @stage_number += 1
+        self.change_mode(:start)
+      elsif not @mode == :game_over
+        self.change_mode(:game_over)
+      end
     end
   end
 
@@ -933,7 +960,7 @@ class ResultScene < Scene::Base
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
 
-  COMMENDATION_POINT = 0
+  COMMENDATION_POINT = 3000
   CONFETTI_MAX_NUMBER = 800
 
   MAX_COUNT_IN_WINDOW = 40
@@ -1471,6 +1498,9 @@ end
 
 class RankingScene < Scene::Base
 
+  require "rubygems"
+  require "json" # JSON gem install -v 1.8.6
+
   require "net/http"
   require "time"
 
@@ -1481,10 +1511,6 @@ class RankingScene < Scene::Base
 
   require "./scripts/message_dialog"
   require "./scripts/loading_anime"
-
-  Dir.chdir("./lib") do
-    require "./json/pure" # JSON
-  end
 
   require "./scripts/score_list_box"
   require "./scripts/bubble"
@@ -1635,9 +1661,6 @@ class RankingScene < Scene::Base
           color = C_RED if result[3] == "金魚神"
           colors.push(color)
         end
-
-        p items
-        p colors
 
         self.make_list_box(items, colors)
         @loading_kingyo.is_anime = false
