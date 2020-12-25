@@ -31,8 +31,10 @@ class Config
               :post_url, :get_url, :default_name
 
   require "./lib/display" # ディスプレイ情報取得
+  require "./lib/dxruby/color"
 
   include Display
+  include Color
 
   # アプリケーション設定
   APPLICATION_NAME = "金魚すくい"
@@ -56,10 +58,10 @@ class Config
   IS_WINDOW_CENTER = true
 
   # データベース POST URL
-  POST_URL = "http://localhost:3000/kingyo_scoopings/record"
+  POST_URL = "http://tk2-254-36598.vs.sakura.ne.jp/ranking/kingyo_scoopings/record"
 
   # データベース GET URL
-  GET_URL = "http://localhost:3000/kingyo_scoopings/show"
+  GET_URL = "http://tk2-254-36598.vs.sakura.ne.jp/ranking/kingyo_scoopings/show"
 
   DEFAULT_NAME = "ななしさん"
 
@@ -75,7 +77,7 @@ class Config
   def initialize
 
     $scores = {:name=>DEFAULT_NAME, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>"A52A2A"}
+               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
 
     @fps = FPS
     @frame_step = FRAME_STEP
@@ -156,7 +158,7 @@ class TitleScene < Scene::Base
 
     # 必要最小限のグローバル変数を初期化
     $scores = {:name=>$config.default_name, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>"A52A2A"}
+               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
 
     @click_se = Sound.new(CLICK_SE)
     @start_game_se = Sound.new(START_GAME_SE)
@@ -948,15 +950,15 @@ class ResultScene < Scene::Base
 
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_MISTY_ROSE)
 
-    $scores[:cognomen], $scores[:color] = "ウンコちゃん", "A52A2A" if $scores[:technical_point] < 500
-    $scores[:cognomen], $scores[:color] = "ザコりん", "00FFFF" if $scores[:technical_point] >= 500 and $scores[:technical_point] < 1000
-    $scores[:cognomen], $scores[:color] = "初心者ペー", "FFFF00" if $scores[:technical_point] >= 1000 and $scores[:technical_point] < 2000
-    $scores[:cognomen], $scores[:color] = "普通ヲタ", "008000" if $scores[:technical_point] >= 2000 and $scores[:technical_point] < 3000
-    $scores[:cognomen], $scores[:color] = "良しヲくん", "FFA500" if $scores[:technical_point] >= 3000 and $scores[:technical_point] < 4000
-    $scores[:cognomen], $scores[:color] = "スーパーカブ", "ff00ff" if $scores[:technical_point] >= 4000 and $scores[:technical_point] < 5000
-    $scores[:cognomen], $scores[:color] = "レジェンドン", "0000FF" if $scores[:technical_point] >= 5000 and $scores[:technical_point] < 6000
-    $scores[:cognomen], $scores[:color] = "金魚人", "800080" if $scores[:technical_point] >= 6000 and $scores[:technical_point] < 7000
-    $scores[:cognomen], $scores[:color] = "金魚神", "FF0000" if $scores[:technical_point] >= 7000
+    $scores[:cognomen], $scores[:color] = "ウンコちゃん", C_BROWN if $scores[:technical_point] < 500
+    $scores[:cognomen], $scores[:color] = "ザコりん", C_CYAN if $scores[:technical_point] >= 500 and $scores[:technical_point] < 1000
+    $scores[:cognomen], $scores[:color] = "初心者ペー", C_YELLOW if $scores[:technical_point] >= 1000 and $scores[:technical_point] < 2000
+    $scores[:cognomen], $scores[:color] = "普通ヲタ", C_GREEN if $scores[:technical_point] >= 2000 and $scores[:technical_point] < 3000
+    $scores[:cognomen], $scores[:color] = "良しヲくん", C_ORANGE if $scores[:technical_point] >= 3000 and $scores[:technical_point] < 4000
+    $scores[:cognomen], $scores[:color] = "スーパーカブ", C_MAGENTA if $scores[:technical_point] >= 4000 and $scores[:technical_point] < 5000
+    $scores[:cognomen], $scores[:color] = "レジェンドン", C_BLUE if $scores[:technical_point] >= 5000 and $scores[:technical_point] < 6000
+    $scores[:cognomen], $scores[:color] = "金魚人", C_PURPLE if $scores[:technical_point] >= 6000 and $scores[:technical_point] < 7000
+    $scores[:cognomen], $scores[:color] = "金魚神", C_RED if $scores[:technical_point] >= 7000
 
     @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, {:font_name=>"チェックポイントフォント"})
     @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.03)
@@ -988,7 +990,7 @@ class ResultScene < Scene::Base
     @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5, (Window.height - @technical_point_label.height) * 0.63)
 
     @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
-                                Window.height * 0.1, hex_to_rgb($scores[:color].hex).values, {:font_name=>"たぬき油性マジック"})
+                                Window.height * 0.1, $scores[:color], {:font_name=>"たぬき油性マジック"})
     @cognomen_label.set_pos((Window.width - @cognomen_label.width) * 0.5, (Window.height - @cognomen_label.height) * 0.75)
     @cognomen_label.set_weight = true
 
@@ -1175,8 +1177,8 @@ class NameEntryScene < Scene::Base
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
-  RETRY_MAX_COUNT = 3 # 回
-  RETRY_WAIT_TIME = 5 # 秒
+  RETRY_MAX_COUNT = 2 # 回
+  RETRY_WAIT_TIME = 3 # 秒
   REQUEST_TIMEOUT = 5 # 秒
 
   def init
@@ -1198,7 +1200,7 @@ class NameEntryScene < Scene::Base
     @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.06, C_GREEN, {:font_name=>"自由の翼フォント"})
 
     @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
-                                Window.height * 0.06, hex_to_rgb($scores[:color].hex).values, {:font_name=>"たぬき油性マジック"})
+                                Window.height * 0.06, $scores[:color], {:font_name=>"たぬき油性マジック"})
     @cognomen_label.set_weight = true
 
     interval_margin = Window.height * 0.05
@@ -1342,6 +1344,7 @@ class NameEntryScene < Scene::Base
           self.send_to_database
           @loading_kingyo.is_anime = false
           self.next_scene = RankingScene
+          self.did_disappear
         rescue
           if retry_count < RETRY_MAX_COUNT
             sleep RETRY_WAIT_TIME
@@ -1427,7 +1430,7 @@ class NameEntryScene < Scene::Base
 
     req = Net::HTTP::Post.new(uri.path)
     req.set_form_data({:name=>$scores[:name].encode("UTF-8"), :score=>$scores[:score],
-                       :cognomen=>$scores[:cognomen], :cognomen_color=>$scores[:cognomen_color]})
+                       :cognomen=>$scores[:cognomen].encode("UTF-8")})
 
     http.request(req)
   end
@@ -1503,9 +1506,8 @@ class RankingScene < Scene::Base
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
-  RETRY_MAX_COUNT = 3 # 回
-  RETRY_WAIT_TIME = 5 # 秒
-  REQUEST_TIMEOUT = 5 # 秒
+  RETRY_MAX_COUNT = 2 # 回
+  RETRY_WAIT_TIME = 3 # 秒
 
   def init
 
@@ -1612,16 +1614,35 @@ class RankingScene < Scene::Base
       retry_count = 0
       begin
         results = self.load_from_database
-        hex_codes = results.map { |raw| raw[3]}
-        items = results.transpose.delete_at(3).transpose
 
+        items = []
         colors = []
-        hex_codes.each do |hex_code|
-          colors.push(hex_to_rgb(hex_code.hex).values)
+
+        results.each_with_index do |result, index|
+
+          result.unshift("#{index + 1}位")
+          result[2] += "点"
+          items.push(result)
+
+          color = C_BROWN if result[3] == "ウンコちゃん"
+          color = C_CYAN if result[3] == "ザコりん"
+          color = C_YELLOW if result[3] == "初心者ペー"
+          color = C_GREEN if result[3] == "普通ヲタ"
+          color = C_ORANGE if result[3] == "良しヲくん"
+          color = C_MAGENTA if result[3] == "スーパーカブ"
+          color = C_BLUE if result[3] == "レジェンドン"
+          color = C_PURPLE if result[3] == "金魚人"
+          color = C_RED if result[3] == "金魚神"
+          colors.push(color)
         end
+
+        p items
+        p colors
+
         self.make_list_box(items, colors)
         @loading_kingyo.is_anime = false
-      rescue
+      rescue => e
+        p e
         if retry_count < RETRY_MAX_COUNT
           sleep RETRY_WAIT_TIME
           retry_count += 1
@@ -1641,7 +1662,6 @@ class RankingScene < Scene::Base
 
     # 第2引数にHashを指定することでPOSTする際のデータを指定出来る
     response = Net::HTTP.post_form(uri, {})
-    response.open_timeout = REQUEST_TIMEOUT
 
     jsons = JSON.parse(response.body)
 
@@ -1652,7 +1672,6 @@ class RankingScene < Scene::Base
       raws << json["name"].to_s.encode("Shift_JIS")
       raws << json["score"].to_s
       raws << json["cognomen"].to_s.encode("Shift_JIS")
-      raws << json["color"].to_s
       raws << Time.parse(json["created_at"]).strftime("%Y年%m月%d日 %H時%M分%S秒")
       results << raws
       raws = []
@@ -1980,4 +1999,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop NameEntryScene, $config.fps, $config.frame_step
+Scene.main_loop TitleScene, $config.fps, $config.frame_step
