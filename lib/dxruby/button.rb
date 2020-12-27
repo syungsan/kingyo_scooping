@@ -178,7 +178,10 @@ class Button
       @images.push(image.change_hls(0, 20, 0))
     end
 
-    @org_images = @images.clone
+    @org_images = []
+    @images.each do |image|
+      @org_images.push(image.clone)
+    end
     @image = @images[0]
 
     @has_image_set = true

@@ -12,17 +12,16 @@ require "dxruby"
 class Images
 
   attr_accessor :x, :y, :id, :name, :is_pen_active, :pen_size, :pen_color, :is_innovative_line, 
-                :is_legacy_line, :target, :scale_x, :scale_y, :angle, :alpha
+                :is_legacy_line, :target, :scale_x, :scale_y, :angle, :alpha, :z
   attr_reader :width, :height, :string, :font_size
 
-  def initialize(x=0, y=0, width=50, height=40, string= "", font_size=28, color=C_WHITE, st_color=C_BLACK,
-                 id=0, name="images", option={})
-    option = {:font_name=>"ＭＳ Ｐゴシック", :is_pen_active=>false, :pen_size=>5, :pen_color=>C_BLACK, 
+  def initialize(x=0, y=0, width=50, height=40, string= "", font_size=28, color=C_WHITE, st_color=C_BLACK, option={})
+    option = {:id=>0, :name=>"images", :font_name=>"ＭＳ Ｐゴシック", :is_pen_active=>false, :pen_size=>5, :pen_color=>C_BLACK, 
               :is_innovative_line=>true, :is_legacy_line=>false, :target=>Window}.merge(option)
 
-    self.target = option[:target]
-    self.x = x
-    self.y = y
+    @target = option[:target]
+    @x = x
+    @y = y
     @filename = nil
     @copy_name = nil
     @stretch_filename = nil
@@ -34,14 +33,19 @@ class Images
     @font_name = option[:font_name]
     @string = string
     @string_pos = []
+    @z = 0
+    @scale_x = 1.0
+    @scale_y = 1.0
+    @angle = 0
+    @alpha = 255
     self.construct
-    self.name = name
-    self.id = id
-    self.is_pen_active = option[:is_pen_active]
-    self.pen_size = option[:pen_size]
-    self.pen_color = option[:pen_color]
-    self.is_innovative_line = option[:is_innovative_line]
-    self.is_legacy_line = option[:is_legacy_line]
+    @name = option[:name]
+    @id = option[:id]
+    @is_pen_active = option[:is_pen_active]
+    @pen_size = option[:pen_size]
+    @pen_color = option[:pen_color]
+    @is_innovative_line = option[:is_innovative_line]
+    @is_legacy_line = option[:is_legacy_line]
 
     @cur_x, @cur_y = nil,
     @is_paint = false
@@ -50,8 +54,8 @@ class Images
   end
 
   def set_pos(x, y)
-    self.x = x
-    self.y = y
+    @x = x
+    @y = y
   end
 
   def construct
@@ -180,38 +184,38 @@ class Images
   end
 
   def update
-    self.pen if self.is_pen_active
+    self.pen if @is_pen_active
   end
 
   def pen
 
     old_x, old_y = @cur_x, @cur_y
-    @cur_x, @cur_y = Input.mouse_pos_x - self.x, Input.mouse_pos_y - self.y
+    @cur_x, @cur_y = Input.mouse_pos_x - @x, Input.mouse_pos_y - @y
 
     # ボタンを押している間の処理
     if Input.mouse_down?(M_LBUTTON) then
 
       # エッジに円を描画
-      @image.circle_fill(@cur_x, @cur_y, self.pen_size, self.pen_color) unless @is_paint
+      @image.circle_fill(@cur_x, @cur_y, @pen_size, @pen_color) unless @is_paint
       @is_paint = true
-      @image.circle_fill(@cur_x, @cur_y, self.pen_size, self.pen_color) if self.is_legacy_line
+      @image.circle_fill(@cur_x, @cur_y, @pen_size, @pen_color) if @is_legacy_line
 
-      if self.is_innovative_line then
+      if @is_innovative_line then
 
         # 円形ペン描画（勝又スペシャル）###################################################
         # line数が多いので割とカクつく
         for i in 0...360 do # 回転角度θをi
-          for j in self.pen_size-1..self.pen_size do # 円の厚み0からに指定で中実円 かすれない程度に厚く
+          for j in @pen_size-1..@pen_size do # 円の厚み0からに指定で中実円 かすれない程度に厚く
             @image.line(@cur_x+j*Math.cos(i*Math::PI/180), @cur_y+j*Math.sin(i*Math::PI/180),
-                       old_x+j*Math.cos(i*Math::PI/180),old_y+j*Math.sin(i*Math::PI/180),self.pen_color)  # i*j本の線を描画
+                       old_x+j*Math.cos(i*Math::PI/180),old_y+j*Math.sin(i*Math::PI/180),@pen_color)  # i*j本の線を描画
           end
         end
-        # image.circle_fill(@cur_x, @cur_y, 10, self.pen_color) # jが0からなら要らない書き出しの塗りつぶし用（line数削減で負荷軽減用）
+        # image.circle_fill(@cur_x, @cur_y, 10, @pen_color) # jが0からなら要らない書き出しの塗りつぶし用（line数削減で負荷軽減用）
       end
 
-      if self.is_legacy_line then
+      if @is_legacy_line then
 
-        for loop_id in 0...self.pen_size do
+        for loop_id in 0...@pen_size do
 
           # エッジの回転アリ（多々納スペシャル）##########################
           theta = Math.atan2(@cur_y - old_y, @cur_x - old_x)
@@ -229,8 +233,8 @@ class Images
           old_lx = loop_id * Math.cos(-1 * (Math::PI * 0.5) + theta) + old_x
           old_ly = loop_id * Math.sin(-1 * (Math::PI * 0.5) + theta) + old_y
 
-          @image.line(cur_lx, cur_ly, old_lx, old_ly, self.pen_color)
-          @image.line(cur_rx, cur_ry, old_rx, old_ry, self.pen_color)
+          @image.line(cur_lx, cur_ly, old_lx, old_ly, @pen_color)
+          @image.line(cur_rx, cur_ry, old_rx, old_ry, @pen_color)
 
           # エッジの回転ナシ（荒木スペシャル）############################
           new_right_x = @cur_x + loop_id
@@ -249,10 +253,10 @@ class Images
           old_down_y = old_y + loop_id
           old_zero_x = old_x
 
-          @image.line(new_right_x, new_zero_y, old_right_x, old_zero_y, self.pen_color)
-          @image.line(new_left_x, new_zero_y, old_left_x, old_zero_y, self.pen_color)
-          @image.line(new_zero_x, new_up_y, old_zero_x, old_up_y, self.pen_color)
-          @image.line(new_zero_x, new_down_y, old_zero_x, old_down_y, self.pen_color)
+          @image.line(new_right_x, new_zero_y, old_right_x, old_zero_y, @pen_color)
+          @image.line(new_left_x, new_zero_y, old_left_x, old_zero_y, @pen_color)
+          @image.line(new_zero_x, new_up_y, old_zero_x, old_up_y, @pen_color)
+          @image.line(new_zero_x, new_down_y, old_zero_x, old_down_y, @pen_color)
         end
       end
     else
@@ -261,7 +265,7 @@ class Images
   end
 
   def get_paint_chart
-    if self.is_pen_active then
+    if @is_pen_active then
       if @is_paint then
         if @cur_x >= 0 and @cur_x <= @width and @cur_y >= 0 and @cur_y <= @height then
           chart = [@cur_x, @cur_y]
@@ -325,23 +329,10 @@ class Images
     @image.save(file_path)
   end
 
-  def render
-    self.target.draw_ex(self.x, self.y, @image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :angle=>self.angle, :alpha=>self.alpha})
+  def draw
+    @target.draw_ex(@x, @y, @image, {:scale_x=>@scale_x, :scale_y=>@scale_y, :angle=>@angle, :alpha=>@alpha, :z=>@z})
   end
-
-  def scale_render(sx, sy)
-    self.target.draw_scale(self.x, self.y, @image, sx, sy, 0, 0)
-  end
-
-  def alpha_render(alpha)
-    self.target.draw_alpha(self.x, self.y, @image, alpha)
-  end
-
-  def rot_render(angle)
-    self.target.draw_rot(self.x, self.y, @image, angle)
-  end
-
-
+  
   class << self
 
     def fit_resize(image, width, height)
@@ -379,11 +370,11 @@ if __FILE__ == $0
   base_layer.string_pos("これらは\nテストの\nテキストです。", 40, 0, 0, C_RED)
 
   # base_layer.clear
-  base_layer.width(320)
-  base_layer.height(240)
+  base_layer.width = 320
+  base_layer.height = 240
 
   base_layer.angle = 5
-  base_layer.color(C_GREEN)
+  base_layer.color = C_GREEN
 
   paint_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480, "", 0, C_DEFAULT)
   paint_layer.is_pen_active = true
@@ -398,9 +389,9 @@ if __FILE__ == $0
 
   Window.loop do
 
-    base_layer.render
+    base_layer.draw
     paint_layer.update
-    paint_layer.render
+    paint_layer.draw
 
     # p paint_layer.get_paint_chart
   end

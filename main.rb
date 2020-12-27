@@ -21,7 +21,6 @@ require "./lib/dxruby/scene"
 # 07ラノベPOP
 # AR教科書体M
 # みかちゃん
-# 07にくまるフォント
 # Ballpark
 
 
@@ -40,7 +39,7 @@ class Configuration
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby & DXRuby."
-  VERSION_NUMBER = "0.9.2"
+  VERSION_NUMBER = "0.9.3"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -71,7 +70,6 @@ class Configuration
   LIGHT_NOVEL_POP_FONT = "./fonts/ラノベPOP.otf"
   AR_KYOUKASYOTAI_M_FONT = "./fonts/JTST00M.TTC"
   MIKACHAN_FONT = "./fonts/mikachanALL.ttc"
-  NIKUMARU_FONT = "./fonts/07にくまるフォント.otf"
   BALL_PARK_FONT = "./fonts/BALLW___.TTF"
 
   def initialize
@@ -99,7 +97,6 @@ class Configuration
     Font.install(LIGHT_NOVEL_POP_FONT)
     Font.install(AR_KYOUKASYOTAI_M_FONT)
     Font.install(MIKACHAN_FONT)
-    Font.install(NIKUMARU_FONT)
     Font.install(BALL_PARK_FONT)
 
     initWindowRect = setDisplayFixWindow(WINDOW_SIZE, IS_WINDOW_CENTER)
@@ -146,6 +143,7 @@ class TitleScene < Scene::Base
   START_BUTTON_IMAGE = "./images/start_button.png"
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+  RANKING_BUTTON_IMAGE = "./images/ranking_button.png"
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
@@ -182,12 +180,19 @@ class TitleScene < Scene::Base
                                 {:font_name=>"07ラノベPOP"})
     @copyright_label.set_pos((Window.width - @copyright_label.width) * 0.5, (Window.height - @copyright_label.height) * 0.9)
 
+    ranking_button_image = Image.load(RANKING_BUTTON_IMAGE)
+    ranking_button_scale = Window.height * 0.04 / ranking_button_image.height
+    ranking_button_converted_image = Images.scale_resize(ranking_button_image, ranking_button_scale, ranking_button_scale)
+    @ranking_button = Button.new
+    @ranking_button.set_image(ranking_button_converted_image)
+    @ranking_button.set_pos((Window.width - @ranking_button.width) * 0.5, (Window.height - @ranking_button.height) * 0.6)
+
     start_button_image = Image.load(START_BUTTON_IMAGE)
     start_button_scale = Window.height * 0.06 / start_button_image.height
     start_button_converted_image = Images.scale_resize(start_button_image, start_button_scale, start_button_scale)
     @start_button = Button.new
     @start_button.set_image(start_button_converted_image)
-    @start_button.set_pos((Window.width - @start_button.width) * 0.5, (Window.height - @start_button.height) * 0.7)
+    @start_button.set_pos((Window.width - @start_button.width) * 0.5, (Window.height - @start_button.height) * 0.73)
 
     exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
     exit_button_scale = Window.height * 0.05 / exit_button_image.height
@@ -206,7 +211,7 @@ class TitleScene < Scene::Base
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
     @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
 
-    @buttons = [@start_button, @exit_button, @window_mode_button]
+    @buttons = [@start_button, @exit_button, @window_mode_button, @ranking_button]
 
     @is_start_button_blink = false
     @start_button_blink_count = 0
@@ -245,6 +250,12 @@ class TitleScene < Scene::Base
       @exit_button.is_gazed = false
       self.did_disappear
       exit
+    end
+
+    if (@ranking_button and (@ranking_button.pushed? or @ranking_button.is_gazed)) then
+      @ranking_button.is_gazed = false
+      @click_se.play if @click_se
+      self.next_scene = RankingScene
     end
 
     if @buttons and not @buttons.empty? then
@@ -295,6 +306,7 @@ class TitleScene < Scene::Base
     @version_number_label.draw if @version_number_label
     @copyright_label.draw if @copyright_label
 
+    @ranking_button.draw if @ranking_button
     @start_button.draw if @start_button
     @exit_button.draw if @exit_button
     @window_mode_button.draw if @window_mode_button
@@ -1473,7 +1485,7 @@ class NameEntryScene < Scene::Base
     @exit_button.draw if @exit_button
     @window_mode_button.draw if @window_mode_button
     @name_entry.draw if @name_entry
-    @input_box.render if @input_box
+    @input_box.draw if @input_box
 
     @decision_button.draw if @decision_button
     @reset_button.draw if @reset_button

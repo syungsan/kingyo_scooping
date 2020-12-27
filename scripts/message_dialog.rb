@@ -99,8 +99,8 @@ class MessageDialog
   end
 
   def draw
-    self.target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z)
-    self.target.draw(@x, @y, @image, @z)
+    @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z)
+    @target.draw(@x, @y, @image, @z)
     @ok_button.draw
   end
 
