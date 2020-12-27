@@ -11,7 +11,8 @@ require "dxruby"
 
 class Button
 
-  attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z, :name, :id, :target, :is_gazed #=> is_gaze‚Í‹ü“ü—Í—p‚É’Ç‰Á‚µ‚½
+  attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z,
+                :name, :id, :target, :is_gazed, :is_enable #=> is_gaze‚Í‹ü“ü—Í—p‚É’Ç‰Á‚µ‚½
   attr_reader :width, :height, :string, :is_hoverable
 
   def initialize(x=0, y=0, width=100, height=40, string="", font_size=36, option={})
@@ -56,6 +57,7 @@ class Button
 
     @has_image_set = false
     @is_click = false
+    @is_enable = true
 
     self.construct
     self.draw_string
@@ -63,7 +65,13 @@ class Button
 
   def construct
 
-    @images.clear unless @images.empty?
+    unless @images.empty? then
+      @images.each do |image|
+        image.clear
+      end
+      @images.clear
+    end
+
     2.times do
       image = Image.new(@width, @height, @color)
       image.boxFill(0, 0, @width, 2, @frame_color[0])
@@ -124,6 +132,16 @@ class Button
     self.draw_string
   end
 
+  def string=(string)
+    @string = string
+    unless @has_image_set then
+      self.construct
+    else
+      self.image_reconstract
+    end
+    self.draw_string
+  end
+
   def color=(color)
     unless @has_image_set then
       @color = color
@@ -154,14 +172,28 @@ class Button
 
   def image_reconstract
 
-    @images.clear unless @images.empty?
-    @images = @org_images.clone
+    unless @images.empty? then
+      @images.each do |image|
+        image.clear
+      end
+      @images.clear
+    end
+
+    @org_images.each do |org_image|
+      @images.push(org_image.clone)
+    end
 
     if @is_hoverable and @images.size <= 1 then
       @images.push(@images[0].change_hls(0, -20, 0))
       @images.push(@images[0].change_hls(0, 20, 0))
+      @images.push(@images[0].change_hls(0, 35, -35))
     end
-    @image = @images[0]
+
+    if @is_enable then
+      @image = @images[0]
+    else
+      @image = @images[3]
+    end
     @has_image_set = true
   end
 
@@ -170,12 +202,18 @@ class Button
     @width = image.width
     @height = image.height
 
-    @images.clear unless @images.empty?
+    unless @images.empty? then
+      @images.each do |old_image|
+        old_image.clear
+      end
+      @images.clear
+    end
 
     @images.push(image)
     if @is_hoverable then
       @images.push(image.change_hls(0, -20, 0))
       @images.push(image.change_hls(0, 20, 0))
+      @images.push(image.change_hls(0, 35, -35))
     end
 
     @org_images = []
@@ -230,7 +268,7 @@ class Button
     mouse_x = Input.mouse_pos_x
     mouse_y = Input.mouse_pos_y
 
-    if Input.mouse_push?(M_LBUTTON) and not @is_click then
+    if Input.mouse_push?(M_LBUTTON) and not @is_click and @is_enable then
       if mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
 
         @image = @images[1] if @images[1]
@@ -239,7 +277,7 @@ class Button
         return false
       end
 
-    elsif not Input.mouse_down?(M_LBUTTON) and @is_click then
+    elsif not Input.mouse_down?(M_LBUTTON) and @is_click and @is_enable then
 
       @image = @images[0] if @images[0]
 
@@ -256,7 +294,7 @@ class Button
     mouse_y = Input.mouse_pos_y
 
     if mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height and
-      @has_image_set and not @is_click and @is_hoverable then
+      @has_image_set and not @is_click and @is_hoverable and @is_enable then
 
       @image = @images[2] if @images[2]
       return true
@@ -264,6 +302,17 @@ class Button
     elsif not @is_click
       @image = @images[0] if @images[0]
       return false
+    end
+  end
+
+  def enable=(is_enable)
+    @is_enable = is_enable
+    if @is_enable then
+      @image = @images[0]
+      @is_click = false
+    else
+      @image = @images[3]
+      @is_click = true
     end
   end
 
@@ -282,6 +331,7 @@ class Button
   def vanish
     unless @images.empty then
       @images.each do |image|
+        image.clear
         image.dispose unless image.disposed?
       end
       @images.clear

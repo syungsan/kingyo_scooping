@@ -86,9 +86,9 @@ class MessageDialog
       unless strings[index] == "" then
         message.target = @image
         message.string = strings[index]
-        message.set_size = font_sizes[index]
+        message.size = font_sizes[index]
         message.color = font_color
-        message.set_font_name = font_name
+        message.font_name = font_name
         message.set_italic = italic
         message.set_weight = weight
         message.width

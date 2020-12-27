@@ -71,23 +71,13 @@ class Images
     self.draw_string if @string != ""
   end
 
-  def string(string, font_size=28, st_color=C_BLACK)
-    @string = string
-    @font_size = font_size
-    @st_color = st_color
-    self.construct
-  end
-
   def string=(string)
     @string = string
     self.construct
   end
 
-  def string_pos(string, font_size, x, y, color)
-    @string = string
-    @font_size = font_size
-    @st_color = color
-    @string_pos = [x, y]
+  def string_pos=(str_pos)
+    @string_pos = str_pos
     self.construct
   end
 
@@ -302,7 +292,7 @@ class Images
 
   def clear
     @image.dispose if @image
-    @filename = nil unless@filename.nil?
+    @filename = nil unless @filename.nil?
     @string = "" unless @string == ""
     @is_paint = false
     @is_grid = false
@@ -367,7 +357,10 @@ if __FILE__ == $0
   base_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480)
   base_layer.grid([5, 5], 2, C_BLUE)
 
-  base_layer.string_pos("これらは\nテストの\nテキストです。", 40, 0, 0, C_RED)
+  base_layer.string = "これらは\nテストの\nテキストです。"
+  base_layer.font_size = 40
+  base_layer.font_color = C_RED
+  # base_layer.string_pos = [50, 50]
 
   # base_layer.clear
   base_layer.width = 320

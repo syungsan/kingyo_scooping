@@ -54,12 +54,12 @@ class Fonts
     @y = y
   end
 
-  def set_size=(size)
+  def size=(size)
     @size = size
     self.constract
   end
 
-  def set_font_name=(font_name)
+  def font_name=(font_name)
     @font_name = font_name
     self.constract
   end

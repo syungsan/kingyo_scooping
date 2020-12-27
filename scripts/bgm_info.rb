@@ -93,17 +93,17 @@ class BgmInfo < Sprite
     @data_label.string = info[:data]
     @copyright_label.string = info[:copyright]
 
-    @title_label.set_size = font_size[:title]
-    @data_label.set_size = font_size[:data]
-    @copyright_label.set_size = font_size[:copyright]
+    @title_label.size = font_size[:title]
+    @data_label.size = font_size[:data]
+    @copyright_label.size = font_size[:copyright]
 
     @title_label.color = font_color[:title]
     @data_label.color = font_color[:data]
     @copyright_label.color = font_color[:copyright]
 
-    @title_label.set_font_name = font_name[:title]
-    @data_label.set_font_name = font_name[:data]
-    @copyright_label.set_font_name = font_name[:copyright]
+    @title_label.font_name = font_name[:title]
+    @data_label.font_name = font_name[:data]
+    @copyright_label.font_name = font_name[:copyright]
 
     @title_label.set_italic = italic[:title]
     @data_label.set_italic = italic[:data]
