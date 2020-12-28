@@ -8,8 +8,8 @@ require "dxruby"
 
 class Poi <Sprite
 
-  attr_accessor :name, :id, :is_drag, :mode, :old_pos
-  attr_reader :width, :height
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :old_pos, :is_impact, :impact_gain
+  attr_reader :width, :height, :impact_radius
 
   require "bigdecimal"
 
@@ -34,8 +34,8 @@ class Poi <Sprite
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
 
-  PAPER_OFFSET_RATIO_AGAINST_FRAME_X = 0.03
-  PAPER_OFFSET_RATIO_AGAINST_FRAME_Y = 0.03
+  OFFSET_RATIO_AGAINST_PAPER_X = 0.03
+  OFFSET_RATIO_AGAINST_PAPER_Y = 0.05
 
   TRANSPORT_DURATION = 0.5
   RESERVE_DURATION = 0.3
@@ -44,10 +44,13 @@ class Poi <Sprite
   RELEASE_POSITION_ADJUST_RATIO = 0.7
   TRANSPORT_FIRST_VELOSITY = 0
 
+  MAX_IMPACT_RADIUS_RATIO = 10
+  MAX_SPEED_WINDOW_SIZE = 30
+
 
   def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, transport_target=nil, option={})
-    option = {:max_count_in_window=>60, :gaze_radius_ratio=>0.5, :max_count_in_gaze_area=>30,
-              :name=>"poi", :id=>0, :target=>Window, :is_drag=>true}.merge(option)
+    option = {:max_count_in_window=>60, :gaze_radius_ratio=>0.5, :max_count_in_gaze_area=>30, :is_view_impact_range=>false,
+              :is_impact=>true, :impact_gain=>1.0, :name=>"poi", :id=>0, :target=>Window, :is_drag=>true}.merge(option)
     super()
 
     frame_image = Image.load(FRAME_IMAGE)
@@ -96,6 +99,22 @@ class Poi <Sprite
 
     @transport_target = transport_target
     @transport_count = 0
+
+    @shadow_x = SHADOW_OFFSET_Y
+    @shadow_y = SHADOW_OFFSET_Y
+
+    @old_x = 0
+    @old_y = 0
+
+    @speed_windows = []
+    @is_impact = option[:is_impact]
+    @impact_gain = option[:impact_gain]
+    @is_view_impact_range = option[:is_view_impact_range]
+  end
+
+  def view_impact_range=(is_view_impact_range)
+    @is_view_impact_range = is_view_impact_range
+    @impact_range = Image.new(@width * MAX_IMPACT_RADIUS_RATIO, @height * MAX_IMPACT_RADIUS_RATIO)
   end
 
   def set_pos(x, y)
@@ -104,6 +123,8 @@ class Poi <Sprite
   end
 
   def update
+
+    self.impact_range if @is_impact
 
     if @is_drag then
       self.x = @pointer.x - (@width * 0.5)
@@ -122,6 +143,28 @@ class Poi <Sprite
 
     when :transport, :reserve
       self.transport
+    end
+  end
+
+  def impact_range
+
+    delta_x, delta_y = self.x - @old_x, self.y - @old_y
+    @old_x, @old_y = self.x, self.y
+
+    if @speed_windows.size < MAX_SPEED_WINDOW_SIZE then
+      @speed_windows.push(Math.sqrt(delta_x ** 2 + delta_y ** 2))
+    else
+      @speed_windows.shift(1)
+    end
+
+    if @speed_windows.size >= MAX_SPEED_WINDOW_SIZE then
+      speed_average = @speed_windows.inject(:+) / @speed_windows.length
+      @impact_radius = @impact_gain * speed_average ** 2
+    end
+
+    if @is_view_impact_range and @impact_radius then
+      @impact_range.clear
+      @impact_range.circle_fill(@impact_range.width * 0.5, @impact_range.height * 0.5, @impact_radius, [168, 0, 0, 255])
     end
   end
 
@@ -180,6 +223,8 @@ class Poi <Sprite
   def transport
 
     @is_drag = false
+    @is_impact = false
+
     if @transport_count <= TRANSPORT_DURATION then
       self.set_pos(@old_pos[0] + ease_in_out_quad(@transport_count, TRANSPORT_FIRST_VELOSITY,
                                                   @transport_target.x - @old_pos[0] + ((@width * 0.5) * RELEASE_POSITION_ADJUST_RATIO),
@@ -207,50 +252,8 @@ class Poi <Sprite
     else
       @transport_count = 0
       @is_drag = true
+      @is_impact = true
       @mode = :search
-    end
-  end
-
-  def transport2
-
-    @is_drag = false
-    if @transport_count <= TRANSPORT_DURATION then
-      self.x = @old_pos[0] + ease_in_out_quad(@transport_count, POI_TRANSPORT_FIRST_VELOSITY, @transport_target.x - @old_pos[0] + ((@width * 0.5) * POI_RELEASE_POSITION_ADJUST_RATIO), POI_TRANSPORT_DURATION)
-      self.y = @old_pos[1] + ease_in_out_quad(@transport_count, POI_TRANSPORT_FIRST_VELOSITY, @transport_target.y - @old_pos[1] + ((@height * 0.5) * POI_RELEASE_POSITION_ADJUST_RATIO), POI_TRANSPORT_DURATION)
-
-      @catch_objects.each do |catch_object|
-        catch_object[0].x = self.x + catch_object[1][0]
-        catch_object[0].y = self.y + catch_object[1][1]
-      end
-      @transport_count += 0.01
-
-    elsif @transport_count < POI_TRANSPORT_DURATION + POI_RESERVE_DURATION then
-      @transport_count += 0.01
-
-    elsif BigDecimal(@transport_count.to_s).floor(2).to_f == POI_TRANSPORT_DURATION + POI_RESERVE_DURATION then
-      scoring_targets = []
-      @catch_objects.each do |catch_object|
-        if (catch_object[0].x + catch_object[0].center_x - (@transport_target.x + (@transport_target.width * 0.5))) ** 2 + ((catch_object[0].y + catch_object[0].center_y - (@transport_target.y + (@transport_target.height * 0.5))) ** 2) <= (@transport_target.width * 0.5 * POI_RESERVE_ADJUST_TARGET_RANGE_RATIO) ** 2 then
-          catch_object[0].z = POI_RESERVED_OBJECT_Z_POSITION
-          catch_object[0].is_reserved = true
-          catch_object[0].mode = :reserved
-          scoring_targets.push(catch_object[0])
-          @parent.scoring(scoring_targets)
-        end
-      end
-      @old_pos = [self.x, self.y]
-      @catch_objects.clear
-      @transport_count += 0.01
-
-    elsif @transport_count <= POI_TRANSPORT_DURATION + POI_RESERVE_DURATION + POI_REVERSE_DURATION then
-      self.x = @old_pos[0] + ease_in_out_quad(@transport_count - (POI_TRANSPORT_DURATION + POI_RESERVE_DURATION), POI_TRANSPORT_FIRST_VELOSITY, @follow_target.x - @old_pos[0] - (@width * 0.5), POI_REVERSE_DURATION)
-      self.y = @old_pos[1] + ease_in_out_quad(@transport_count - (POI_TRANSPORT_DURATION + POI_RESERVE_DURATION), POI_TRANSPORT_FIRST_VELOSITY, @follow_target.y - @old_pos[1] - (@height * 0.5), POI_REVERSE_DURATION)
-      @transport_count += 0.01
-
-    else
-      @transport_count = 0
-      @is_drag = true
-      @mode = :normal
     end
   end
 
@@ -259,13 +262,19 @@ class Poi <Sprite
   end
 
   def draw
-    self.target.draw(self.x + SHADOW_OFFSET_X, self.y + SHADOW_OFFSET_Y, @images[1], self.z)
-    self.target.draw_ex(self.x + (@images[0].width * PAPER_OFFSET_RATIO_AGAINST_FRAME_X),
-                        self.y + (@images[0].height * PAPER_OFFSET_RATIO_AGAINST_FRAME_Y), self.image, {:z=>self.z, :alpha=>128})
-    self.target.draw_ex(self.x + (@gaze_range_image.width * PAPER_OFFSET_RATIO_AGAINST_FRAME_X),
-                        self.y + (@gaze_range_image.height * PAPER_OFFSET_RATIO_AGAINST_FRAME_Y),
-                        @gaze_range_image, {:z=>self.z, :scale_x=>@gaze_range_scale, :scale_y=>@gaze_range_scale, :alpha=>128}) if @mode == :try_gaze
-    self.target.draw(self.x, self.y, @images[0], self.z)
+    self.target.draw(self.x - (@width * OFFSET_RATIO_AGAINST_PAPER_X) + @shadow_x,
+                     self.y - (@height * OFFSET_RATIO_AGAINST_PAPER_Y) + @shadow_y, @images[1], self.z)
+
+    self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :alpha=>128})
+
+    self.target.draw_ex(self.x, self.y, @gaze_range_image,
+                        {:z=>self.z, :scale_x=>@gaze_range_scale, :scale_y=>@gaze_range_scale, :alpha=>128}) if @mode == :try_gaze
+
+    self.target.draw(self.x - (@width * OFFSET_RATIO_AGAINST_PAPER_X),
+                     self.y - (@height * OFFSET_RATIO_AGAINST_PAPER_Y), @images[0], self.z)
+
+    self.target.draw(self.x - (@impact_range.width - @width) * 0.5, self.y - (@impact_range.height - @height) * 0.5,
+                     @impact_range, self.z) if @is_view_impact_range
   end
 end
 
@@ -279,13 +288,14 @@ if __FILE__ == $0 then
   MAX_COUNT_IN_GAZE_AREA = 30
   MAX_GAZE_COUNT = 60
 
-  POI_HEIGHT_SIZE = Window.height * 0.4
+  POI_HEIGHT_SIZE = Window.height * 0.35
   POI_GAZE_RADIUS_RATIO = 0.5
 
   @mouse = Sprite.new(0, 0)
   @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
                  MAX_GAZE_COUNT, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                   :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+  @poi.view_impact_range = true
 
   Window.bgcolor = C_GREEN
   Window.loop do

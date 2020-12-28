@@ -76,8 +76,8 @@ class Images
     self.construct
   end
 
-  def string_pos=(str_pos)
-    @string_pos = str_pos
+  def set_string_pos(x, y)
+    @string_pos = [x, y]
     self.construct
   end
 

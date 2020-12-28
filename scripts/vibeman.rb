@@ -91,30 +91,31 @@ class VibeMan
       ]
     end
 
-    def check_port(ports)
+    def connect
 
-      Thread.new do
+      ports = self.serialports.select { |port, value| not value.include?("Bluetooth") }
+
+      check_port = Thread.new do
         CONNECT_TRY_COUNT.times do
 
-          ports.keys.each do |port|
+          ports.each do |port|
             serial = Win32Serial.new
 
-            serial.open(port)
+            serial.open(port[0])
             serial.config(9600, 8, Win32Serial::NOPARITY, Win32Serial::ONESTOPBIT)
             serial.timeouts(0,200,0,0,0)
 
             serial.write("areyouvibeman")
             raw = serial.read(14)
 
-            @responses.push({:port=>port, :raw=>raw}) if not raw == "" and raw
+            @responses.push({:port=>port[0], :raw=>raw}) if not raw == "" and raw
             serial.close
           end
           break unless @responses.empty?
         end
       end
-    end
 
-    def responce_check
+      check_port.join
 
       output = ""
       unless @responses.empty? then
@@ -136,6 +137,8 @@ class VibeMan
       end
       @parent.callback_output(output)
       @responses.clear
+
+      self.open
     end
 
     def open
@@ -149,13 +152,6 @@ class VibeMan
 
         vibeman[:serial] = serial
       end
-    end
-
-    def connect
-      ports = self.serialports
-      self.check_port(ports)
-      self.responce_check
-      self.open
     end
 
     def vibe
@@ -181,6 +177,7 @@ class VibeMan
     end
 
     def disconnect
+
       @vibemans.each do |vibeman|
         vibeman[:serial].close
         vibeman[:serial] = nil

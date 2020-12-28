@@ -365,23 +365,39 @@ class GameScene < Scene::Base
   MAX_GAZE_COUNT = 60
   POI_GAZE_RADIUS_RATIO = 0.5
 
+  POI_IS_IMPACT = true
+  POI_IS_VIEW_IMPACT_RANGE = true
+
   FIRST_STAGE_NUMBER = 1
   FIRST_MODE = :start
   MAX_STAGE_NUMBER = 3
 
+  IMPACT_GAINS = [1.0, 2.0, 3.0]
+
   KINGYO_NUMBERS = [5, 15, 25]
   KINGYO_SCALE_RANGES = [[0.1, 0.15], [0.1, 0.2], [0.1, 0.25]]
-  KINGYO_SPEED_RANGES = [{:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]},
-                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]},
-                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.001, 0.024]}]
+
+  KINGYO_SPEED_RANGES = [{:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.003, 0.072]},
+                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.003, 0.072]},
+                         {:wait=>[0, 0.001], :move=>[0.001, 0.024], :escape=>[0.003, 0.072]}]
+
   KINGYO_MODE_RANGES = [{:wait=>[360, 660], :move=>[0, 100], :escape=>[0, 100]},
                         {:wait=>[60, 360], :move=>[0, 200], :escape=>[0, 200]},
                         {:wait=>[0, 60], :move=>[0, 300], :escape=>[0, 300]}]
+
+  KINGYO_PERSONALITY_WEIGHTS = [{:escape=>50, :ignore=>50, :against=>10},
+                               {:escape=>60, :ignore=>30, :against=>20},
+                               {:escape=>80, :ignore=>10, :against=>30}]
+
+  KINGYO_ESCAPE_CHANGE_TIMINGS = [0.4, 0.3, 0.2]
+
   KIND_OF_KINGYOS = ["red", "black"]
 
   BOSS_SCALE_RANGES = [0.3, 0.7]
-  BOSS_SPEED_RANGES = {:wait=>[0, 0.001], :move=>[0.0005, 0.02], :against=>[0.0005, 0.02]}
-  BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :against=>[0, 200]}
+  BOSS_SPEED_RANGES = {:wait=>[0, 0.001], :move=>[0.0005, 0.02], :escape=>[0.0005, 0.02]}
+  BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]}
+  BOSS_PERSONALITY_WEIGHTS = {:escape=>10, :ignore=>30, :against=>80}
+  BOSS_ESCAPE_CHANGE_TIMINGS = 0.3
 
   WEED_NUMBERS = [2, 5, 8]
   WEED_SCALE_RANGES = [[0.1, 0.3], [0.2, 0.4], [0.3, 0.5]]
@@ -488,6 +504,9 @@ class GameScene < Scene::Base
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
     @poi.z = Z_POSITION_TOP
 
+    @poi.is_impact = POI_IS_IMPACT
+    @poi.view_impact_range = POI_IS_VIEW_IMPACT_RANGE
+
     bgm_info_height = Window.height * 0.15
     bgm_info_width = bgm_info_height * 2.7
     @bgm_info = BgmInfo.new(Window.width, Window.height * 0.08, bgm_info_width, bgm_info_height)
@@ -548,16 +567,20 @@ class GameScene < Scene::Base
 
     when :normal
 
-      @bgm.stop if @bgm and @boss_bgm and @bgm == @boss_bgm
-      if @main_bgm and not @bgm == @main_bgm then
-        @bgm = @main_bgm
-        @bgm.play(:loop=>true, :volume=>0.5)
-      end
-      if @bgm_info then
-        @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
-                           {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                           {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
-        @bgm_info.mode = :run
+      if  @stage_number == 1 then
+        if @bgm then
+          @bgm.stop
+        end
+        if @main_bgm then
+          @bgm = @main_bgm
+          @bgm.play(:loop=>true, :volume=>0.5)
+        end
+        if @bgm_info then
+          @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
+                             {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
+                             {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+          @bgm_info.mode = :run
+        end
       end
 
     when :game_over
@@ -608,6 +631,8 @@ class GameScene < Scene::Base
 
   def stage_init
 
+    @poi.impact_gain = IMPACT_GAINS[@stage_number - 1]
+
     weeds = []
     WEED_NUMBERS[@stage_number - 1].times do |index|
       weed_height = Window.height * rand_float(WEED_SCALE_RANGES[@stage_number - 1][0], WEED_SCALE_RANGES[@stage_number - 1][1])
@@ -628,12 +653,13 @@ class GameScene < Scene::Base
                                           Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:move][1])],
                                   :escape=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:escape][0]),
                                             Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:escape][1])]},
-                          {:wait=>[Math.sqrt(Window.height * KINGYO_SPEED_RANGES[@stage_number - 1][:wait][0]),
+                          {:wait=>[Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:wait][0]),
                                    Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:wait][1])],
                            :move=>[Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:move][0]),
                                    Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:move][1])],
                            :escape=>[Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:escape][0]),
-                                     Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:escape][1])]})
+                                     Math.sqrt(Window.height * KINGYO_MODE_RANGES[@stage_number - 1][:escape][1])]},
+                          KINGYO_PERSONALITY_WEIGHTS[@stage_number - 1], KINGYO_ESCAPE_CHANGE_TIMINGS[@stage_number - 1])
       kingyo.set_pos(random_int(@border.x, @border.x + @border.width - kingyo.width),
                      random_int(@border.y, @border.y + @border.height - kingyo.height)) if @border
       kingyo.z = Z_POSITION_TOP
@@ -654,8 +680,15 @@ class GameScene < Scene::Base
                                Math.sqrt(Window.height * BOSS_SPEED_RANGES[:wait][1])],
                        :move=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:move][0]),
                                Math.sqrt(Window.height * BOSS_SPEED_RANGES[:move][1])],
-                       :escape=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:against][0]),
-                                 Math.sqrt(Window.height * BOSS_SPEED_RANGES[:against][1])]})
+                       :escape=>[Math.sqrt(Window.height * BOSS_SPEED_RANGES[:escape][0]),
+                                 Math.sqrt(Window.height * BOSS_SPEED_RANGES[:escape][1])]},
+                      {:wait=>[Math.sqrt(Window.height * BOSS_MODE_RANGES[:wait][0]),
+                               Math.sqrt(Window.height * BOSS_MODE_RANGES[:wait][1])],
+                       :move=>[Math.sqrt(Window.height * BOSS_MODE_RANGES[:move][0]),
+                               Math.sqrt(Window.height * BOSS_MODE_RANGES[:move][1])],
+                       :escape=>[Math.sqrt(Window.height * BOSS_MODE_RANGES[:escape][0]),
+                                 Math.sqrt(Window.height * BOSS_MODE_RANGES[:escape][1])]},
+                      BOSS_PERSONALITY_WEIGHTS, BOSS_ESCAPE_CHANGE_TIMINGS)
       boss.set_pos(random_int(@border.x, @border.x + @border.width - boss.width),
                    random_int(@border.y, @border.y + @border.height - boss.height)) if @border
       boss.z = Z_POSITION_TOP
@@ -737,6 +770,17 @@ class GameScene < Scene::Base
             swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
           end
         end
+
+        if @poi.impact_radius and (swimer.x + swimer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
+          ((swimer.y + swimer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
+
+          swimer_radian = Math.atan2(swimer.y + swimer.center_y - (@poi.y + (@poi.height * 0.5)),
+                                    swimer.x + swimer.center_x - (@poi.x + (@poi.width * 0.5)))
+          if swimer.class == Kingyo or swimer.class == Boss then
+            swimer.angle_candidate = swimer_radian * (180 / Math::PI) + 90
+            swimer.change_mode(:escape)
+          end
+        end
       end
     end
 
@@ -812,7 +856,7 @@ class GameScene < Scene::Base
       if @swimers and not @swimers.empty? then
 
         @swimers.each do |swimer|
-          unless swimer.z == Z_POSITION_BOTTOM then
+          if not swimer.z == Z_POSITION_BOTTOM and not swimer.is_reserved then
             if (swimer.x + swimer.center_x - (x + center_x)) ** 2 +
               ((swimer.y + swimer.center_y - (y + center_y)) ** 2) <=
               (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
@@ -881,13 +925,13 @@ class GameScene < Scene::Base
     $scores[:technical_point] += technical_point_diff
 
     @challenge_point += technical_point_diff
-    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved}
+    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved }
     if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
       self.change_mode(:alert)
       @challenge_point = 0
     end
 
-    if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed"}.empty? then
+    if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed" }.empty? then
 
       if @stage_number < MAX_STAGE_NUMBER then
         @stage_number += 1
@@ -1246,10 +1290,9 @@ class NameEntryScene < Scene::Base
     @score_label.set_pos((Window.width - (@score_label.width + @cognomen_label.width + interval_margin)) * 0.5, (Window.height - @score_label.height) * 0.1)
     @cognomen_label.set_pos(@score_label.x + @score_label.width + interval_margin, (Window.height - @cognomen_label.height) * 0.1)
 
-    @input_box = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "")
-    @input_box.font_size = @input_box.width * 0.12
-    @input_box.string_pos("", @input_box.font_size, (@input_box.width - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5,
-                         (@input_box.height - @input_box.font_size) * 0.5, C_BLACK)
+    @input_box = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "", Window.height * 0.086)
+    @input_box.set_string_pos((@input_box.width - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5, (@input_box.height - @input_box.font_size) * 0.5)
+
     @input_box.font_name = "AR教科書体M"
     @input_box.frame(C_BROWN, @input_box.height * 0.05)
 

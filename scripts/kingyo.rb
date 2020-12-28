@@ -8,16 +8,18 @@ require "dxruby"
 
 class Kingyo < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved, :angle_candidate
   attr_reader :width, :height, :collision_ratios
 
   if __FILE__ == $0 then
     require "../lib/common"
     require "../lib/dxruby/images"
+    require "../lib/weighted_randomizer"
     IMAGES = ["../images/kingyo03.png", "../images/demekin_black.png"]
   else
     require "./lib/common"
     require "./lib/dxruby/images"
+    require "./lib/weighted_randomizer"
     IMAGES = ["./images/kingyo03.png", "./images/demekin_black.png"]
   end
 
@@ -36,7 +38,10 @@ class Kingyo < Sprite
 
   def initialize(x=0, y=0, width=100, height=100, kind_of="red", angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]},
-                 mode_ranges={:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}, target=Window, is_drag=false)
+                 mode_ranges={:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]},
+                 personality_weights = {:escape=>80, :ignore=>50, :against=>20},
+                 escape_change_timing = 0.2,
+                 target=Window, is_drag=false)
     super()
 
     @images = []
@@ -84,6 +89,11 @@ class Kingyo < Sprite
     @speed_ranges = speed_ranges
     @anime_count = 0
 
+    @escape_count = 0
+    @escape_length = 0
+    @personal_w_ran = WeightedRandomizer.new(personality_weights)
+    @escape_cahange_timing = escape_change_timing
+
     modes = [:wait, :move]
     self.change_mode(modes[rand(2)])
   end
@@ -94,6 +104,7 @@ class Kingyo < Sprite
   end
 
   def update
+
     @anime_count += @speed * ANIME_ADJUST_SPEED_RATIO if @speed
     @anime_count = 0 if @anime_count > @images[KIND_OF.index(@kind_of)][0].size
     self.image = @images[KIND_OF.index(@kind_of)][0][@anime_count.floor]
@@ -112,7 +123,7 @@ class Kingyo < Sprite
     when :catched
       self.catched
 
-    when :reserved
+    when :reserved, :ignore
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
     end
@@ -124,15 +135,35 @@ class Kingyo < Sprite
     @move_count = 0
 
     case mode
+
     when :wait
       @wait_length = random_int(@mode_ranges[:wait][0], @mode_ranges[:wait][1])
       @speed = rand_float(@speed_ranges[:wait][0], @speed_ranges[:wait][1])
       @old_speed = @speed
+
     when :move
       @move_length = random_int(@mode_ranges[:move][0], @mode_ranges[:move][1])
       @speed = rand_float(@speed_ranges[:move][0], @speed_ranges[:move][1])
       @old_speed = @speed
       self.angle = rand(360)
+
+    when :escape
+
+      if @escape_count > @escape_length * @escape_cahange_timing then
+        @escape_count = 0
+
+        personality = @personal_w_ran.sample
+        @angle_candidate = -1 * @angle_candidate if personality == :against
+
+        if personality == :escape or personality == :against then
+          self.angle = @angle_candidate
+          @escape_length = random_int(@mode_ranges[:escape][0], @mode_ranges[:escape][1])
+          @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
+          @old_speed = @speed
+        else
+          mode = :ignore
+        end
+      end
     end
     @mode = mode
   end
@@ -157,7 +188,15 @@ class Kingyo < Sprite
   end
 
   def escape
-
+    if @escape_count > @escape_length then
+      modes = [:wait, :move]
+      self.change_mode(modes[rand(2)])
+    else
+      radian = (self.angle - 90) * (Math::PI / 180)
+      self.x += Math.cos(radian) * @speed
+      self.y += Math.sin(radian) * @speed
+      @escape_count += 1
+    end
   end
 
   def catched
@@ -193,7 +232,7 @@ if __FILE__ == $0 then
     kingyo = Kingyo.new(0, 0, nil, kingyo_height, KIND_OF[rand(2)], rand(360), index,
                         {:wait=>[0, Math.sqrt(Window.height * 0.001)],
                          :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)],
-                         :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)]})
+                         :escape=>[Math.sqrt(Window.height * 0.003), Math.sqrt(Window.height * 0.072)]})
     kingyo.set_pos(kingyo.x = random_int(border.x, border.x + border.width - kingyo.width),
                    kingyo.y = random_int(border.y, border.y + border.height - kingyo.height))
     kingyos.push(kingyo)
