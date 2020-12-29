@@ -400,7 +400,14 @@ class GameScene < Scene::Base
   BOSS_ESCAPE_CHANGE_TIMINGS = 0.3
 
   WEED_NUMBERS = [2, 5, 8]
+  WEED_SPEED_RANGES = {:escape=>[10.0, 20.0]}
+  WEED_MODE_RANGES = {:escape=>[0, 50]}
   WEED_SCALE_RANGES = [[0.1, 0.3], [0.2, 0.4], [0.3, 0.5]]
+  WEED_ESCAPE_CHANGE_TIMINGS = 0.3
+
+  CONTAINER_SPEED_RANGES = {:escape=>[80.0, 100.0]}
+  CONTAINER_MODE_RANGES = {:escape=>[0, 80]}
+  CONTAINER_ESCAPE_CHANGE_TIMINGS = 0.3
 
   BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
 
@@ -490,7 +497,12 @@ class GameScene < Scene::Base
 
     @border = Border.new(0, 0, Window.width, Window.height)
 
-    @container = Container.new(0, 0, nil, Window.height * 0.4)
+    @container = Container.new(0, 0, nil, Window.height * 0.4,
+                               { :escape=>[Math.sqrt(Window.height * CONTAINER_SPEED_RANGES[:escape][0]),
+                                           Math.sqrt(Window.height * CONTAINER_SPEED_RANGES[:escape][1])]},
+      {:escape=>[Math.sqrt(Window.height * CONTAINER_MODE_RANGES[:escape][0]),
+                  Math.sqrt(Window.height * CONTAINER_MODE_RANGES[:escape][1])]}, CONTAINER_ESCAPE_CHANGE_TIMINGS)
+
     @container.set_pos(rand_float(@border.x, @border.x + @border.width - @container.width),
                        rand_float(@border.y, @border.y + @border.height - @container.height))
     @container.z = Z_POSITION_DOWN
@@ -540,7 +552,7 @@ class GameScene < Scene::Base
     @alert.sub_alert_speed = Math.sqrt(Window.height * 0.1)
 
     @windows = []
-    @swimers = []
+    @swimmers = []
     @splashs = []
     @catch_objects = []
 
@@ -636,7 +648,11 @@ class GameScene < Scene::Base
     weeds = []
     WEED_NUMBERS[@stage_number - 1].times do |index|
       weed_height = Window.height * rand_float(WEED_SCALE_RANGES[@stage_number - 1][0], WEED_SCALE_RANGES[@stage_number - 1][1])
-      weed = Weed.new(0, 0, nil, weed_height, rand(360), index)
+      weed = Weed.new(0, 0, nil, weed_height, rand(360), index,
+                      {:escape=>[Math.sqrt(Window.height * WEED_SPEED_RANGES[:escape][0]),
+                                 Math.sqrt(Window.height * WEED_SPEED_RANGES[:escape][1])]},
+                      {:escape=>[Math.sqrt(Window.height * WEED_MODE_RANGES[:escape][0]),
+                                 Math.sqrt(Window.height * WEED_MODE_RANGES[:escape][1])]}, WEED_ESCAPE_CHANGE_TIMINGS)
       weed.set_pos(random_int(@border.x, @border.x + @border.width - weed.width),
                    random_int(@border.y, @border.y + @border.height - weed.height)) if @border
       weed.z = Z_POSITION_TOP
@@ -666,8 +682,8 @@ class GameScene < Scene::Base
       kingyos.push(kingyo)
     end
 
-    @swimers = weeds + kingyos
-    fisher_yates(@swimers)
+    @swimmers = weeds + kingyos
+    fisher_yates(@swimmers)
   end
 
   def boss_init
@@ -695,8 +711,8 @@ class GameScene < Scene::Base
       bosss.push(boss)
     end
 
-    @swimers += bosss
-    fisher_yates(@swimers)
+    @swimmers += bosss
+    fisher_yates(@swimmers)
   end
 
   def update
@@ -744,42 +760,79 @@ class GameScene < Scene::Base
       self.change_mode(:boss)
     end
 
-    if @swimers and not @swimers.empty? and not @mode == :start
-      @swimers.each do |swimer|
-        swimer.update
+    if @swimmers and not @swimmers.empty? and not @mode == :start
+      @swimmers.each do |swimmer|
+        swimmer.update
 
-        if not swimer.mode == :catched and not swimer.is_reserved then
-          if (swimer.x + swimer.center_x - (@container.x + (@container.width * 0.5))) ** 2 +
-            ((swimer.y + swimer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <=
+        if not swimmer.mode == :catched and not swimmer.is_reserved then
+          if (swimmer.x + swimmer.center_x - (@container.x + (@container.width * 0.5))) ** 2 +
+            ((swimmer.y + swimmer.center_y - (@container.y + (@container.height * 0.5))) ** 2) <=
             (@container.width * 0.5 * CONTAINER_CONTACT_ADJUST_RANGE_RATIO) ** 2 then
-            swimer.z = Z_POSITION_BOTTOM
+            swimmer.z = Z_POSITION_BOTTOM
           else
-            swimer.z = Z_POSITION_TOP
+            swimmer.z = Z_POSITION_TOP
           end
         end
 
-        if swimer.is_reserved then
+        if swimmer.is_reserved then
           max_radius = @container.width * 0.5 * CONTAINER_RESERVE_ADJUST_RANGE_RATIO
-          obj_radius = Math.sqrt((swimer.x + swimer.center_x - (@container.x + @container.center_x)) ** 2 +
-                                   ((swimer.y + swimer.center_y - (@container.y + @container.center_y)) ** 2))
+          obj_radius = Math.sqrt((swimmer.x + swimmer.center_x - (@container.x + @container.center_x)) ** 2 +
+                                   ((swimmer.y + swimmer.center_y - (@container.y + @container.center_y)) ** 2))
 
           if obj_radius >= max_radius then
-            angle = Math.atan2(swimer.y + swimer.center_y - (@container.y + @container.center_y),
-                               swimer.x + swimer.center_x - (@container.x + @container.center_x))
-            swimer.x = @container.x + @container.center_x - (swimer.width * 0.5) + (max_radius * Math.cos(angle))
-            swimer.y = @container.y + @container.center_y - (swimer.height * 0.5) + (max_radius * Math.sin(angle))
+            angle = Math.atan2(swimmer.y + swimmer.center_y - (@container.y + @container.center_y),
+                               swimmer.x + swimmer.center_x - (@container.x + @container.center_x))
+            swimmer.x = @container.x + @container.center_x - (swimmer.width * 0.5) + (max_radius * Math.cos(angle))
+            swimmer.y = @container.y + @container.center_y - (swimmer.height * 0.5) + (max_radius * Math.sin(angle))
           end
         end
 
-        if @poi.impact_radius and (swimer.x + swimer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
-          ((swimer.y + swimer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
+        if @poi.impact_radius and (swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
+          ((swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
 
-          swimer_radian = Math.atan2(swimer.y + swimer.center_y - (@poi.y + (@poi.height * 0.5)),
-                                    swimer.x + swimer.center_x - (@poi.x + (@poi.width * 0.5)))
-          if swimer.class == Kingyo or swimer.class == Boss then
-            swimer.angle_candidate = swimer_radian * (180 / Math::PI) + 90
-            swimer.change_mode(:escape)
+          swimmer_radian = Math.atan2(swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5)),
+                                    swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5)))
+
+          if swimmer.class == Kingyo or swimmer.class == Boss or swimmer.class == Weed then
+            swimmer.angle_candidate = swimmer_radian * (180 / Math::PI) + 90
+
+            if swimmer.class == Weed then
+              radian = swimmer.angle * (Math::PI / 180)
+
+              weed_vec_scale = swimmer.height * 0.5
+              weed_vector_x = weed_vec_scale * Math.sin(radian)
+              weed_vector_y = -1 * weed_vec_scale * Math.cos(radian)
+
+              poi_vector_x = @poi.x + @poi.center_x - (swimmer.x + swimmer.center_x)
+              poi_vector_y = @poi.y + @poi.center_y - (swimmer.y + swimmer.center_y)
+              poi_vec_scale = Math.sqrt(poi_vector_x ** 2 + (poi_vector_y ** 2))
+
+              dot_weed_and_poi_vec = weed_vector_x * poi_vector_x + (weed_vector_y * poi_vector_y) # “àÏ
+              phi = Math.acos(dot_weed_and_poi_vec / (weed_vec_scale * poi_vec_scale))
+
+              deg_phi = phi * (180 / Math::PI)
+              cross = weed_vector_x * poi_vector_y - (weed_vector_y * poi_vector_x) # ŠOÏ
+
+              direction_of_rotation = 1 if 0 < deg_phi and deg_phi <= 90
+              direction_of_rotation = -1 if 90 < deg_phi and deg_phi <= 180
+
+              if direction_of_rotation * cross < 0 then
+                swimmer.direction_of_rotation = :right
+              else
+                swimmer.direction_of_rotation = :left
+              end
+            end
+            swimmer.change_mode(:escape)
           end
+        end
+
+        if @poi.impact_radius and (@container.x + @container.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
+          ((@container.y + @container.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
+
+          container_radian = Math.atan2(@container.y + @container.center_y - (@poi.y + (@poi.height * 0.5)),
+                                        @container.x + @container.center_x - (@poi.x + (@poi.width * 0.5)))
+          @container.angle = container_radian * (180 / Math::PI) + 90
+          @container.change_mode(:escape)
         end
       end
     end
@@ -794,13 +847,15 @@ class GameScene < Scene::Base
       end
     end
 
+    @container.update if @container
+
     @poi.update if @poi
 
     @point_label.update if @point_label
     @point_label = nil if @point_label and @point_label.vanished?
 
-    Sprite.check(@border.blocks + @swimers + [@container]) if
-      @border and @swimers and not @swimers.empty? and @container and not @mode == :start
+    Sprite.check(@border.blocks + @swimmers + [@container]) if
+      @border and @swimmers and not @swimmers.empty? and @container and not @mode == :start
 
     if @poi and @poi.mode == :transport then
       @catch_objects.each do |catch_object|
@@ -853,16 +908,16 @@ class GameScene < Scene::Base
 
     if @poi and not @mode == :start then
       @catch_objects = []
-      if @swimers and not @swimers.empty? then
+      if @swimmers and not @swimmers.empty? then
 
-        @swimers.each do |swimer|
-          if not swimer.z == Z_POSITION_BOTTOM and not swimer.is_reserved then
-            if (swimer.x + swimer.center_x - (x + center_x)) ** 2 +
-              ((swimer.y + swimer.center_y - (y + center_y)) ** 2) <=
+        @swimmers.each do |swimmer|
+          if not swimmer.z == Z_POSITION_BOTTOM and not swimmer.is_reserved then
+            if (swimmer.x + swimmer.center_x - (x + center_x)) ** 2 +
+              ((swimmer.y + swimmer.center_y - (y + center_y)) ** 2) <=
               (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
 
-              swimer.mode = :catched
-              @catch_objects.push([swimer, [swimer.x - x, swimer.y - y]])
+              swimmer.mode = :catched
+              @catch_objects.push([swimmer, [swimmer.x - x, swimmer.y - y]])
             end
           end
         end
@@ -925,13 +980,13 @@ class GameScene < Scene::Base
     $scores[:technical_point] += technical_point_diff
 
     @challenge_point += technical_point_diff
-    boss_remaind_numbes = @swimers.select { |obj| obj.name == "boss" and not obj.is_reserved }
+    boss_remaind_numbes = @swimmers.select { |obj| obj.name == "boss" and not obj.is_reserved }
     if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
       self.change_mode(:alert)
       @challenge_point = 0
     end
 
-    if @swimers.select { |obj| not obj.is_reserved and not obj.name == "weed" }.empty? then
+    if @swimmers.select { |obj| not obj.is_reserved and not obj.name == "weed" }.empty? then
 
       if @stage_number < MAX_STAGE_NUMBER then
         @stage_number += 1
@@ -957,9 +1012,9 @@ class GameScene < Scene::Base
     @container.draw if @container and not @mode == :start
     @poi.draw if @poi
 
-    if @swimers and not @swimers.empty? and not @mode == :start then
-      @swimers.each do |swimer|
-        swimer.draw if not (swimer.name == "boss" and not swimer.is_reserved) or not @mode == :alert
+    if @swimmers and not @swimmers.empty? and not @mode == :start then
+      @swimmers.each do |swimmer|
+        swimmer.draw if not (swimmer.name == "boss" and not swimmer.is_reserved) or not @mode == :alert
       end
     end
 

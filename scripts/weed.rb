@@ -8,23 +8,32 @@ require "dxruby"
 
 class Weed < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved,
+                :angle_candidate, :direction_of_rotation
   attr_reader :width, :height, :collision_ratios
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
+    require "../lib/common"
     IMAGE = "../images/kingyomo001.png"
   else
     require "./lib/dxruby/images"
+    require "./lib/common"
     IMAGE = "./images/kingyomo001.png"
   end
+
+  include Common
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
 
   BORDER_COLLISION_RATIOS = [0.01, 0.3, 0.3, 0.01]
 
-  def initialize(x=0, y=0, width=100, height=100, angle=0, is_drag=false, name="weed", id=0, target=Window)
+  SIGNS = {:right=>1, :left=>-1}
+  ESCAPE_ROATATION_SPEED_RATIO = 0.1
+
+  def initialize(x=0, y=0, width=100, height=100, angle=0, id=0, speed_ranges={:escape=>[1, 3]}, mode_ranges={:escape=>[0, 200]},
+                 escape_change_timing = 0.3, name="weed", target=Window, is_drag=false)
     super()
 
     image = Image.load(IMAGE)
@@ -56,9 +65,19 @@ class Weed < Sprite
 
     @shadow_x = SHADOW_OFFSET_X
     @shadow_y = SHADOW_OFFSET_Y
+
+    @mode_ranges = mode_ranges
+    @speed_ranges = speed_ranges
+
     @collision_ratios = BORDER_COLLISION_RATIOS
 
-    @mode = :wait
+    @escape_count = 0
+    @escape_length = 0
+    @escape_cahange_timing = escape_change_timing
+    @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
+    @speed *= (1 / @height.to_f)
+
+    self.change_mode(:wait)
   end
 
   def set_pos(x, y)
@@ -67,9 +86,48 @@ class Weed < Sprite
   end
 
   def update
+
     case @mode
+
+    when :wait
+
     when :reserved
       @mode = :wait
+
+    when :escape
+      self.escape
+    end
+  end
+
+  def change_mode(mode)
+
+    case mode
+
+    when :wait
+
+    when :escape
+
+      if @escape_count > @escape_length * @escape_cahange_timing then
+        @escape_count = 0
+
+        @escape_length = random_int(@mode_ranges[:escape][0], @mode_ranges[:escape][1])
+        @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
+        @speed *= (1 / @height.to_f)
+      end
+    end
+    @mode = mode
+  end
+
+  def escape
+
+    if @escape_count > @escape_length then
+      self.change_mode(:wait)
+    else
+      radian = (@angle_candidate - 90) * (Math::PI / 180)
+      self.x += Math.cos(radian) * @speed
+      self.y += Math.sin(radian) * @speed
+      self.angle += SIGNS[@direction_of_rotation] * @speed * ESCAPE_ROATATION_SPEED_RATIO
+      @escape_count += 1
     end
   end
 

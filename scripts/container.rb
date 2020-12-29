@@ -8,23 +8,28 @@ require "dxruby"
 
 class Container < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode
   attr_reader :width, :height, :collision_ratios
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
+    require "../lib/common"
     IMAGE = "../images/container.png"
   else
     require "./lib/dxruby/images"
+    require "./lib/common"
     IMAGE = "./images/container.png"
   end
+
+  include Common
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
   ALPHA = 164
   BORDER_COLLISION_RATIOS = [0, 0, 0, 0]
 
-  def initialize(x=0, y=0, width=100, height=100, is_drag=true, name="container", id=0, target=Window)
+  def initialize(x=0, y=0, width=100, height=100, speed_ranges={:escape=>[1, 3]}, mode_ranges={:escape=>[0, 200]},
+                 escape_change_timing = 0.3, is_drag=true, name="container", id=0, target=Window)
     super()
 
     image = Image.load(IMAGE)
@@ -54,6 +59,17 @@ class Container < Sprite
     @shadow_x = SHADOW_OFFSET_X
     @shadow_y = SHADOW_OFFSET_Y
     @collision_ratios = BORDER_COLLISION_RATIOS
+
+    @mode_ranges = mode_ranges
+    @speed_ranges = speed_ranges
+
+    @escape_count = 0
+    @escape_length = 0
+    @escape_cahange_timing = escape_change_timing
+    @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
+    @speed *= (1 / @height.to_f)
+
+    self.change_mode(:wait)
   end
 
   def set_pos(x, y)
@@ -63,6 +79,44 @@ class Container < Sprite
 
   def update
 
+    case @mode
+
+    when :wait
+
+    when :escape
+      self.escape
+    end
+  end
+
+  def change_mode(mode)
+
+    case mode
+
+    when :wait
+
+    when :escape
+
+      if @escape_count > @escape_length * @escape_cahange_timing then
+        @escape_count = 0
+
+        @escape_length = random_int(@mode_ranges[:escape][0], @mode_ranges[:escape][1])
+        @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
+        @speed *= (1 / @height.to_f)
+      end
+    end
+    @mode = mode
+  end
+
+  def escape
+
+    if @escape_count > @escape_length then
+      self.change_mode(:wait)
+    else
+      radian = (self.angle - 90) * (Math::PI / 180)
+      self.x += Math.cos(radian) * @speed
+      self.y += Math.sin(radian) * @speed
+      @escape_count += 1
+    end
   end
 
   def hit(obj)
