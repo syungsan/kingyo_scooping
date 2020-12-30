@@ -153,7 +153,7 @@ class Kingyo < Sprite
         @escape_count = 0
 
         personality = @personal_w_ran.sample
-        @angle_candidate = -1 * @angle_candidate if personality == :against
+        @angle_candidate = @angle_candidate + 180 if personality == :against
 
         if personality == :escape or personality == :against then
           self.angle = @angle_candidate

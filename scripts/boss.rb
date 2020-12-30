@@ -9,7 +9,7 @@ require "dxruby"
 class Boss < Sprite
 
   attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved, :angle_candidate
-  attr_reader :width, :height, :collision_ratios
+  attr_reader :width, :height, :collision_ratios, :bubble_shots
 
   if __FILE__ == $0 then
     require "../lib/common"
@@ -31,13 +31,16 @@ class Boss < Sprite
 
   BORDER_COLLISION_RATIOS_FOR_BOSS = [0.01, 0.2, 0.2, 0.01]
 
+  MAX_BUBBLE_SHOT_NUMBER = 6
+  IS_SHOT_BUBBLE = true
+
   include Common
 
   def initialize(x=0, y=0, width=100, height=100, angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 3], :escape=>[1, 3]},
                  mode_ranges={:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]},
                  personality_weights = {:escape=>80, :ignore=>50, :against=>20},
-                 escape_change_timing = 0.2, name="boss", target=Window, is_drag=false)
+                 escape_change_timing = 0.2, attack_target=nil, borders=nil, name="boss", target=Window, is_drag=false)
     super()
 
     image0 = Image.load_tiles(IMAGE, 4, 1, true)
@@ -84,6 +87,20 @@ class Boss < Sprite
     @personal_w_ran = WeightedRandomizer.new(personality_weights)
     @escape_cahange_timing = escape_change_timing
 
+    @attack_target = attack_target
+    @borders = borders
+
+    @is_all_bubble_borned = false
+
+    if IS_SHOT_BUBBLE then
+      @bubble_shots = []
+      MAX_BUBBLE_SHOT_NUMBER.times do
+        bubble_shot = BubbleShot.new(nil, @height * 0.7, self, @attack_target, @borders)
+        bubble_shot.change_mode(:preparation)
+        @bubble_shots.push(bubble_shot)
+      end
+    end
+
     modes = [:wait, :move]
     self.change_mode(modes[rand(2)])
   end
@@ -91,6 +108,12 @@ class Boss < Sprite
   def set_pos(x, y)
     self.x = x
     self.y = y
+
+    if @bubble_shots and not @bubble_shots.empty? and IS_SHOT_BUBBLE then
+      @bubble_shots.each do |bubble_shot|
+        bubble_shot.fit_pos_for_mother_ship
+      end
+    end
   end
 
   def update
@@ -116,6 +139,15 @@ class Boss < Sprite
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
     end
+
+    if IS_SHOT_BUBBLE and @bubble_shots and not @bubble_shots.empty? then
+      @bubble_shots.each do |bubble_shot|
+        bubble_shot.update
+      end
+    end
+
+    Sprite.check(@borders + @bubble_shots) if @borders and @bubble_shots and IS_SHOT_BUBBLE
+    Sprite.check(@bubble_shots + [@attack_target]) if @bubble_shots and @attack_target and IS_SHOT_BUBBLE
   end
 
   def change_mode(mode)
@@ -142,7 +174,7 @@ class Boss < Sprite
         @escape_count = 0
 
         personality = @personal_w_ran.sample
-        @angle_candidate = -1 * @angle_candidate if personality == :against
+        @angle_candidate = @angle_candidate + 180 if personality == :against
 
         if personality == :escape or personality == :against then
           self.angle = @angle_candidate
@@ -197,8 +229,197 @@ class Boss < Sprite
   end
 
   def draw
+
     self.target.draw_ex(self.x + @shadow_x, self.y + @shadow_y, @shadow_image, {:z=>self.z, :angle=>self.angle})
     self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :angle=>self.angle})
+
+    if @bubble_shots and not @bubble_shots.empty? then
+      @bubble_shots.each do |bubble_shot|
+        bubble_shot.draw
+      end
+    end
+  end
+
+
+  class BubbleShot < Sprite
+
+    attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :killed_by_poi
+    attr_reader :width, :height, :collision_ratios
+
+    if __FILE__ == $0 then
+      IMAGE_0 = "../images/bubble_0.PNG"
+      IMAGE_1 = "../images/bubble_1.PNG"
+      BORN_SOUND = "../sounds/sei_ge_bubble02.wav"
+      BURST_SOUND = "../sounds/bubble-burst1.wav"
+    else
+      IMAGE_0 = "./images/bubble_0.PNG"
+      IMAGE_1 = "./images/bubble_1.PNG"
+      BORN_SOUND = "./sounds/sei_ge_bubble02.wav"
+      BURST_SOUND = "./sounds/bubble-burst1.wav"
+    end
+
+    BORDER_COLLISION_RATIOS_FOR_BUBBLE_SHOT = [0, 0, 0, 0]
+
+    MOVE_SPEED = 2.0
+    SCALE_UP_SPEED = 0.001
+
+    MAX_BURST_WAIT_COUNT = 30
+    MAX_WAIT_COUNT = 30
+    MAX_BORN_SPAN = 720
+
+    def initialize(width=100, height=100, mother_ship=nil, attack_target=nil, borders=nil,
+                   id=0, name="bubble_shot", target=Window, is_drag=false)
+      super
+
+      @born_sound = Sound.new(BORN_SOUND)
+      @burst_sount = Sound.new(BURST_SOUND)
+
+      image_0 = Image.load(IMAGE_0)
+      image_1 = Image.load(IMAGE_1)
+
+      images = [image_0, image_1]
+
+      scale_x = width / images[0].width.to_f if width
+      scale_y = height / images[0].height.to_f if height
+      scale_x = scale_y unless width
+      scale_y = scale_x unless height
+
+      @images = []
+      images.each do |image|
+        @images.push(Images.scale_resize(image, scale_x, scale_y))
+      end
+
+      self.image = @images[0]
+      @width = self.image.width
+      @height = self.image.height
+
+      self.collision = [@width* 0.5, @width * 0.5, @width * 0.5]
+      self.target = target
+
+      @id = id
+      @name = name
+      @is_drag = is_drag
+
+      @collision_ratios = BORDER_COLLISION_RATIOS_FOR_BOSS
+
+      @mother_ship = mother_ship
+      @attack_target = attack_target
+      @borders = borders
+
+      @burst_wait_count = 0
+      @preparation_count = 0
+      @shot_direction_radian = 0
+
+      # @scale = 0
+      @born_span_count = 0
+      @killed_by_poi = false
+
+      self.fit_pos_for_mother_ship
+      self.change_mode(:wait)
+    end
+
+    def fit_pos_for_mother_ship
+      position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
+      self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
+      self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
+    end
+
+    def change_mode(mode)
+
+      case mode
+
+      when :wait
+
+      when :preparation
+        @born_span = rand(MAX_BORN_SPAN)
+
+      when :move
+        @born_sound.play
+
+      when :disappear
+        self.image = @images[1]
+        @burst_sount.play
+      end
+      @mode = mode
+    end
+
+    def update
+
+      case @mode
+
+      when :preparation
+        if @born_span_count > @born_span then
+          self.scale_x = 0.1 unless self.scale_x == 0.1
+          self.scale_y = 0.1 unless self.scale_y == 0.1
+          self.fit_pos_for_mother_ship
+          self.preparation
+        else
+          self.scale_x = 0 unless self.scale_x == 0
+          self.scale_y = 0 unless self.scale_y == 0
+          @born_span_count += 1
+        end
+
+      when :move
+        self.move
+
+      when :disappear
+        self.disappear
+      end
+    end
+
+    def preparation
+      if @preparation_count > MAX_WAIT_COUNT then
+        @shot_direction_radian = Math.atan2(@attack_target.y + @attack_target.center_y - (self.y + self.center_y),
+                                            @attack_target.x + @attack_target.center_x - (self.x + self.center_x))
+        @born_span_count = 0
+        @preparation_count = 0
+        self.change_mode(:move)
+      else
+        position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
+        self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
+        self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
+        @preparation_count += 1
+      end
+    end
+
+    def move
+      move_direction_radian = @shot_direction_radian * (180 / Math::PI) * (Math::PI / 180)
+      self.x += Math.cos(move_direction_radian) * MOVE_SPEED
+      self.y += Math.sin(move_direction_radian) * MOVE_SPEED
+
+      self.scale_x += SCALE_UP_SPEED # + Math.sqrt(@scale)
+      self.scale_y += SCALE_UP_SPEED # + Math.sqrt(@scale)
+      # @scale += SCALE_UP_SPEED
+    end
+
+    def hit(obj)
+
+      if not @mode == :disappear and not @mode == :preparation then
+        if obj.class == Border::Block then
+          self.change_mode(:disappear)
+        end
+        if obj.class == Poi then
+          self.change_mode(:disappear)
+          @killed_by_poi = true
+        end
+      end
+    end
+
+    def draw
+      self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :z=>self.z}) if
+        self.image and not @mode == :wait
+    end
+
+    def disappear
+      if @burst_wait_count > MAX_BURST_WAIT_COUNT then
+        self.image = @images[0]
+        # @scale = 0
+        self.change_mode(:preparation)
+        @burst_wait_count = 0
+      else
+        @burst_wait_count += 1
+      end
+    end
   end
 end
 
@@ -208,18 +429,32 @@ if __FILE__ == $0 then
   Window.width = 1920
   Window.height = 1080
 
-  require "./border"
-  include Common
+  mouse = nil
+  poi = nil
+
+  Dir.chdir("../") do
+    require "scripts/border"
+    require "scripts/poi"
+    include Common
+
+    mouse = Sprite.new
+    mouse.collision = [0, 0]
+
+    poi = Poi.new(0, 0, nil, Window.height * 0.35, mouse)
+  end
 
   border = Border.new(50, 50, Window.width - 100, Window.height - 100)
 
   bosss = []
-  20.times do |index|
+  5.times do |index|
     boss_height = Window.height * rand_float(0.3, 0.6)
     boss = Boss.new(0, 0, nil, boss_height, rand(360), index,
                     {:wait=>[0, Math.sqrt(Window.height * 0.001)],
                      :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)],
-                     :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)]})
+                     :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)]},
+                    {:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]},
+                    {:escape=>80, :ignore=>50, :against=>20},
+                    0.2, poi, border.blocks)
     boss.set_pos(random_int(border.x, border.x + border.width - boss.width),
                  random_int(border.y, border.y + border.height - boss.height))
     bosss.push(boss)
@@ -230,9 +465,22 @@ if __FILE__ == $0 then
 
     border.draw
 
+    mouse.x, mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if mouse
+    poi.update if poi
+    poi.draw if poi
+
     bosss.each do |boss|
       boss.update
       boss.draw
+
+      if boss.bubble_shots and not boss.bubble_shots.empty? then
+        boss.bubble_shots.each do |bubble_shot|
+          if bubble_shot.killed_by_poi then
+            bubble_shot.killed_by_poi = false
+            # Life Gauge Çå∏ÇÁÇ∑èàóù
+          end
+        end
+      end
     end
     Sprite.check(border.blocks + bosss)
   end

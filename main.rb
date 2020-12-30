@@ -394,8 +394,8 @@ class GameScene < Scene::Base
   KIND_OF_KINGYOS = ["red", "black"]
 
   BOSS_SCALE_RANGES = [0.3, 0.7]
-  BOSS_SPEED_RANGES = {:wait=>[0, 0.001], :move=>[0.0005, 0.02], :escape=>[0.0005, 0.02]}
-  BOSS_MODE_RANGES = {:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]}
+  BOSS_SPEED_RANGES = {:wait=>[0, 0.01], :move=>[0.001, 0.01], :escape=>[0.001, 0.01]}
+  BOSS_MODE_RANGES = {:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]}
   BOSS_PERSONALITY_WEIGHTS = {:escape=>10, :ignore=>30, :against=>80}
   BOSS_ESCAPE_CHANGE_TIMINGS = 0.3
 
@@ -414,6 +414,7 @@ class GameScene < Scene::Base
   KINGYO_DAMAGE_UNIT_RATIO = 0.0005
   WEED_DAMAGE_UNIT_RATIO = 0.0015
   BOSS_DAMAGE_UNIT_RATIO = 0.0008
+  BUBBLE_SHOT_DAMAGE_UNIT_RATIO = 0.005
 
   CHALLENGE_POINT_UP_RANGE = 2000
   MAX_POI_GAUGE_NUMBER = 5
@@ -623,6 +624,8 @@ class GameScene < Scene::Base
 
     when :boss
 
+      self.boss_init if @swimmers.select { |obj| obj.class == Boss}.empty?
+
       if @bgm then
         @bgm.stop
       end
@@ -704,7 +707,7 @@ class GameScene < Scene::Base
                                Math.sqrt(Window.height * BOSS_MODE_RANGES[:move][1])],
                        :escape=>[Math.sqrt(Window.height * BOSS_MODE_RANGES[:escape][0]),
                                  Math.sqrt(Window.height * BOSS_MODE_RANGES[:escape][1])]},
-                      BOSS_PERSONALITY_WEIGHTS, BOSS_ESCAPE_CHANGE_TIMINGS)
+                      BOSS_PERSONALITY_WEIGHTS, BOSS_ESCAPE_CHANGE_TIMINGS, @poi, @border.blocks)
       boss.set_pos(random_int(@border.x, @border.x + @border.width - boss.width),
                    random_int(@border.y, @border.y + @border.height - boss.height)) if @border
       boss.z = Z_POSITION_TOP
@@ -790,10 +793,11 @@ class GameScene < Scene::Base
         if @poi.impact_radius and (swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
           ((swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
 
-          swimmer_radian = Math.atan2(swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5)),
-                                    swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5)))
-
           if swimmer.class == Kingyo or swimmer.class == Boss or swimmer.class == Weed then
+
+            swimmer_radian = Math.atan2(swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5)),
+                                        swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5)))
+
             swimmer.angle_candidate = swimmer_radian * (180 / Math::PI) + 90
 
             if swimmer.class == Weed then
@@ -834,6 +838,24 @@ class GameScene < Scene::Base
           @container.angle = container_radian * (180 / Math::PI) + 90
           @container.change_mode(:escape)
         end
+
+        if not @swimmers.select { |obj| obj.class == Boss }.empty? then
+          bosss = @swimmers.select { |obj| obj.class == Boss }
+
+          bosss.each do |boss|
+            if boss.bubble_shots and not boss.bubble_shots.empty? then
+
+              boss.bubble_shots.each do |bubble_shot|
+                bubble_shot.z = Z_POSITION_TOP if not bubble_shot.z == Z_POSITION_TOP
+
+                if bubble_shot.killed_by_poi then
+                  bubble_shot.killed_by_poi = false
+                  @life_gauge.change_life(-1 * bubble_shot.height * BUBBLE_SHOT_DAMAGE_UNIT_RATIO)
+                end
+              end
+            end
+          end
+        end
       end
     end
 
@@ -861,9 +883,9 @@ class GameScene < Scene::Base
       @catch_objects.each do |catch_object|
         catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
 
-        damage_unit_ratio = KINGYO_DAMAGE_UNIT_RATIO if catch_object[0].name.include?("kingyo")
-        damage_unit_ratio = WEED_DAMAGE_UNIT_RATIO if catch_object[0].name == "weed"
-        damage_unit_ratio = BOSS_DAMAGE_UNIT_RATIO if catch_object[0].name == "boss"
+        damage_unit_ratio = KINGYO_DAMAGE_UNIT_RATIO if catch_object[0].class == Kingyo
+        damage_unit_ratio = WEED_DAMAGE_UNIT_RATIO if catch_object[0].class == Weed
+        damage_unit_ratio = BOSS_DAMAGE_UNIT_RATIO if catch_object[0].class == Boss
 
         @life_gauge.change_life(-1 * catch_object[0].height * damage_unit_ratio)
       end
@@ -949,7 +971,7 @@ class GameScene < Scene::Base
       splash.run(catched_object.x + catched_object.center_x - (splash.width * 0.5),
                  catched_object.y + catched_object.center_y - (splash.height * 0.5),
                  catched_object, catched_object.height * 2.0, 0.8)
-      if catched_object.name == "boss" then
+      if catched_object.class == Boss then
         @splash_rarge_se.play
       else
         @splash_small_se.play
@@ -986,7 +1008,7 @@ class GameScene < Scene::Base
       @challenge_point = 0
     end
 
-    if @swimmers.select { |obj| not obj.is_reserved and not obj.name == "weed" }.empty? then
+    if @swimmers.select { |obj| not obj.is_reserved and not obj.class == Weed }.empty? then
 
       if @stage_number < MAX_STAGE_NUMBER then
         @stage_number += 1
@@ -1014,7 +1036,7 @@ class GameScene < Scene::Base
 
     if @swimmers and not @swimmers.empty? and not @mode == :start then
       @swimmers.each do |swimmer|
-        swimmer.draw if not (swimmer.name == "boss" and not swimmer.is_reserved) or not @mode == :alert
+        swimmer.draw if not (swimmer.class == Boss and not swimmer.is_reserved) or not @mode == :alert
       end
     end
 

@@ -39,6 +39,7 @@ class SpriteFont < Sprite
     @id = id
     @is_drag = is_drag
     self.target = target
+    self.alpha = 0
     @mode = :wait
   end
 
@@ -72,6 +73,7 @@ class SpriteFont < Sprite
           self.y = ease_in_out_quad(@in_time, @v_begins[1], @v_changes[1], @in_duration)
           self.scale_x = ease_in_out_quad(@in_time, 0, @weight_ratio, @in_duration)
           self.scale_y = ease_in_out_quad(@in_time, 0, @weight_ratio, @in_duration)
+          self.alpha = ease_in_out_quad(@in_time, 0, 255, @in_duration)
           @in_time += 0.01
         else
           @in_time = 0
