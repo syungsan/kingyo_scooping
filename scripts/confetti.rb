@@ -14,8 +14,8 @@ class Confetti < Sprite
     require "./lib/common"
   end
 
-  CONFETTI_ALPHA = 128
-  SIGN = [-1, 1]
+  ALPHA = 128
+  SIGNS = [-1, 1]
 
   attr_accessor :id, :name, :is_drag
   attr_reader :width, :height
@@ -35,7 +35,7 @@ class Confetti < Sprite
     @rot_speed_ranges = rot_speed_ranges
     @angular_velo_ranges = angular_velo_ranges
     self.target = target
-    self.alpha = CONFETTI_ALPHA
+    self.alpha = ALPHA
 
     @id = id
     @name = name
@@ -73,7 +73,7 @@ class Confetti < Sprite
     @rot_speed = self.rand_float(@rot_speed_ranges[0], @rot_speed_ranges[1])
     @angular_velo = self.rand_float(@angular_velo_ranges[0], @angular_velo_ranges[1])
     self.angle = rand(360)
-    @sign = SIGN[rand(2)]
+    @sign = SIGNS[rand(2)]
 
     @fall_count = 0
     @degree = 0

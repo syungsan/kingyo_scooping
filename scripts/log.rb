@@ -3,31 +3,32 @@
 $KCODE = "s"
 require "jcode"
 
-# log.rb Ver 1.0
+# log.rb Ver 0.9.1
 
 require "dxruby"
-
-if __FILE__ == $0
-  Dir.chdir("#{Dir.pwd}/../")
-  require "./lib/files"
-end
 
 
 class Log
 
-  attr_reader :startDate, :startDatetime
+  attr_reader :start_date, :start_date_time
   attr_accessor :parent_dir
+
+  if __FILE__ == $0
+    require "../lib/files"
+  else
+    require "./lib/files"
+  end
 
   include Files
 
   def initialize
-    @startDate = Time.now.strftime("%Y.%m.%d")
-    @startDatetime = Time.now.strftime("%Y.%m.%d_%H.%M.%S")
+    @start_date = Time.now.strftime("%Y.%m.%d")
+    @start_date_time = Time.now.strftime("%Y.%m.%d_%H.%M.%S")
     @parent_dir = ""
   end
 
   # 記録の前にログファイルを設定することを忘れずに
-  def setLog(dir, file="")
+  def set_log(dir, file="")
     @dir = dir
     @file = file
     makeDirNotExist(@dir)
@@ -50,9 +51,9 @@ class Log
   end
 
   # スクリーンショット保存
-  def screenShot(dir=@dir, file="test.png", target=Window)
+  def screen_shot(dir=@dir, file="test.png", target=Window)
     makeDirNotExist(dir)
     path = "#{dir}/#{file}"
-    target.getScreenShot(path)
+    target.get_Screen_shot(path)
   end
 end

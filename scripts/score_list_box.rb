@@ -8,43 +8,64 @@ require "dxruby"
 
 class ScoreListBox
 
-  attr_accessor :name,:id, :target, :is_drag
+  attr_accessor :shadow_x, :shadow_y, :name,:id, :target, :is_drag
   attr_reader :width, :height, :mode
+
+  if __FILE__ == $0 then
+    require "../lib/dxruby/roundbox"
+  else
+    require "./lib/dxruby/roundbox"
+  end
 
   SHADOW_OFFSET_X = 10
   SHADOW_OFFSET_Y = 10
   FONT_SIZE_RATO = 0.8
+  SCROLL_SPEED = 10
 
-  def initialize(x=0, y=0, width=640, height=480, radius=20, fill_color=C_DEFAULT, border_color=C_BLUE,
+  def initialize(x=0, y=0, width=640, height=480, scroll_speed=10, radius=20, fill_color=C_DEFAULT, border_color=C_BLUE,
                  frame_thickness=10, max_page_number=10, name="list_box", id=0, target=Window)
     @x = x
     @y = y
     @width = width
     @height = height
+
     @name = name
     @id = id
     @target = target
+
     @frame_image = Image.new(@width, @height)
-    self.roundbox_fill(0, 0, @width, @height, radius, fill_color, @frame_image)
+    @frame_image.roundbox_fill(0, 0, @width, @height, radius, fill_color)
+
     @frame_thickness = frame_thickness
     @frame_thickness.times do |index|
-      self.roundbox(index, index, @width - 1 - index, @height - 1 - index, radius, border_color, @frame_image)
+      @frame_image.roundbox(index, index, @width - 1 - index, @height - 1 - index, radius, border_color)
     end
     @shadow = @frame_image.flush([64, 0, 0, 0])
+
     @max_page_number = max_page_number
     @down_layer = Image.new(@width - (@frame_thickness * 2), (@height - (@frame_thickness * 2)) * @max_page_number)
     @up_layer = Image.new(@width - (@frame_thickness * 2), @height - (@frame_thickness * 2), C_BLACK)
+
+    @shadow_x = SHADOW_OFFSET_X
+    @shadow_y = SHADOW_OFFSET_Y
+
+    @scroll_speed = scroll_speed.round
     @scroll_count = 0
     @page_number = 1
   end
 
-  def set_items(items, horizontal_division_ratios, default_text_color, target_colors, color_target_index, font_type="‚l‚r ‚oƒSƒVƒbƒN", vertical_division=10)
+  def set_items(items, horizontal_division_ratios, default_text_color, target_colors, color_target_index,
+                font_type="‚l‚r ‚oƒSƒVƒbƒN", vertical_division=10)
+
     if items.size <= vertical_division * @max_page_number then
       items.each_with_index do |item, i|
         vertical_part_height = (@height - (@frame_thickness * 2)) / vertical_division
         horizontal_position = 0
+
         item.each_with_index do |itm, j|
-          horizontal_division = (@width - (@frame_thickness * 2)) * horizontal_division_ratios[j] / horizontal_division_ratios.inject(:+).to_f
+          horizontal_division = (@width - (@frame_thickness * 2)) *
+            horizontal_division_ratios[j] / horizontal_division_ratios.inject(:+).to_f
+
           font_size = [horizontal_division / itm.length * 2, vertical_part_height].min * FONT_SIZE_RATO
           font = Font.new(font_size, font_type)
           if j == color_target_index then
@@ -53,7 +74,8 @@ class ScoreListBox
             color = default_text_color
           end
           vertical_position = vertical_part_height * i + ((vertical_part_height - font_size) * 0.5)
-          @down_layer.draw_font_ex(horizontal_position, vertical_position, itm, font, {:color=>color, :shadow=>true, :shadow_color=>[64, 64, 64]})
+          @down_layer.draw_font_ex(horizontal_position, vertical_position, itm, font,
+                                   {:color=>color, :shadow=>true, :shadow_color=>[64, 64, 64]})
           horizontal_position += horizontal_division
         end
       end
@@ -73,7 +95,7 @@ class ScoreListBox
   def update
     if @mode == :up and @page_number > 1 then
       if @scroll_count < -1 * @up_layer.height * (@page_number - 2)then
-        @scroll_count += 10
+        @scroll_count += @scroll_speed
       else
         @mode = :wait
         @page_number -= 1
@@ -81,7 +103,7 @@ class ScoreListBox
     end
     if @mode == :down and @page_number < @max_page_number then
       if @scroll_count > -1 * (@up_layer.height * @page_number) then
-        @scroll_count -= 10
+        @scroll_count -= @scroll_speed
       else
         @mode = :wait
         @page_number += 1
@@ -90,35 +112,11 @@ class ScoreListBox
   end
 
   def draw
-    @target.draw(@x + SHADOW_OFFSET_X, @y + SHADOW_OFFSET_Y, @shadow)
+    @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow)
     @up_layer.clear
     @up_layer.draw(0, @scroll_count, @down_layer)
     @target.draw(@x + @frame_thickness, @y + @frame_thickness, @up_layer)
     @target.draw(@x, @y, @frame_image)
-  end
-
-  def roundbox(x1, y1, x2, y2, r, c, target)
-    image = Image.new(r * 2, r * 2).circle(r, r, r, c)
-    target.draw(x1, y1, image, 0, 0, r, r)
-    target.draw(x2 - r, y1, image, r, 0, r, r)
-    target.draw(x1, y2 - r, image, 0, r, r, r)
-    target.draw(x2 - r, y2 - r, image, r, r, r, r)
-    target.line(x1 + r, y1, x2 - r, y1, c)
-    target.line(x2, y1 + r, x2, y2 - r, c)
-    target.line(x2 - r, y2, x1 + r, y2, c)
-    target.line(x1, y1 + r, x1, y2 - r, c)
-    image.dispose
-  end
-
-  def roundbox_fill(x1, y1, x2, y2, r, c, target)
-    image = Image.new(r * 2, r * 2).circle_fill(r, r, r, c)
-    target.draw(x1, y1, image, 0, 0, r, r)
-    target.draw(x2 - r, y1, image, r, 0, r, r)
-    target.draw(x1, y2 - r, image, 0, r, r, r)
-    target.draw(x2 - r, y2 - r, image, r, r, r, r)
-    target.box_fill(x1 + r, y1, x2 - r, y2, c)
-    target.box_fill(x1, y1 + r, x2, y2 - r, c)
-    image.dispose
   end
 end
 
@@ -128,6 +126,8 @@ if __FILE__ == $0 then
   require "../lib/dxruby/color"
   include Color
 
+  SCROLL_SPEED_RATIO = 0.015
+
   Window.width = 1280
   Window.height = 720
 
@@ -136,7 +136,7 @@ if __FILE__ == $0 then
 
   colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
 
-  list_box = ScoreListBox.new(25, 25, 1230, 670)
+  list_box = ScoreListBox.new(25, 25, 1230, 670, Window.height * SCROLL_SPEED_RATIO)
   list_box.set_items(items, [3, 8, 7, 4], C_ROYAL_BLUE, colors, 3)
 
   Window.bgcolor = [127, 255, 212]

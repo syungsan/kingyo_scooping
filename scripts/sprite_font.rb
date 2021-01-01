@@ -39,7 +39,6 @@ class SpriteFont < Sprite
     @id = id
     @is_drag = is_drag
     self.target = target
-    self.alpha = 0
     @mode = :wait
   end
 

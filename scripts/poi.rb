@@ -141,7 +141,7 @@ class Poi <Sprite
     when :try_gaze
       self.try_gaze
 
-    when :transport, :reserve
+    when :transport, :reserve, :reverse
       self.transport
     end
   end
@@ -237,7 +237,7 @@ class Poi <Sprite
     elsif @transport_count < TRANSPORT_DURATION + RESERVE_DURATION then
       @transport_count += 0.01
 
-    elsif BigDecimal(@transport_count.to_s).floor(2).to_f == TRANSPORT_DURATION + RESERVE_DURATION then
+    elsif BigDecimal(@transport_count.to_s).round(2).to_f == TRANSPORT_DURATION + RESERVE_DURATION then
       @old_pos = [self.x, self.y]
       @transport_count += 0.01
       @mode = :reserve
@@ -248,7 +248,7 @@ class Poi <Sprite
                    @old_pos[1] + ease_in_out_quad(@transport_count - (TRANSPORT_DURATION + RESERVE_DURATION), TRANSPORT_FIRST_VELOSITY,
                                                   @pointer.y - @old_pos[1] - (@height * 0.5), REVERSE_DURATION))
       @transport_count += 0.01
-
+      @mode = :reverse
     else
       @transport_count = 0
       @is_drag = true

@@ -3,31 +3,13 @@
 $KCODE= "s"
 require "jcode"
 
-# input_dialog.rb Ver 0.8
+# input_dialog.rb Ver 0.9.1
 # ログ情報入力用ダイアログ
 
 require "vr/vruby"
 require "vr/vrcontrol"
-require "vr/vrdialog"
 require "vr/vrhandler"
-
-# for Test
-if __FILE__ == $0
-  Dir.chdir("#{Dir.pwd}/../")
-
-  require "./lib/display"
-  require "./lib/common"
-
-  APPLICATION_NAME = "BAT"
-  VERSION_NUMBER = "2.0"
-end
-
-INPUT_DIALOG_WIDTH = 400
-INPUT_DIALOG_HEIGHT = 200
-IS_DIALOG_CENTER = true
-DIALOG_FONT_NAME = "ＭＳ Ｐゴシック"
-
-$user_name = "初音ミク"
+require "vr/vrdialog"
 
 
 #キー入力を捕らえるEditクラス
@@ -46,6 +28,23 @@ end
 
 
 class InputDialog < VRModalDialog
+
+  if __FILE__ == $0
+    require "../lib/display"
+    require "../lib/common"
+  else
+    require "./lib/display"
+    require "./lib/common"
+  end
+
+  APPLICATION_NAME = "Test"
+  VERSION_NUMBER = "0.0.0"
+  DEFAULT_USER_NAME = "初音ミク"
+
+  INPUT_DIALOG_WIDTH = 400
+  INPUT_DIALOG_HEIGHT = 200
+  IS_DIALOG_CENTER = true
+  DIALOG_FONT_NAME = "ＭＳ Ｐゴシック"
 
   include VRClosingSensitive
   include VRDrawable
@@ -72,7 +71,9 @@ class InputDialog < VRModalDialog
 
   def self_created
 
-    @name_edit.text = $user_name
+    @user_name = DEFAULT_USER_NAME
+
+    @name_edit.text = @user_name
 
     @title_label.x = (INPUT_DIALOG_WIDTH - @title_label.w) * 0.5
     @title_label.y = (INPUT_DIALOG_HEIGHT - @title_label.h) * 0.1
@@ -101,15 +102,15 @@ class InputDialog < VRModalDialog
   end
 
   def name_edit_keyup(p, k)
-    $user_name = @name_edit.text
+    @user_name = @name_edit.text
   end
 
   def ok_button_clicked
 
-    $user_name = "noname" if @name_edit.text == ""
+    @user_name = "noname" if @name_edit.text == ""
 
-    if check_input_box($user_name)
-      close("Input #{$user_name}")
+    if check_input_box(@user_name)
+      close(@user_name)
     else
       play_beep
       messageBox('入力する文字に  \\  /  :  *  ?  "  <  >  |   は使用できません   ', '入力エラー')
@@ -129,5 +130,5 @@ end
 # for Test
 if __FILE__ == $0
   mes = VRLocalScreen.modalform(nil, nil, InputDialog)
-  p mes
+  p mes # => ユーザネームの取得
 end

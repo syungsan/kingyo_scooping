@@ -8,9 +8,9 @@ require "dxruby"
 
 class Weed < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved,
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved,
                 :angle_candidate, :direction_of_rotation
-  attr_reader :width, :height, :collision_ratios
+  attr_reader :width, :height, :collision_ratios, :mode, :pre_mode
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
@@ -114,6 +114,9 @@ class Weed < Sprite
         @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
         @speed *= (1 / @height.to_f)
       end
+
+    when :catched
+      @pre_mode = @mode
     end
     @mode = mode
   end

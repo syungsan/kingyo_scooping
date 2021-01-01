@@ -19,8 +19,8 @@ class Bubble < Sprite
   INIT_SCALE = 0.1
   INIT_AMPLITUDE = 0.5
   INIT_ANGULAR_VELOCITY = 0.5
-  CONFETTI_ALPHA = 128
-  SIGN = [-1, 1]
+  ALPHA = 128
+  SIGNS = [-1, 1]
 
   attr_accessor :id, :name, :is_drag
   attr_reader :width, :height
@@ -28,24 +28,29 @@ class Bubble < Sprite
   include Common
 
   def initialize(min_y=0, x_ranges=[0, 800], y_ranges=[600, 1200], scale_up_speed_ranges=[1.5, 6.0], accel_ranges=[1, 5],
-                 amplification_speed_ranges=[1.5, 6.0], angular_velo_up_speed_ranges=[1.5, 6.0], id=0, target=Window, is_drag=false)
+                 amplification_speed_ranges=[1.5, 6.0], angular_velo_up_speed_ranges=[1.5, 6.0],
+                 id=0, name="bubble", target=Window, is_drag=false)
     super()
     image = Image.load(BUBBLE_IMAGE)
     self.image = image
     @width = self.image.width
     @height = self.image.height
     @min_y = min_y
+
     @x_ranges = x_ranges
     @y_ranges = y_ranges
+
     @scale_up_speed_ranges = scale_up_speed_ranges
     @accel_ranges = accel_ranges
     @amplification_speed_ranges = amplification_speed_ranges
     @angular_velo_up_speed_ranges = angular_velo_up_speed_ranges
+
     self.target = target
-    self.alpha = CONFETTI_ALPHA
+    self.alpha = ALPHA
     @id = id
-    @name = "bubble"
+    @name = name
     @is_drag = is_drag
+
     self.init
   end
 
@@ -62,23 +67,28 @@ class Bubble < Sprite
   def init
     self.scale_x = INIT_SCALE
     self.scale_y= INIT_SCALE
+
     @scale_up_speed = self.rand_float(@scale_up_speed_ranges[0], @scale_up_speed_ranges[1])
     @accel = self.rand_float(@accel_ranges[0], @accel_ranges[1])
     @amplification_speed = self.rand_float(@amplification_speed_ranges[0], @amplification_speed_ranges[1])
     @angular_velo_up_speed = self.rand_float(@angular_velo_up_speed_ranges[0], @angular_velo_up_speed_ranges[1])
-    @sign = SIGN[rand(2)]
+
+    @sign = SIGNS[rand(2)]
     @rise_count = 0
     @degree = 0
   end
 
   def update
+
     self.y -= @accel * @rise_count
     radian = (@degree) * (Math::PI / 180)
     self.x += INIT_AMPLITUDE * @amplification_speed * Math.sin(radian * INIT_ANGULAR_VELOCITY * @angular_velo_up_speed)
     @rise_count += 1
     @degree += 1
+
     self.scale_x *= @scale_up_speed
     self.scale_y *= @scale_up_speed
+
     if self.y < @min_y - self.height
       self.init
       self.set_x(@x_ranges)
@@ -108,9 +118,11 @@ if __FILE__ == $0 then
 
   bubbles = []
   700.times do
-    bubble = Bubble.new(-1 * Window.height * 0.5, [0, 0], [0, 0], [bubble_scale_up_speed_min, bubble_scale_up_speed_max],
-                            [bubble_accel_min, bubble_accel_max], [bubble_amplification_speed_min, bubble_amplification_speed_max],
-                            [bubble_angular_velo_up_speed_min, bubble_angular_velo_up_speed_max])
+    bubble = Bubble.new(-1 * Window.height * 0.5, [0, 0], [0, 0],
+                        [bubble_scale_up_speed_min, bubble_scale_up_speed_max],
+                            [bubble_accel_min, bubble_accel_max],
+                        [bubble_amplification_speed_min, bubble_amplification_speed_max],
+                        [bubble_angular_velo_up_speed_min, bubble_angular_velo_up_speed_max])
     bubble.set_x([-1 * bubble.width * Math.sqrt(2), Window.width + (bubble.width * Math.sqrt(2))])
     bubble.set_y([Window.height + bubble.height, Window.height * 1.5])
     bubbles.push(bubble)

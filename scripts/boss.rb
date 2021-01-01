@@ -8,20 +8,25 @@ require "dxruby"
 
 class Boss < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved, :angle_candidate
-  attr_reader :width, :height, :collision_ratios, :bubble_shots
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved, :angle_candidate
+  attr_reader :width, :height, :collision_ratios, :bubble_shots, :mode, :pre_mode
 
   if __FILE__ == $0 then
     require "../lib/common"
     require "../lib/dxruby/images"
     require "../lib/weighted_randomizer"
+    require "../lib/dxruby/easing"
     IMAGE = "../images/boss_kingyo.PNG"
   else
     require "./lib/common"
     require "./lib/dxruby/images"
     require "./lib/weighted_randomizer"
+    require "./lib/dxruby/easing"
     IMAGE = "./images/boss_kingyo.PNG"
   end
+
+  include Common
+  include Easing
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
@@ -33,8 +38,6 @@ class Boss < Sprite
 
   MAX_BUBBLE_SHOT_NUMBER = 6
   IS_SHOT_BUBBLE = true
-
-  include Common
 
   def initialize(x=0, y=0, width=100, height=100, angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 3], :escape=>[1, 3]},
@@ -154,6 +157,7 @@ class Boss < Sprite
 
     @wait_count = 0
     @move_count = 0
+    @move_time = 0
 
     case mode
 
@@ -170,9 +174,9 @@ class Boss < Sprite
 
     when :escape
 
-      if @escape_count > @escape_length * @escape_cahange_timing then
-        @escape_count = 0
+      @escape_count = 0 if @escape_count > @escape_length * @escape_cahange_timing
 
+      if @escape_count == 0 then
         personality = @personal_w_ran.sample
         @angle_candidate = @angle_candidate + 180 if personality == :against
 
@@ -185,6 +189,9 @@ class Boss < Sprite
           mode = :ignore
         end
       end
+
+    when :catched
+      @pre_mode = @mode
     end
     @mode = mode
   end
@@ -198,12 +205,35 @@ class Boss < Sprite
   end
 
   def move
-    if @move_count > @move_length then
+
+    if @move_count >= @move_length then
       self.change_mode(:wait)
     else
+      half_length = @move_length / 2
       radian = (self.angle - 90) * (Math::PI / 180)
-      self.x += Math.cos(radian) * @speed
-      self.y += Math.sin(radian) * @speed
+
+      if @move_count < half_length.round then
+        in_speed = ease_in_out_quad(@move_time, 0, @old_speed, half_length.round * 0.01)
+        if not in_speed.nan? then
+          self.x += Math.cos(radian) * in_speed
+          self.y += Math.sin(radian) * in_speed
+          @speed = in_speed
+          @move_time += 0.01
+        end
+
+      elsif @move_count == half_length.round then
+        @move_time = 0
+        @move_count += 1
+
+      elsif @move_count > half_length.round then
+        out_speed = ease_in_out_quad(@move_time, @old_speed, -1 * @old_speed, half_length.round * 0.01)
+        if not out_speed.nan? then
+          self.x += Math.cos(radian) * out_speed
+          self.y += Math.sin(radian) * out_speed
+          @speed = out_speed
+          @move_time += 0.01
+        end
+      end
       @move_count += 1
     end
   end

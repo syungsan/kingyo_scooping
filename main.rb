@@ -22,6 +22,7 @@ require "./lib/dxruby/scene"
 # AR教科書体M
 # みかちゃん
 # Ballpark
+# Boldhead
 
 
 class Configuration
@@ -39,7 +40,7 @@ class Configuration
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby & DXRuby."
-  VERSION_NUMBER = "0.9.3"
+  VERSION_NUMBER = "0.9.4"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -48,7 +49,7 @@ class Configuration
   WINDOWED = true
 
   # 初期のウィンドウカラー
-  DEFAULT_BACK_GROUND_COLER = C_WHITE
+  DEFAULT_BACK_GROUND_COLER = C_AQUA_MARINE
 
   # 最大で表示できるウィンドウサイズ
   WINDOW_SIZE = FHD
@@ -71,11 +72,12 @@ class Configuration
   AR_KYOUKASYOTAI_M_FONT = "./fonts/JTST00M.TTC"
   MIKACHAN_FONT = "./fonts/mikachanALL.ttc"
   BALL_PARK_FONT = "./fonts/BALLW___.TTF"
+  BOLDHEAD_FONT = "./fonts/Boldhead.otf"
 
   def initialize
 
-    $scores = {:name=>DEFAULT_NAME, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
+    $scores = {:name=>DEFAULT_NAME, :score=>0, :technical_point=>0, :max_combo=>0,
+               :catched_kingyo_number=>0, :catched_boss_number=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
 
     @fps = FPS
     @frame_step = FRAME_STEP
@@ -98,6 +100,7 @@ class Configuration
     Font.install(AR_KYOUKASYOTAI_M_FONT)
     Font.install(MIKACHAN_FONT)
     Font.install(BALL_PARK_FONT)
+    Font.install(BOLDHEAD_FONT)
 
     initWindowRect = setDisplayFixWindow(WINDOW_SIZE, IS_WINDOW_CENTER)
     if initWindowRect[:windowX] and initWindowRect[:windowY] then
@@ -125,8 +128,62 @@ Bass.init(Window.hWnd)
 $config = Configuration.new
 
 
+class SplashScene < Scene::Base
+
+  require "./lib/dxruby/color"
+  require "./scripts/card"
+
+  include Color
+
+  SYMBOL_FRONT_IMAGE = "./images/simple_goldfish.png"
+  SYMBOL_BACK_IMAGE = "./images/icon.png"
+
+  MAX_WAIT_COUNT = 180
+
+  def init
+    @copyright_1_label = Fonts.new(0, 0, "Produced by", Window.height * 0.02, C_GREEN,
+                             {:font_name=>"Boldhead"})
+    @copyright_1_label.set_pos((Window.width - @copyright_1_label.width) * 0.5, (Window.height - @copyright_1_label.height) * 0.6)
+
+    @copyright_2_label = Fonts.new(0, 0, "Tadano Laboratory", Window.height * 0.02, C_RED,
+                             {:font_name=>"Boldhead"})
+    @copyright_2_label.set_pos((Window.width - @copyright_2_label.width) * 0.5, (Window.height - @copyright_2_label.height) * 0.63)
+
+    @card = Card.new(0, 0, Window.height * 0.2, Window.height * 0.2)
+    @card.set_pos((Window.width - @card.width) * 0.5, (Window.height - @card.height) * 0.45)
+
+    @card.set_image(SYMBOL_FRONT_IMAGE, SYMBOL_BACK_IMAGE)
+    @card.flip_speed = 2
+    @card.mode = :turn
+
+    @wait_count = 0
+  end
+
+  def update
+    if @wait_count >= MAX_WAIT_COUNT then
+      self.next_scene = TitleScene
+    else
+      @card.update
+      @wait_count += 1
+    end
+  end
+
+  def render
+    @copyright_1_label.draw
+    @copyright_2_label.draw
+    @card.draw
+  end
+
+  def did_disappear
+
+  end
+end
+
+
 # タイトル・シーン
 class TitleScene < Scene::Base
+
+  # attr_reader :transition_image
 
   require "./lib/dxruby/images"
   require "./lib/dxruby/fonts"
@@ -155,8 +212,8 @@ class TitleScene < Scene::Base
   def init
 
     # 必要最小限のグローバル変数を初期化
-    $scores = {:name=>$config.default_name, :score=>0, :technical_point=>0, :max_combo=>0, :catched_kingyo_number=>0, :catched_boss_number=>0,
-               :total_move_distance=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
+    $scores = {:name=>$config.default_name, :score=>0, :technical_point=>0, :max_combo=>0,
+               :catched_kingyo_number=>0, :catched_boss_number=>0, :cognomen=>"ウンコちゃん", :color=>C_BROWN}
 
     @click_se = Sound.new(CLICK_SE)
     @start_game_se = Sound.new(START_GAME_SE)
@@ -323,6 +380,8 @@ end
 # ゲーム・シーン
 class GameScene < Scene::Base
 
+  require "bigdecimal"
+
   require "./lib/dxruby/fonts"
   require "./lib/dxruby/images"
   require "./lib/dxruby/button"
@@ -391,7 +450,7 @@ class GameScene < Scene::Base
 
   KINGYO_ESCAPE_CHANGE_TIMINGS = [0.4, 0.3, 0.2]
 
-  KIND_OF_KINGYOS = ["red", "black"]
+  KIND_OF_KINGYOS = [:red, :black]
 
   BOSS_SCALE_RANGES = [0.3, 0.7]
   BOSS_SPEED_RANGES = {:wait=>[0, 0.01], :move=>[0.001, 0.01], :escape=>[0.001, 0.01]}
@@ -409,14 +468,14 @@ class GameScene < Scene::Base
   CONTAINER_MODE_RANGES = {:escape=>[0, 80]}
   CONTAINER_ESCAPE_CHANGE_TIMINGS = 0.3
 
-  BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-150, "boss"=>1000}
+  BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-300, "boss"=>5000}
 
   KINGYO_DAMAGE_UNIT_RATIO = 0.0005
   WEED_DAMAGE_UNIT_RATIO = 0.0015
   BOSS_DAMAGE_UNIT_RATIO = 0.0008
   BUBBLE_SHOT_DAMAGE_UNIT_RATIO = 0.005
 
-  CHALLENGE_POINT_UP_RANGE = 2000
+  CHALLENGE_POINT_UP_RANGE = 600
   MAX_POI_GAUGE_NUMBER = 5
 
   TILDE =  "\x81\x60".encode("BINARY")
@@ -491,6 +550,7 @@ class GameScene < Scene::Base
     @shader_rt = RenderTarget.new(Window.width, Window.height)
 
     @stage_info_label = Fonts.new(0, 0, "", Window.height * 0.2, C_BROWN, {:font_name=>"07ラノベPOP"})
+    @stage_info_label.z = Z_POSITION_TOP
 
     @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.05, C_GREEN,
                              {:font_name=>"自由の翼フォント"})
@@ -545,6 +605,8 @@ class GameScene < Scene::Base
     end
     @poi_gauges.reverse!
 
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [164, 128, 128, 128])
+
     @alert = Alert.new(0, 0, Window.width, Window.height)
     @alert.z = Z_POSITION_TOP
     @alert.make_sub_alert(SUB_ALERT_STRING, "07ラノベPOP")
@@ -559,6 +621,7 @@ class GameScene < Scene::Base
 
     @challenge_point = 0
     @start_count = 0
+    @end_count = 0
 
     @stage_number = FIRST_STAGE_NUMBER
     self.change_mode(FIRST_MODE)
@@ -601,12 +664,24 @@ class GameScene < Scene::Base
       if @bgm then
         @bgm.stop
       end
-      $scores[:max_combo] = 0
-      $scores[:catched_kingyo_number] = 0
-      $scores[:catched_boss_number] = 0
-      $scores[:total_move_distance] = 0
-      self.did_disappear
-      self.next_scene = ResultScene
+      if @stage_info_label then
+        @stage_info_label.string = "Game Over"
+        @stage_info_label.color = C_CREAM
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+      end
+      @mode = :game_over
+
+    when :game_clear
+
+      if @bgm then
+        @bgm.stop
+      end
+      if @stage_info_label then
+        @stage_info_label.string = "Game Clear"
+        @stage_info_label.color = C_MIKUSAN
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+      end
+      @mode = :game_clear
 
     when :alert
 
@@ -876,6 +951,9 @@ class GameScene < Scene::Base
     @point_label.update if @point_label
     @point_label = nil if @point_label and @point_label.vanished?
 
+    @combo_label.update if @combo_label
+    @combo_label = nil if @combo_label and @combo_label.vanished?
+
     Sprite.check(@border.blocks + @swimmers + [@container]) if
       @border and @swimmers and not @swimmers.empty? and @container and not @mode == :start
 
@@ -899,21 +977,46 @@ class GameScene < Scene::Base
 
           catch_object[0].z = Z_POSITION_UP
           catch_object[0].is_reserved = true
-          catch_object[0].mode = :reserved
+          catch_object[0].change_mode(:reserved)
           catched_objects.push(catch_object[0])
-          self.reserved(catched_objects)
         end
       end
+      self.reserved(catched_objects)
       @catch_objects.clear
     end
 
     @life_gauge.update if @life_gauge
 
     if @life_gauge.has_out_of_life and not @life_continueble then
-      @poi_gauges[-1].vanish
-      @poi_gauges.delete_at(-1)
-      self.change_mode(:game_over) if @poi_gauges.empty?
-      @life_continueble = true
+      if @poi_gauges.empty? then
+        self.change_mode(:game_over)
+      else
+        @poi_gauges[-1].vanish
+        @poi_gauges.delete_at(-1)
+        @life_continueble = true
+      end
+    elsif @life_continueble then
+      @life_continueble = false
+    end
+
+    if @mode == :game_over then
+      if @end_count > 360 then
+        @end_count = 0
+        self.did_disappear
+        self.next_scene = TitleScene
+      else
+        @end_count += 1
+      end
+    end
+
+    if @mode == :game_clear then
+      if @end_count > 240 then
+        @end_count = 0
+        self.did_disappear
+        self.next_scene = ResultScene
+      else
+        @end_count += 1
+      end
     end
   end
 
@@ -938,7 +1041,7 @@ class GameScene < Scene::Base
               ((swimmer.y + swimmer.center_y - (y + center_y)) ** 2) <=
               (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
 
-              swimmer.mode = :catched
+              swimmer.change_mode(:catched)
               @catch_objects.push([swimmer, [swimmer.x - x, swimmer.y - y]])
             end
           end
@@ -955,66 +1058,123 @@ class GameScene < Scene::Base
 
   def reserved(catched_objects)
 
-    score_diff = 0
-    technical_point_diff = 0
+    if catched_objects and not catched_objects.empty? then
 
-    catched_object_center_xs = []
-    catched_object_center_ys = []
+      point = 0
+      technical_point_diff = 0
 
-    catched_objects.each do |catched_object|
+      catched_object_center_xs = []
+      catched_object_center_ys = []
 
-      score_diff += (BASE_SCORES[catched_object.name] * catched_object.height * 0.01).round
-      catched_object_center_xs.push(catched_object.x + catched_object.center_x)
-      catched_object_center_ys.push(catched_object.y + catched_object.center_y)
+      catched_objects.each do |catched_object|
 
-      splash = Splash.new(10, 1)
-      splash.run(catched_object.x + catched_object.center_x - (splash.width * 0.5),
-                 catched_object.y + catched_object.center_y - (splash.height * 0.5),
-                 catched_object, catched_object.height * 2.0, 0.8)
-      if catched_object.class == Boss then
-        @splash_rarge_se.play
-      else
-        @splash_small_se.play
+        catched_object_center_x = catched_object.x + catched_object.center_x
+        catched_object_center_y = catched_object.y + catched_object.center_y
+
+        distance_in_poi = Math.sqrt((catched_object_center_x - (@poi.x + @poi.center_x)) ** 2 +
+                                      (catched_object_center_y - (@poi.y + @poi.center_y)) ** 2)
+        technical_distance_in_poi = distance_in_poi / (@poi.width * 0.5)
+
+        if catched_object.class == Kingyo then
+          techinical_max_size = Window.height * KINGYO_SCALE_RANGES[@stage_number - 1][1]
+          $scores[:catched_kingyo_number] += 1
+
+        elsif catched_object.class == Boss then
+          techinical_max_size = Window.height * BOSS_SCALE_RANGES[1]
+          $scores[:catched_boss_number] += 1
+
+        elsif catched_object.class == Weed then
+          techinical_max_size = Window.height * WEED_SCALE_RANGES[@stage_number - 1][1]
+        else
+        end
+        technical_size = catched_object.height / techinical_max_size
+
+        if catched_object.pre_mode == :wait then
+          mode_point_unit = 1
+        elsif catched_object.pre_mode == :move then
+          mode_point_unit = 3
+        elsif catched_object.pre_mode == :escape then
+          mode_point_unit = 2
+        else
+          mode_point_unit = 0.5
+        end
+        mode_point = mode_point_unit / 3.to_f
+
+        techinical_unit = technical_size + technical_distance_in_poi + mode_point
+        point += BASE_SCORES[catched_object.name] * techinical_unit
+
+        technical_point_diff += techinical_unit * 10
+        technical_point_diff *= -1 if catched_object.class == Weed
+
+        catched_object_center_xs.push(catched_object_center_x)
+        catched_object_center_ys.push(catched_object_center_y)
+
+        splash = Splash.new(10, 1)
+        splash.run(catched_object_center_x - (splash.width * 0.5), catched_object_center_y - (splash.height * 0.5),
+                   catched_object, catched_object.height * 2.0, 0.8)
+
+        if catched_object.class == Boss then
+          @splash_rarge_se.play
+        else
+          @splash_small_se.play
+        end
+        @splashs.push(splash)
       end
-      @splashs.push(splash)
-    end
 
-    point = score_diff * catched_objects.size
-    $scores[:score] += point
-    @score_label.string = "SCORE : #{$scores[:score]}点"
+      combo = catched_objects.size
+      point *= combo
+      technical_point_diff += combo / @swimmers.size.to_f * 10
 
-    original_points = [@container.x + @container.center_x, @container.y + @container.center_y]
-    geometric_centers = calc_geometric_center(catched_object_center_xs, catched_object_center_ys)
-    diff_vector = [geometric_centers[0] - original_points[0], geometric_centers[1] - original_points[1]]
-    v_changes = [diff_vector[0] * POINT_LABEL_MOVE_SCALE, diff_vector[1] * POINT_LABEL_MOVE_SCALE]
-    weight_ratio = 1 - (1 / (1 + (point.abs * 0.01)))
+      $scores[:score] += point.round
+      @score_label.string = "SCORE : #{$scores[:score]}点"
 
-    point_color = C_RED if point >= 0
-    point_color = C_BLUE if point < 0
-    @point_label = SpriteFont.new(0, 0, "#{point}点", 128, point_color, C_DEFAULT,
-                                  {:font_name=>"みかちゃん", :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
-    @point_label.z = Z_POSITION_TOP
-    @point_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
+      original_points = [@container.x + @container.center_x, @container.y + @container.center_y]
+      geometric_centers = calc_geometric_center(catched_object_center_xs, catched_object_center_ys)
+      diff_vector = [geometric_centers[0] - original_points[0], geometric_centers[1] - original_points[1]]
+      v_changes = [diff_vector[0] * POINT_LABEL_MOVE_SCALE, diff_vector[1] * POINT_LABEL_MOVE_SCALE]
+      weight_ratio = 1 - (1 / (1 + (point.abs * 0.03)))
 
-    @life_continueble = false
+      point_color = C_RED if point >= 0
+      point_color = C_BLUE if point < 0
+      @point_label = SpriteFont.new(0, 0, "#{point.round}点", 128, point_color, C_DEFAULT,
+                                    {:font_name=>"みかちゃん", :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
+      @point_label.alpha = 0
+      @point_label.z = Z_POSITION_TOP
+      @point_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
 
-    technical_point_diff += 50 ##############
-    $scores[:technical_point] += technical_point_diff
+      if combo > 1 then
+        v_changes = v_changes.map { |v_change| v_change * -1 }
+        weight_ratio = 1 - (1 / (1 + (combo * 0.8)))
 
-    @challenge_point += technical_point_diff
-    boss_remaind_numbes = @swimmers.select { |obj| obj.name == "boss" and not obj.is_reserved }
-    if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
-      self.change_mode(:alert)
-      @challenge_point = 0
-    end
+        @combo_label = SpriteFont.new(0, 0, "#{combo}コンボ！", 164, C_PURPLE, C_DEFAULT,
+                                      {:font_name=>"みかちゃん", :weight=>true,  :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
+        @combo_label.alpha = 0
+        @combo_label.z = Z_POSITION_TOP
+        @combo_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
+      end
 
-    if @swimmers.select { |obj| not obj.is_reserved and not obj.class == Weed }.empty? then
+      # @life_continueble = false
 
-      if @stage_number < MAX_STAGE_NUMBER then
-        @stage_number += 1
-        self.change_mode(:start)
-      elsif not @mode == :game_over
-        self.change_mode(:game_over)
+      $scores[:technical_point] += technical_point_diff
+      $scores[:technical_point] = BigDecimal($scores[:technical_point].to_s).round(2).to_f
+      $scores[:max_combo] = combo if combo > $scores[:max_combo]
+
+      @challenge_point += technical_point_diff
+
+      boss_remaind_numbes = @swimmers.select { |obj| obj.name == "boss" and not obj.is_reserved }
+      if @challenge_point >= CHALLENGE_POINT_UP_RANGE and not @mode == :alert and boss_remaind_numbes.empty? then
+        self.change_mode(:alert)
+        @challenge_point = 0
+      end
+
+      if @swimmers.select { |obj| not obj.is_reserved and not obj.class == Weed }.empty? then
+
+        if @stage_number < MAX_STAGE_NUMBER then
+          @stage_number += 1
+          self.change_mode(:start)
+        elsif not @mode == :game_clear
+          self.change_mode(:game_clear)
+        end
       end
     end
   end
@@ -1028,8 +1188,6 @@ class GameScene < Scene::Base
 
     @shader_rt.draw(0, 0, @aquarium_back_image) if @shader_rt and @aquarium_back_image and @mode == :start
     Window.draw_shader(0, 0, @shader_rt, @wave_shader) if @shader_rt and @wave_shader and @mode == :start
-
-    @stage_info_label.draw if @stage_info_label and @mode == :start
 
     @container.draw if @container and not @mode == :start
     @poi.draw if @poi
@@ -1061,8 +1219,12 @@ class GameScene < Scene::Base
     end
 
     @point_label.draw if @point_label
+    @combo_label.draw if @combo_label
 
     @alert.draw if @alert and @alert.mode == :run and not @mode == :start
+
+    Window.draw(0, 0, @cover_layer, Z_POSITION_TOP) if @cover_layer and (@mode == :game_over or @mode == :game_clear)
+    @stage_info_label.draw if @stage_info_label and (@mode == :start or @mode == :game_over or @mode == :game_clear)
   end
 
   def did_disappear
@@ -1093,7 +1255,7 @@ class ResultScene < Scene::Base
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
 
-  COMMENDATION_POINT = 3000
+  COMMENDATION_POINT = 800
   CONFETTI_MAX_NUMBER = 800
 
   MAX_COUNT_IN_WINDOW = 40
@@ -1110,44 +1272,46 @@ class ResultScene < Scene::Base
 
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_MISTY_ROSE)
 
-    $scores[:cognomen], $scores[:color] = "ウンコちゃん", C_BROWN if $scores[:technical_point] < 500
-    $scores[:cognomen], $scores[:color] = "ザコりん", C_CYAN if $scores[:technical_point] >= 500 and $scores[:technical_point] < 1000
-    $scores[:cognomen], $scores[:color] = "初心者ペー", C_YELLOW if $scores[:technical_point] >= 1000 and $scores[:technical_point] < 2000
-    $scores[:cognomen], $scores[:color] = "普通ヲタ", C_GREEN if $scores[:technical_point] >= 2000 and $scores[:technical_point] < 3000
-    $scores[:cognomen], $scores[:color] = "良しヲくん", C_ORANGE if $scores[:technical_point] >= 3000 and $scores[:technical_point] < 4000
-    $scores[:cognomen], $scores[:color] = "スーパーカブ", C_MAGENTA if $scores[:technical_point] >= 4000 and $scores[:technical_point] < 5000
-    $scores[:cognomen], $scores[:color] = "レジェンドン", C_BLUE if $scores[:technical_point] >= 5000 and $scores[:technical_point] < 6000
-    $scores[:cognomen], $scores[:color] = "金魚人", C_PURPLE if $scores[:technical_point] >= 6000 and $scores[:technical_point] < 7000
-    $scores[:cognomen], $scores[:color] = "金魚神", C_RED if $scores[:technical_point] >= 7000
+    $scores[:cognomen], $scores[:color] = "ウンコちゃん", C_BROWN if $scores[:technical_point] < COMMENDATION_POINT * 0.5
+    $scores[:cognomen], $scores[:color] = "ザコりん", C_CYAN if
+      $scores[:technical_point] >= COMMENDATION_POINT * 0.5 and $scores[:technical_point] < COMMENDATION_POINT * 0.6
+    $scores[:cognomen], $scores[:color] = "初心者ペー", C_YELLOW if
+      $scores[:technical_point] >= COMMENDATION_POINT * 0.6 and $scores[:technical_point] < COMMENDATION_POINT * 0.7
+    $scores[:cognomen], $scores[:color] = "普通ヲタ", C_GREEN if
+      $scores[:technical_point] >= COMMENDATION_POINT * 0.7 and $scores[:technical_point] < COMMENDATION_POINT * 0.8
+    $scores[:cognomen], $scores[:color] = "良しヲくん", C_ORANGE if
+      $scores[:technical_point] >= COMMENDATION_POINT * 0.8 and $scores[:technical_point] < COMMENDATION_POINT * 0.9
+    $scores[:cognomen], $scores[:color] = "スーパーカブ", C_MAGENTA if
+      $scores[:technical_point] >= COMMENDATION_POINT * 0.9 and $scores[:technical_point] < COMMENDATION_POINT * 1.0
+    $scores[:cognomen], $scores[:color] = "レジェンドン", C_BLUE if
+      $scores[:technical_point] >= COMMENDATION_POINT * 1.0 and $scores[:technical_point] < COMMENDATION_POINT * 1.1
+    $scores[:cognomen], $scores[:color] = "金魚人", C_PURPLE if
+      $scores[:technical_point] >= COMMENDATION_POINT * 1.1 and $scores[:technical_point] < COMMENDATION_POINT * 1.2
+    $scores[:cognomen], $scores[:color] = "金魚神", C_RED if $scores[:technical_point] >= COMMENDATION_POINT * 1.3
 
     @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, {:font_name=>"チェックポイントフォント"})
     @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.03)
 
     @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.05, C_GREEN, {:font_name=>"自由の翼フォント"})
-    @score_label.set_pos((Window.width - @score_label.width) * 0.5, (Window.height - @score_label.height) * 0.15)
+    @score_label.set_pos((Window.width - @score_label.width) * 0.5, (Window.height - @score_label.height) * 0.18)
 
     @catched_kingyo_number_label = Fonts.new(0, 0, "金魚捕獲数 : #{$scores[:catched_kingyo_number]}匹",
                                              Window.height * 0.07, C_RED, {:font_name=>"自由の翼フォント"})
     @catched_kingyo_number_label.set_pos((Window.width - @catched_kingyo_number_label.width) * 0.5,
-                                         (Window.height - @catched_kingyo_number_label.height) * 0.23)
+                                         (Window.height - @catched_kingyo_number_label.height) * 0.28)
 
     @catched_boss_number_label = Fonts.new(0, 0, "ボス捕獲数 : #{$scores[:catched_boss_number]}匹",
                                            Window.height * 0.07, C_RED, {:font_name=>"自由の翼フォント"})
     @catched_boss_number_label.set_pos((Window.width - @catched_boss_number_label.width) * 0.5,
-                                       (Window.height - @catched_boss_number_label.height) * 0.33)
+                                       (Window.height - @catched_boss_number_label.height) * 0.38)
 
     @max_combo_label = Fonts.new(0, 0, "MAXコンボ : #{$scores[:max_combo]}",
                                  Window.height * 0.07, C_ORANGE, {:font_name=>"自由の翼フォント"})
-    @max_combo_label.set_pos((Window.width - @max_combo_label.width) * 0.5, (Window.height - @max_combo_label.height) * 0.43)
-
-    @total_move_distance_label = Fonts.new(0, 0, "総移動距離 : #{$scores[:total_move_distance]}m",
-                                           Window.height * 0.07, C_GRAY, {:font_name=>"自由の翼フォント"})
-    @total_move_distance_label.set_pos((Window.width - @total_move_distance_label.width) * 0.5,
-                                       (Window.height - @total_move_distance_label.height) * 0.53)
+    @max_combo_label.set_pos((Window.width - @max_combo_label.width) * 0.5, (Window.height - @max_combo_label.height) * 0.48)
 
     @technical_point_label = Fonts.new(0, 0, "テクニカルポイント : #{$scores[:technical_point]}",
                                        Window.height * 0.05, C_DARK_BLUE, {:font_name=>"自由の翼フォント"})
-    @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5, (Window.height - @technical_point_label.height) * 0.63)
+    @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5, (Window.height - @technical_point_label.height) * 0.6)
 
     @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
                                 Window.height * 0.1, $scores[:color], {:font_name=>"たぬき油性マジック"})
@@ -1285,7 +1449,6 @@ class ResultScene < Scene::Base
     @catched_kingyo_number_label.draw if @catched_kingyo_number_label
     @catched_boss_number_label.draw if @catched_boss_number_label
     @max_combo_label.draw if @max_combo_label
-    @total_move_distance_label.draw if @total_move_distance_label
     @technical_point_label.draw if @technical_point_label
     @cognomen_label.draw if @cognomen_label
 
@@ -1364,11 +1527,13 @@ class NameEntryScene < Scene::Base
     @cognomen_label.set_weight = true
 
     interval_margin = Window.height * 0.05
-    @score_label.set_pos((Window.width - (@score_label.width + @cognomen_label.width + interval_margin)) * 0.5, (Window.height - @score_label.height) * 0.1)
+    @score_label.set_pos((Window.width - (@score_label.width + @cognomen_label.width + interval_margin)) * 0.5,
+                         (Window.height - @score_label.height) * 0.1)
     @cognomen_label.set_pos(@score_label.x + @score_label.width + interval_margin, (Window.height - @cognomen_label.height) * 0.1)
 
     @input_box = Images.new(Window.width * 0.3, Window.height * 0.18, Window.width * 0.4, Window.height * 0.13, "", Window.height * 0.086)
-    @input_box.set_string_pos((@input_box.width - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5, (@input_box.height - @input_box.font_size) * 0.5)
+    @input_box.set_string_pos((@input_box.width - (@input_box.font_size * MAX_NAME_INPUT_NUMBER)) * 0.5,
+                              (@input_box.height - @input_box.font_size) * 0.5)
 
     @input_box.font_name = "AR教科書体M"
     @input_box.frame(C_BROWN, @input_box.height * 0.05)
@@ -1667,6 +1832,8 @@ class RankingScene < Scene::Base
   RETRY_MAX_COUNT = 2 # 回
   RETRY_WAIT_TIME = 3 # 秒
 
+  SCROLL_SPEED_RATIO = 0.015
+
   def init
 
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_AQUA_MARINE)
@@ -1836,7 +2003,7 @@ class RankingScene < Scene::Base
   end
 
   def make_list_box(items, colors)
-    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350)
+    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350, Window.height * SCROLL_SPEED_RATIO)
     @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, "みかちゃん")
   end
 
@@ -2154,4 +2321,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop TitleScene, $config.fps, $config.frame_step
+Scene.main_loop SplashScene, $config.fps, $config.frame_step

@@ -8,24 +8,27 @@ require "dxruby"
 
 class Kingyo < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :is_reserved, :angle_candidate
-  attr_reader :width, :height, :collision_ratios
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved, :angle_candidate
+  attr_reader :width, :height, :collision_ratios, :kind_of, :mode, :pre_mode
 
   if __FILE__ == $0 then
     require "../lib/common"
     require "../lib/dxruby/images"
     require "../lib/weighted_randomizer"
+    require "../lib/dxruby/easing"
     IMAGES = ["../images/kingyo03.png", "../images/demekin_black.png"]
   else
     require "./lib/common"
     require "./lib/dxruby/images"
     require "./lib/weighted_randomizer"
+    require "./lib/dxruby/easing"
     IMAGES = ["./images/kingyo03.png", "./images/demekin_black.png"]
   end
 
   include Common
+  include Easing
 
-  KIND_OF = ["red", "black"]
+  KIND_OF = [:red, :black]
 
   ANIME_ADJUST_SPEED_RATIO = 0.1
   CATCHED_ANIME_SPEED_RATIO = 1.5
@@ -36,7 +39,7 @@ class Kingyo < Sprite
   BORDER_COLLISION_RATIOS_FOR_RED_KINGYO = [0.01, 0.3, 0.3, 0.01]
   BORDER_COLLISION_RATIOS_FOR_BLACK_KINGYO = [0.08, 0.3, 0.3, 0.08]
 
-  def initialize(x=0, y=0, width=100, height=100, kind_of="red", angle=0, id=0,
+  def initialize(x=0, y=0, width=100, height=100, kind_of=:red, angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 5], :escape=>[1, 5]},
                  mode_ranges={:wait=>[0, 100], :move=>[0, 100], :escape=>[0, 100]},
                  personality_weights = {:escape=>80, :ignore=>50, :against=>20},
@@ -66,8 +69,8 @@ class Kingyo < Sprite
       end
     end
 
-    @collision_ratios = BORDER_COLLISION_RATIOS_FOR_RED_KINGYO if @kind_of == "red"
-    @collision_ratios = BORDER_COLLISION_RATIOS_FOR_BLACK_KINGYO if @kind_of == "black"
+    @collision_ratios = BORDER_COLLISION_RATIOS_FOR_RED_KINGYO if @kind_of == :red
+    @collision_ratios = BORDER_COLLISION_RATIOS_FOR_BLACK_KINGYO if @kind_of == :black
 
     self.x = x
     self.y = y
@@ -83,7 +86,7 @@ class Kingyo < Sprite
     @shadow_y = SHADOW_OFFSET_Y
 
     @id = id
-    @name = "#{kind_of}_kingyo"
+    @name = "#{kind_of.to_s}_kingyo"
     @is_drag = is_drag
     @mode_ranges = mode_ranges
     @speed_ranges = speed_ranges
@@ -133,6 +136,7 @@ class Kingyo < Sprite
 
     @wait_count = 0
     @move_count = 0
+    @move_time = 0
 
     case mode
 
@@ -149,9 +153,9 @@ class Kingyo < Sprite
 
     when :escape
 
-      if @escape_count > @escape_length * @escape_cahange_timing then
-        @escape_count = 0
+      @escape_count = 0 if @escape_count > @escape_length * @escape_cahange_timing
 
+      if @escape_count == 0 then
         personality = @personal_w_ran.sample
         @angle_candidate = @angle_candidate + 180 if personality == :against
 
@@ -164,6 +168,9 @@ class Kingyo < Sprite
           mode = :ignore
         end
       end
+
+    when :catched
+      @pre_mode = @mode
     end
     @mode = mode
   end
@@ -177,17 +184,41 @@ class Kingyo < Sprite
   end
 
   def move
-    if @move_count > @move_length then
+
+    if @move_count >= @move_length then
       self.change_mode(:wait)
     else
+      half_length = @move_length / 2
       radian = (self.angle - 90) * (Math::PI / 180)
-      self.x += Math.cos(radian) * @speed
-      self.y += Math.sin(radian) * @speed
+
+      if @move_count < half_length.round then
+        in_speed = ease_in_out_quad(@move_time, 0, @old_speed, half_length.round * 0.01)
+        if not in_speed.nan? then
+          self.x += Math.cos(radian) * in_speed
+          self.y += Math.sin(radian) * in_speed
+          @speed = in_speed
+          @move_time += 0.01
+        end
+
+      elsif @move_count == half_length.round then
+        @move_time = 0
+        @move_count += 1
+
+      elsif @move_count > half_length.round then
+        out_speed = ease_in_out_quad(@move_time, @old_speed, -1 * @old_speed, half_length.round * 0.01)
+        if not out_speed.nan? then
+          self.x += Math.cos(radian) * out_speed
+          self.y += Math.sin(radian) * out_speed
+          @speed = out_speed
+          @move_time += 0.01
+        end
+      end
       @move_count += 1
     end
   end
 
   def escape
+
     if @escape_count > @escape_length then
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
@@ -224,10 +255,10 @@ if __FILE__ == $0 then
 
   border = Border.new(50, 50, Window.width - 100, Window.height - 100)
 
-  KIND_OF = ["red", "black"]
+  KIND_OF = [:red, :black]
 
   kingyos = []
-  60.times do |index|
+  20.times do |index|
     kingyo_height = Window.height * rand_float(0.1, 0.2)
     kingyo = Kingyo.new(0, 0, nil, kingyo_height, KIND_OF[rand(2)], rand(360), index,
                         {:wait=>[0, Math.sqrt(Window.height * 0.001)],
