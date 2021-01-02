@@ -11,6 +11,7 @@ class Poi <Sprite
   attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :mode, :old_pos, :is_impact, :impact_gain
   attr_reader :width, :height, :impact_radius
 
+  require "rubygems"
   require "bigdecimal"
 
   if __FILE__ == $0 then

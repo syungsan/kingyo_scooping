@@ -32,6 +32,7 @@ class Configuration
 
   require "./lib/display" # ディスプレイ情報取得
   require "./lib/dxruby/color"
+  require "./scripts/resolution"
 
   include Display
   include Color
@@ -39,7 +40,7 @@ class Configuration
   # アプリケーション設定
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
-  COPYRIGHT = "Powered by Ruby & DXRuby."
+  COPYRIGHT = "Powered by Ruby, DXRuby & VisualuRuby."
   VERSION_NUMBER = "0.9.4"
   APPLICATION_ICON = "./images/icon.ico"
 
@@ -102,7 +103,19 @@ class Configuration
     Font.install(BALL_PARK_FONT)
     Font.install(BOLDHEAD_FONT)
 
-    initWindowRect = setDisplayFixWindow(WINDOW_SIZE, IS_WINDOW_CENTER)
+    resolutions =  Window.get_screen_modes.select { |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
+
+    option = {:resolutions=>resolutions, :app_name=>APPLICATION_NAME, :version=>VERSION_NUMBER}
+    resolution = VRLocalScreen.modalform(nil, nil, ResolutionDialog, nil, option)
+
+    if resolution == "cancel" or resolution == false then
+      exit
+    else
+      window_size = resolution[0]
+      window_mode = resolution[1]
+    end
+
+    initWindowRect = setDisplayFixWindow(window_size, IS_WINDOW_CENTER)
     if initWindowRect[:windowX] and initWindowRect[:windowY] then
       windowX, windowY = initWindowRect[:windowX], initWindowRect[:windowY]
       Window.x = windowX
@@ -115,7 +128,10 @@ class Configuration
     Window.loadIcon(APPLICATION_ICON)
     Window.bgcolor = DEFAULT_BACK_GROUND_COLER
     Window.frameskip = FRAME_SKIP
-    Window.windowed = WINDOWED
+    Window.windowed = window_mode
+
+    # Windowを最前面表示
+    set_window_top(Window.hWnd)
   end
 end
 
@@ -233,7 +249,7 @@ class TitleScene < Scene::Base
                                     {:font_name=>"自由の翼フォント"})
     @version_number_label.set_pos(@title_label.x + @title_label.width - @version_number_label.width, @title_label.y + @title_label.height)
 
-    @copyright_label = Fonts.new(0, 0, $config.copyright, Window.height * 0.08, C_BLACK,
+    @copyright_label = Fonts.new(0, 0, $config.copyright, Window.height * 0.06, C_BLACK,
                                 {:font_name=>"07ラノベPOP"})
     @copyright_label.set_pos((Window.width - @copyright_label.width) * 0.5, (Window.height - @copyright_label.height) * 0.9)
 
@@ -380,6 +396,7 @@ end
 # ゲーム・シーン
 class GameScene < Scene::Base
 
+  require "rubygems"
   require "bigdecimal"
 
   require "./lib/dxruby/fonts"

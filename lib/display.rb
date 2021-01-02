@@ -73,6 +73,17 @@ module Display
 
     return {:windowX => _windowX, :windowY => _windowY, :windowWidth => windowSize[0], :windowHeight => windowSize[1]}
   end
+
+  def set_window_top(hWnd)
+
+    set_window_pos = Win32API.new('User32', 'SetWindowPos', 'IIIIIII', 'I')
+
+    hwnd_topmost = -1
+    swp_nosize = 0x0001
+    swp_nomove = 0x0002
+
+    set_window_pos.call(hWnd, hwnd_topmost, 0, 0, 0, 0, swp_nosize | swp_nomove)
+  end
 end
 
 
