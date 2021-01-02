@@ -17,16 +17,18 @@ class Poi <Sprite
     require "../lib/dxruby/images"
     require "../lib/dxruby/easing"
     FRAME_IMAGE = "../images/poi_frame.png"
-    SHADOW_IMAGE = "../images/poi_frame_shadow.png"
     PAPER_NORMAL_IMAGE = "../images/poi_paper_0.png"
     PAPER_BREAK_IMAGE = "../images/poi_paper_1.png"
+    POI_FLASH_IMAGE = "../images/poi_flash.png"
+    POI_BREAK_FLASH_IMAGE = "../images/poi_break_flash.png"
   else
     require "./lib/dxruby/images"
     require "./lib/dxruby/easing"
     FRAME_IMAGE = "./images/poi_frame.png"
-    SHADOW_IMAGE = "./images/poi_frame_shadow.png"
     PAPER_NORMAL_IMAGE = "./images/poi_paper_0.png"
     PAPER_BREAK_IMAGE = "./images/poi_paper_1.png"
+    POI_FLASH_IMAGE = "./images/poi_flash.png"
+    POI_BREAK_FLASH_IMAGE = "./images/poi_break_flash.png"
   end
 
   include Easing
@@ -47,6 +49,8 @@ class Poi <Sprite
   MAX_IMPACT_RADIUS_RATIO = 10
   MAX_SPEED_WINDOW_SIZE = 30
 
+  RECOVERY_TIME = 60
+
 
   def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, transport_target=nil, option={})
     option = {:max_count_in_window=>60, :gaze_radius_ratio=>0.5, :max_count_in_gaze_area=>30, :is_view_impact_range=>false,
@@ -54,13 +58,13 @@ class Poi <Sprite
     super()
 
     frame_image = Image.load(FRAME_IMAGE)
-    shadow_image0 = Image.load(SHADOW_IMAGE)
-    shadow_image = shadow_image0.flush([64, 0, 0, 0])
+    shadow_image = frame_image.flush([64, 0, 0, 0])
     paper_normal_image = Image.load(PAPER_NORMAL_IMAGE)
     paper_break_image = Image.load(PAPER_BREAK_IMAGE)
-    shadow_image0.dispose
+    poi_flash_image = Image.load(POI_FLASH_IMAGE)
+    poi_break_flash_image = Image.load(POI_BREAK_FLASH_IMAGE)
 
-    images = [frame_image, shadow_image, paper_normal_image, paper_break_image]
+    images = [frame_image, shadow_image, paper_normal_image, paper_break_image, poi_flash_image, poi_break_flash_image]
 
     scale_x = width / frame_image.width.to_f if width
     scale_y = height / frame_image.height.to_f if height
@@ -110,6 +114,8 @@ class Poi <Sprite
     @is_impact = option[:is_impact]
     @impact_gain = option[:impact_gain]
     @is_view_impact_range = option[:is_view_impact_range]
+
+    @flash_image = nil
   end
 
   def view_impact_range=(is_view_impact_range)
@@ -143,6 +149,9 @@ class Poi <Sprite
 
     when :transport, :reserve, :reverse
       self.transport
+
+    when :broke
+      self.broke
     end
   end
 
@@ -257,6 +266,55 @@ class Poi <Sprite
     end
   end
 
+  def set_break
+    @pre_mode = @mode
+    @transport_count = 0
+    @broke_count = 0
+    @mode = :broke
+  end
+
+  def broke
+
+    if @broke_count < RECOVERY_TIME / 3 then
+      @flash_image = @images[5]
+      @broke_count += 1
+
+    elsif @broke_count >= RECOVERY_TIME / 3 and @broke_count < RECOVERY_TIME / 3 * 2 then
+      self.image = @images[3] unless self.image == @images[3]
+      @broke_count += 1
+    else
+      self.image = @images[2] unless self.image == @images[2]
+      if not @pre_mode == :transport and not  @pre_mode == :reserve then
+        @broke_count = 0
+        @is_drag = true
+        @is_impact = true
+        @mode = :search
+      end
+    end
+    if @pre_mode == :transport or @pre_mode == :reserve then
+      if @transport_count < RESERVE_DURATION then
+        @transport_count += 0.01
+
+      elsif BigDecimal(@transport_count.to_s).round(2).to_f == RESERVE_DURATION then
+        @old_pos = [self.x, self.y]
+        @transport_count += 0.01
+
+      elsif @transport_count <= RESERVE_DURATION + REVERSE_DURATION then
+        self.set_pos(@old_pos[0] + ease_in_out_quad(@transport_count - RESERVE_DURATION, TRANSPORT_FIRST_VELOSITY,
+                                                    @pointer.x - @old_pos[0] - (@width * 0.5), REVERSE_DURATION),
+                     @old_pos[1] + ease_in_out_quad(@transport_count - RESERVE_DURATION, TRANSPORT_FIRST_VELOSITY,
+                                                    @pointer.y - @old_pos[1] - (@height * 0.5), REVERSE_DURATION))
+        @transport_count += 0.01
+      else
+        @broke_count = 0
+        @transport_count = 0
+        @is_drag = true
+        @is_impact = true
+        @mode = :search
+      end
+    end
+  end
+
   def hit(obj)
 
   end
@@ -272,6 +330,9 @@ class Poi <Sprite
 
     self.target.draw(self.x - (@width * OFFSET_RATIO_AGAINST_PAPER_X),
                      self.y - (@height * OFFSET_RATIO_AGAINST_PAPER_Y), @images[0], self.z)
+
+    self.target.draw(self.x - (@width * OFFSET_RATIO_AGAINST_PAPER_X),
+                     self.y - (@height * OFFSET_RATIO_AGAINST_PAPER_Y), @flash_image, self.z) if @flash_image
 
     self.target.draw(self.x - (@impact_range.width - @width) * 0.5, self.y - (@impact_range.height - @height) * 0.5,
                      @impact_range, self.z) if @is_view_impact_range

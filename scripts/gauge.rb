@@ -13,7 +13,7 @@ class LifeGauge
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
-  SPEED_UNIT = 1.0
+  SPEED_UNIT = 0.5
   DEFAULT_COLOR = C_GREEN
   ALERT_COLOR = C_RED
 
@@ -41,16 +41,12 @@ class LifeGauge
     @y = 0
     @z = 0
 
-    @mode = :wait
-    @change_count = 0
-    @current_width = @width
-    @points = []
-    @has_out_of_life = false
-
     @shadow_x = SHADOW_OFFSET_X
     @shadow_y = SHADOW_OFFSET_Y
 
-    self.change_gauge(@current_width)
+    @change_width = @width
+    @has_out_of_life = false
+    self.change_gauge(@width)
   end
 
   def set_pos(x, y)
@@ -59,8 +55,15 @@ class LifeGauge
   end
 
   def change_life(point)
-    @points.push(point)
-    @mode = :change
+
+    if @change_width >= point then
+      @change_width += @width * (point / 100.to_f)
+    else
+      @has_out_of_life = true
+      @change_width = 0
+      @change_width += @width * (1 + (point / 100.to_f))
+    end
+    self.change_gauge(@change_width)
   end
 
   def change_gauge(change_width)
@@ -75,32 +78,6 @@ class LifeGauge
     @image.roundbox_fill(@width - change_width + @border_thickness, @border_thickness, @width - (@border_thickness * 2),
                          @height - (@border_thickness * 2), @round_radius, @color)
     @shadow = @image.flush([64, 0, 0, 0])
-  end
-
-  def update
-
-    if @mode == :change then
-      unless @points.empty? then
-
-        diff = @points[0] * SPEED_UNIT * @change_count
-        if diff >= @points[0] then
-          @change_width = @current_width + (@width * diff / 100)
-          if @change_width <= 0 then
-            @has_out_of_life = true unless @has_out_of_life
-            @change_width += @width
-          end
-          self.change_gauge(@change_width)
-          @change_count += 1
-        else
-          @current_width = @change_width
-          @points.shift(1)
-          @has_out_of_life = false
-          @change_count = 0
-        end
-      else
-        @mode = :wait
-      end
-    end
   end
 
   def draw
@@ -197,25 +174,25 @@ if __FILE__ == $0 then
   poi_gauges.reverse!
 
   count = 0
-  continueble = false
+  mode = :game
 
   Window.bgcolor = C_WHITE
   Window.loop do
 
     life_gauge.draw
-    life_gauge.update
-    life_gauge.change_life(-20) if count == 0
-    life_gauge.change_life(-50) if count == 30
-    life_gauge.change_life(-50) if count == 90
-    life_gauge.change_life(-30) if count == 120
-    life_gauge.change_life(-10) if count == 150
+    life_gauge.change_life(-3) if count % 1 == 0 and not mode == :game_over
     count += 1
 
-    if life_gauge.has_out_of_life and not continueble then
-      p "–½‚ªs‚«‚½c‚¯‚Ç•œŠˆ‚µ‚½I"
-      poi_gauges[-1].vanish
-      poi_gauges.delete_at(-1)
-      continueble = true
+    if life_gauge.has_out_of_life then
+      if poi_gauges.empty? then
+        p "–½‚ª‘S‚Äs‚«‚Ä‚µ‚Ü‚Á‚½c"
+        mode = :game_over
+        life_gauge.change_gauge(0)
+      else
+        poi_gauges[-1].vanish
+        poi_gauges.delete_at(-1)
+      end
+      life_gauge.has_out_of_life = false
     end
 
     poi_gauges.each do |poi_gauge|

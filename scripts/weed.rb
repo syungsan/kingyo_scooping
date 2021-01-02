@@ -89,7 +89,7 @@ class Weed < Sprite
 
     case @mode
 
-    when :wait
+    when :wait, :broke
 
     when :reserved
       @mode = :wait
@@ -103,7 +103,7 @@ class Weed < Sprite
 
     case mode
 
-    when :wait
+    when :wait, :broke
 
     when :escape
 

@@ -205,7 +205,7 @@ class TitleScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.2
+  POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
   
@@ -277,7 +277,7 @@ class TitleScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -420,7 +420,7 @@ class GameScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 60
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.35
+  POI_HEIGHT_SIZE_RATIO = 0.35
   MAX_GAZE_COUNT = 60
   POI_GAZE_RADIUS_RATIO = 0.5
 
@@ -470,10 +470,10 @@ class GameScene < Scene::Base
 
   BASE_SCORES = {"red_kingyo"=>100, "black_kingyo"=>50, "weed"=>-300, "boss"=>5000}
 
-  KINGYO_DAMAGE_UNIT_RATIO = 0.0005
-  WEED_DAMAGE_UNIT_RATIO = 0.0015
-  BOSS_DAMAGE_UNIT_RATIO = 0.0008
-  BUBBLE_SHOT_DAMAGE_UNIT_RATIO = 0.005
+  KINGYO_DAMAGE_UNIT_RATIO = 0.01
+  WEED_DAMAGE_UNIT_RATIO = 0.1
+  BOSS_DAMAGE_UNIT_RATIO = 0.05
+  BUBBLE_SHOT_DAMAGE_UNIT_RATIO = 0.01
 
   CHALLENGE_POINT_UP_RANGE = 600
   MAX_POI_GAUGE_NUMBER = 5
@@ -571,7 +571,7 @@ class GameScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, @container, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                          :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -591,7 +591,7 @@ class GameScene < Scene::Base
     @life_gauge = LifeGauge.new(life_gauge_width, life_gauge_height)
     @life_gauge.set_pos((Window.width - @life_gauge.width) * 0.2, (Window.height - @life_gauge.height) * 0.95)
     @life_gauge.z = Z_POSITION_UP
-    @life_continueble = false
+    @life_continueble = true
 
     poi_gauge_height_size = Window.height * 0.1
     poi_gauge_interval = Window.width * 0.023
@@ -925,7 +925,8 @@ class GameScene < Scene::Base
 
                 if bubble_shot.killed_by_poi then
                   bubble_shot.killed_by_poi = false
-                  @life_gauge.change_life(-1 * bubble_shot.height * BUBBLE_SHOT_DAMAGE_UNIT_RATIO)
+                  @life_gauge.change_life(-1 * bubble_shot.height * BUBBLE_SHOT_DAMAGE_UNIT_RATIO) if
+                    not @mode == :game_over and not @mode == :game_clear
                 end
               end
             end
@@ -961,13 +962,18 @@ class GameScene < Scene::Base
       @catch_objects.each do |catch_object|
         catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
 
+        distance_in_poi = Math.sqrt((catch_object[1][0] + catch_object[0].center_x - @poi.center_x) ** 2 +
+                                      (catch_object[1][0] + catch_object[0].center_y - @poi.center_y) ** 2)
+        distance_damage_unit = 1 / distance_in_poi
+
         damage_unit_ratio = KINGYO_DAMAGE_UNIT_RATIO if catch_object[0].class == Kingyo
         damage_unit_ratio = WEED_DAMAGE_UNIT_RATIO if catch_object[0].class == Weed
         damage_unit_ratio = BOSS_DAMAGE_UNIT_RATIO if catch_object[0].class == Boss
 
-        @life_gauge.change_life(-1 * catch_object[0].height * damage_unit_ratio)
+        @life_gauge.change_life(-1 * catch_object[0].height * damage_unit_ratio * distance_damage_unit) if
+          not @mode == :game_over and not @mode == :game_clear
       end
-    elsif @poi and @poi.mode == :reserve then
+    elsif @poi and (@poi.mode == :reserve or @poi.mode == :broke) then
       catched_objects = []
 
       @catch_objects.each do |catch_object|
@@ -979,37 +985,28 @@ class GameScene < Scene::Base
           catch_object[0].is_reserved = true
           catch_object[0].change_mode(:reserved)
           catched_objects.push(catch_object[0])
+        else
+          catch_object[0].change_mode(:broke)
         end
       end
       self.reserved(catched_objects)
       @catch_objects.clear
     end
 
-    @life_gauge.update if @life_gauge
-
-    if @life_gauge.has_out_of_life and not @life_continueble then
+    if @life_gauge.has_out_of_life then
       if @poi_gauges.empty? then
         self.change_mode(:game_over)
+        @mode = :game_over
+        @life_gauge.change_gauge(0)
       else
         @poi_gauges[-1].vanish
         @poi_gauges.delete_at(-1)
-        @life_continueble = true
       end
-    elsif @life_continueble then
-      @life_continueble = false
+      @poi.set_break
+      @life_gauge.has_out_of_life = false
     end
 
-    if @mode == :game_over then
-      if @end_count > 360 then
-        @end_count = 0
-        self.did_disappear
-        self.next_scene = TitleScene
-      else
-        @end_count += 1
-      end
-    end
-
-    if @mode == :game_clear then
+    if @mode == :game_over or @mode == :game_clear then
       if @end_count > 240 then
         @end_count = 0
         self.did_disappear
@@ -1153,8 +1150,6 @@ class GameScene < Scene::Base
         @combo_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
       end
 
-      # @life_continueble = false
-
       $scores[:technical_point] += technical_point_diff
       $scores[:technical_point] = BigDecimal($scores[:technical_point].to_s).round(2).to_f
       $scores[:max_combo] = combo if combo > $scores[:max_combo]
@@ -1261,7 +1256,7 @@ class ResultScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.2
+  POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -1371,7 +1366,7 @@ class ResultScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -1496,7 +1491,7 @@ class NameEntryScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.2
+  POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -1590,7 +1585,7 @@ class NameEntryScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -1825,7 +1820,7 @@ class RankingScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.2
+  POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -1905,7 +1900,7 @@ class RankingScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -2163,7 +2158,7 @@ class EndingScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE = Window.height * 0.2
+  POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -2221,7 +2216,7 @@ class EndingScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)

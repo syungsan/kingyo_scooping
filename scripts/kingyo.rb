@@ -126,7 +126,7 @@ class Kingyo < Sprite
     when :catched
       self.catched
 
-    when :reserved, :ignore
+    when :reserved, :ignore, :broke
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
     end
@@ -134,18 +134,17 @@ class Kingyo < Sprite
 
   def change_mode(mode)
 
-    @wait_count = 0
-    @move_count = 0
-    @move_time = 0
-
     case mode
 
     when :wait
+      @wait_count = 0
       @wait_length = random_int(@mode_ranges[:wait][0], @mode_ranges[:wait][1])
       @speed = rand_float(@speed_ranges[:wait][0], @speed_ranges[:wait][1])
       @old_speed = @speed
 
     when :move
+      @move_count = 0
+      @move_time = 0
       @move_length = random_int(@mode_ranges[:move][0], @mode_ranges[:move][1])
       @speed = rand_float(@speed_ranges[:move][0], @speed_ranges[:move][1])
       @old_speed = @speed
@@ -171,6 +170,8 @@ class Kingyo < Sprite
 
     when :catched
       @pre_mode = @mode
+
+    when :broke
     end
     @mode = mode
   end
