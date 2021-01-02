@@ -21,6 +21,7 @@ class Poi <Sprite
     PAPER_BREAK_IMAGE = "../images/poi_paper_1.png"
     POI_FLASH_IMAGE = "../images/poi_flash.png"
     POI_BREAK_FLASH_IMAGE = "../images/poi_break_flash.png"
+    DAMAGE_SOUND = "../sounds/nc46901.wav"
   else
     require "./lib/dxruby/images"
     require "./lib/dxruby/easing"
@@ -29,6 +30,7 @@ class Poi <Sprite
     PAPER_BREAK_IMAGE = "./images/poi_paper_1.png"
     POI_FLASH_IMAGE = "./images/poi_flash.png"
     POI_BREAK_FLASH_IMAGE = "./images/poi_break_flash.png"
+    DAMAGE_SOUND = "./sounds/nc46901.wav"
   end
 
   include Easing
@@ -50,6 +52,7 @@ class Poi <Sprite
   MAX_SPEED_WINDOW_SIZE = 30
 
   RECOVERY_TIME = 60
+  DAMAGE_TIME = 10
 
 
   def initialize(x=0, y=0, width=100, height=100, pointer=nil, max_gaze_count=60, parent=nil, transport_target=nil, option={})
@@ -115,7 +118,9 @@ class Poi <Sprite
     @impact_gain = option[:impact_gain]
     @is_view_impact_range = option[:is_view_impact_range]
 
+    @damage_sound = Sound.new(DAMAGE_SOUND)
     @flash_image = nil
+    @final = false
   end
 
   def view_impact_range=(is_view_impact_range)
@@ -152,6 +157,10 @@ class Poi <Sprite
 
     when :broke
       self.broke
+    end
+
+    if @is_damaged
+      self.damage
     end
   end
 
@@ -266,24 +275,27 @@ class Poi <Sprite
     end
   end
 
-  def set_break
+  def set_break(final=false)
+    @final = final
     @pre_mode = @mode
     @transport_count = 0
     @broke_count = 0
     @mode = :broke
+    @damage_sound.play
   end
 
   def broke
 
     if @broke_count < RECOVERY_TIME / 3 then
-      @flash_image = @images[5]
-      @broke_count += 1
-
-    elsif @broke_count >= RECOVERY_TIME / 3 and @broke_count < RECOVERY_TIME / 3 * 2 then
+      @flash_image = @images[5] unless self.image == @images[5]
       self.image = @images[3] unless self.image == @images[3]
       @broke_count += 1
+
+    elsif @broke_count >= RECOVERY_TIME / 3 and @broke_count < RECOVERY_TIME then
+      @flash_image = nil if @flash_image
+      @broke_count += 1
     else
-      self.image = @images[2] unless self.image == @images[2]
+      self.image = @images[2] if not self.image == @images[2] and not @final
       if not @pre_mode == :transport and not  @pre_mode == :reserve then
         @broke_count = 0
         @is_drag = true
@@ -312,6 +324,24 @@ class Poi <Sprite
         @is_impact = true
         @mode = :search
       end
+    end
+  end
+
+  def set_damage
+    @damage_count = 0
+    @is_damaged = true
+    @damage_sound.play
+  end
+
+  def damage
+    if @damage_count < DAMAGE_TIME then
+      @flash_image = @images[4] if self.image == @images[2] and not @flash_image == @images[4]
+      @flash_image = @images[5] if self.image == @images[3] and not @flash_image == @images[5]
+      @damage_count += 1
+    else
+      @is_damaged = false
+      @flash_image = nil
+      @damage_count = 0
     end
   end
 

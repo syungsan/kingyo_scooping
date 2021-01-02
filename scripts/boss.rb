@@ -99,7 +99,6 @@ class Boss < Sprite
       @bubble_shots = []
       MAX_BUBBLE_SHOT_NUMBER.times do
         bubble_shot = BubbleShot.new(nil, @height * 0.7, self, @attack_target, @borders)
-        bubble_shot.change_mode(:preparation)
         @bubble_shots.push(bubble_shot)
       end
     end
@@ -184,6 +183,12 @@ class Boss < Sprite
           @escape_length = random_int(@mode_ranges[:escape][0], @mode_ranges[:escape][1])
           @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
           @old_speed = @speed
+
+          if personality == :against then
+            @bubble_shots.each do |bubble_shot|
+              bubble_shot.is_wait = false
+            end
+          end
         else
           mode = :ignore
         end
@@ -241,6 +246,9 @@ class Boss < Sprite
 
   def escape
     if @escape_count > @escape_length then
+      @bubble_shots.each do |bubble_shot|
+        bubble_shot.is_wait = true
+      end
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
     else
@@ -275,7 +283,7 @@ class Boss < Sprite
   class BubbleShot < Sprite
 
     attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :killed_by_poi
-    attr_reader :width, :height, :collision_ratios
+    attr_reader :width, :height, :collision_ratios, :mode
 
     if __FILE__ == $0 then
       IMAGE_0 = "../images/bubble_0.PNG"
@@ -346,7 +354,7 @@ class Boss < Sprite
       @killed_by_poi = false
 
       self.fit_pos_for_mother_ship
-      self.change_mode(:wait)
+      self.is_wait = false
     end
 
     def fit_pos_for_mother_ship
@@ -355,13 +363,22 @@ class Boss < Sprite
       self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
     end
 
+    def is_wait=(is_wait=false)
+      @is_wait = is_wait
+      self.change_mode(:preparation) unless @is_wait
+    end
+
     def change_mode(mode)
 
       case mode
 
       when :wait
+        self.scale_x = 0
+        self.scale_y = 0
+        self.collision_enable = false
 
       when :preparation
+        self.collision_enable = true
         @born_span = rand(MAX_BORN_SPAN)
 
       when :move
@@ -375,6 +392,8 @@ class Boss < Sprite
     end
 
     def update
+
+      # p @mode
 
       case @mode
 
@@ -395,7 +414,16 @@ class Boss < Sprite
 
       when :disappear
         self.disappear
+
+      when :wait
+        self.wait
       end
+    end
+
+    def wait
+      position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
+      self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
+      self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
     end
 
     def preparation
@@ -406,9 +434,7 @@ class Boss < Sprite
         @preparation_count = 0
         self.change_mode(:move)
       else
-        position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
-        self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
-        self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
+        self.wait
         @preparation_count += 1
       end
     end
@@ -438,14 +464,18 @@ class Boss < Sprite
 
     def draw
       self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :z=>self.z}) if
-        self.image and not @mode == :wait
+        self.image
     end
 
     def disappear
       if @burst_wait_count > MAX_BURST_WAIT_COUNT then
         self.image = @images[0]
         # @scale = 0
-        self.change_mode(:preparation)
+        if @is_wait then
+          self.change_mode(:wait)
+        else
+          self.change_mode(:preparation)
+        end
         @burst_wait_count = 0
       else
         @burst_wait_count += 1
@@ -514,5 +544,20 @@ if __FILE__ == $0 then
       end
     end
     Sprite.check(border.blocks + bosss)
+
+    if Input.keyPush?(K_SPACE) then
+      bosss.each do |boss|
+        boss.bubble_shots.each do |bubble_shot|
+          bubble_shot.is_wait = true
+        end
+      end
+    end
+    if Input.keyPush?(K_RETURN) then
+      bosss.each do |boss|
+        boss.bubble_shots.each do |bubble_shot|
+          bubble_shot.is_wait = false
+        end
+      end
+    end
   end
 end

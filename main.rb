@@ -490,10 +490,10 @@ class GameScene < Scene::Base
   Z_POSITION_BOTTOM = 0
 
   POI_CATCH_ADJUST_RANGE_RATIO = 1.0
-  POI_RESERVE_ADJUST_TARGET_RANGE_RATIO = 0.55
 
-  CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
+  CONTAINER_CATCH_ADJUST_RANGE_RATIO = 1.0
   CONTAINER_RESERVE_ADJUST_RANGE_RATIO = 0.55
+  CONTAINER_CONTACT_ADJUST_RANGE_RATIO = 1.2
 
   START_MAX_COUNT = 180
   POINT_LABEL_MOVE_SCALE = 5.0
@@ -669,7 +669,6 @@ class GameScene < Scene::Base
         @stage_info_label.color = C_CREAM
         @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
       end
-      @mode = :game_over
 
     when :game_clear
 
@@ -681,7 +680,6 @@ class GameScene < Scene::Base
         @stage_info_label.color = C_MIKUSAN
         @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
       end
-      @mode = :game_clear
 
     when :alert
 
@@ -925,8 +923,10 @@ class GameScene < Scene::Base
 
                 if bubble_shot.killed_by_poi then
                   bubble_shot.killed_by_poi = false
+
                   @life_gauge.change_life(-1 * bubble_shot.height * BUBBLE_SHOT_DAMAGE_UNIT_RATIO) if
                     not @mode == :game_over and not @mode == :game_clear
+                  @poi.set_damage
                 end
               end
             end
@@ -979,7 +979,7 @@ class GameScene < Scene::Base
       @catch_objects.each do |catch_object|
         if (catch_object[0].x + catch_object[0].center_x - (@container.x + (@container.width * 0.5))) ** 2 +
           ((catch_object[0].y + catch_object[0].center_y - (@container.y + (@container.height * 0.5))) ** 2) <=
-          (@container.width * 0.5 * POI_RESERVE_ADJUST_TARGET_RANGE_RATIO) ** 2 then
+          (@container.width * 0.5 * CONTAINER_CATCH_ADJUST_RANGE_RATIO) ** 2 then
 
           catch_object[0].z = Z_POSITION_UP
           catch_object[0].is_reserved = true
@@ -993,16 +993,16 @@ class GameScene < Scene::Base
       @catch_objects.clear
     end
 
-    if @life_gauge.has_out_of_life then
+    if @life_gauge.has_out_of_life and not @mode == :game_over and not @mode == :game_clear then
       if @poi_gauges.empty? then
-        self.change_mode(:game_over)
-        @mode = :game_over
         @life_gauge.change_gauge(0)
+        self.change_mode(:game_over)
+        @poi.set_break(true)
       else
         @poi_gauges[-1].vanish
         @poi_gauges.delete_at(-1)
+        @poi.set_break(false)
       end
-      @poi.set_break
       @life_gauge.has_out_of_life = false
     end
 
@@ -1079,6 +1079,10 @@ class GameScene < Scene::Base
         elsif catched_object.class == Boss then
           techinical_max_size = Window.height * BOSS_SCALE_RANGES[1]
           $scores[:catched_boss_number] += 1
+
+          catched_object.bubble_shots.each do |bubble_shot|
+            bubble_shot.is_wait = true
+          end
 
         elsif catched_object.class == Weed then
           techinical_max_size = Window.height * WEED_SCALE_RANGES[@stage_number - 1][1]
