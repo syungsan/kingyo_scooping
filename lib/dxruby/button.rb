@@ -58,6 +58,7 @@ class Button
     @has_image_set = false
     @is_click = false
     @is_enable = true
+    @response_count = 0
 
     self.construct
     self.draw_string
@@ -255,9 +256,18 @@ class Button
     mouse_x = Input.mouse_pos_x
     mouse_y = Input.mouse_pos_y
 
-    if Input.mouse_down?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
+    if Input.mouse_release?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
       return true
+    elsif Input.mouse_down?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
+      if @response_count >= 15 then
+        @response_count = 0
+        return true
+      else
+        @response_count += 1
+        return false
+      end
     else
+      @response_count = 0 unless @response_count == 0
       return false
     end
   end

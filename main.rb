@@ -74,6 +74,7 @@ class Configuration
   MIKACHAN_FONT = "./fonts/mikachanALL.ttc"
   BALL_PARK_FONT = "./fonts/BALLW___.TTF"
   BOLDHEAD_FONT = "./fonts/Boldhead.otf"
+  PHENOMENA_FONT = "./fonts/Phenomena-Bold.ttf"
 
   def initialize
 
@@ -102,6 +103,8 @@ class Configuration
     Font.install(MIKACHAN_FONT)
     Font.install(BALL_PARK_FONT)
     Font.install(BOLDHEAD_FONT)
+    Font.install(BALL_PARK_FONT)
+    Font.install(PHENOMENA_FONT)
 
     resolutions =  Window.get_screen_modes.select { |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
 
@@ -205,10 +208,13 @@ class TitleScene < Scene::Base
   require "./lib/dxruby/fonts"
   require "./lib/dxruby/button"
   require "./lib/dxruby/color"
+  require "./lib/dxruby/easing"
 
   require "./scripts/poi"
+  require "./scripts/vibeman"
 
   include Color
+  include Easing
 
   CLICK_SE = "./sounds/push13.wav"
   START_GAME_SE = "./sounds/decision27.wav"
@@ -217,6 +223,7 @@ class TitleScene < Scene::Base
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
   RANKING_BUTTON_IMAGE = "./images/ranking_button.png"
+  VIBEMAN_BUTTON_IMAGE = "./images/1067276.png"
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
@@ -284,7 +291,31 @@ class TitleScene < Scene::Base
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
     @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
 
-    @buttons = [@start_button, @exit_button, @window_mode_button, @ranking_button]
+    vibeman_button_image = Image.load(VIBEMAN_BUTTON_IMAGE)
+    vibeman_button_scale = Window.height * 0.08 / vibeman_button_image.height
+    vibeman_button_converted_image = Images.scale_resize(vibeman_button_image, vibeman_button_scale, vibeman_button_scale)
+    @vibeman_start_button = Button.new(0, 0, vibeman_button_converted_image.width, vibeman_button_converted_image.height,
+                                 "Vibeman", vibeman_button_converted_image.height * 0.4, {:font_name=>"Ballpark", :str_color=>C_CREAM})
+    @vibeman_start_button.set_image(vibeman_button_converted_image)
+    @vibeman_start_button.name = "vibeman_button"
+    @vibeman_start_button.set_pos((Window.width - @vibeman_start_button.width) * 0.99, (Window.height - @vibeman_start_button.height) * 0.99)
+
+    $vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.height * 0.7, {:bg_color=>C_IVORY, :frame_color=>C_BROWN})
+    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.7)
+    $vibeman.is_active_dialog = false
+
+    $vibeman.title_label.font_name = "Ballpark"
+    $vibeman.set_time_label.font_name = "Phenomena"
+    $vibeman.connect_button.font_name = "Phenomena"
+    $vibeman.test_button.font_name = "Phenomena"
+    $vibeman.time_input_box.font_name = "Phenomena"
+    $vibeman.ok_button.font_name = "Phenomena"
+    $vibeman.output_box.font_name = "自由の翼フォント"
+    2.times do |index|
+      $vibeman.change_type_labels[index].font_name = "自由の翼フォント"
+    end
+
+    @buttons = [@start_button, @exit_button, @window_mode_button, @ranking_button, @vibeman_start_button]
 
     @is_start_button_blink = false
     @start_button_blink_count = 0
@@ -297,6 +328,9 @@ class TitleScene < Scene::Base
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
+
+    @vibeman_is_appear = false
+    @vibeman_appear_count = 0
   end
 
   def update
@@ -333,9 +367,36 @@ class TitleScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        button.hovered? if not button.name == "vibeman_button" or not $vibeman.is_active_dialog
       end
     end
+
+    if (@vibeman_start_button and (@vibeman_start_button.pushed? or @vibeman_start_button.is_gazed)) and not $vibeman.is_active_dialog then
+      @vibeman_start_button.is_gazed = false
+      $vibeman.is_active_dialog = true
+      @click_se.play if @click_se
+      @vibeman_is_appear = true
+    end
+    $vibeman.update if $vibeman
+
+    if $vibeman.buttons and not $vibeman.buttons.empty? and $vibeman.is_active_dialog then
+      $vibeman.buttons.each do |vibeman_button|
+        vibeman_button.hovered?
+      end
+    end
+
+    if @vibeman_is_appear and $vibeman then
+      if @vibeman_appear_count <= 1 then
+        $vibeman.set_pos(ease_in_out_quad(@vibeman_appear_count, Window.width, -1 * $vibeman.width * 1.06, 1),
+                         (Window.height - $vibeman.height) * 0.7)
+        @vibeman_appear_count += 0.01
+      else
+        @vibeman_appear_count = 0
+        @vibeman_is_appear = false
+      end
+    end
+    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.7) if not
+    $vibeman.x == Window.width and not $vibeman.y == (Window.height - $vibeman.height) * 0.7 and not $vibeman.is_active_dialog
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
@@ -368,6 +429,24 @@ class TitleScene < Scene::Base
       end
     end
     @poi.mode = :search
+
+    if $vibeman.buttons and not $vibeman.buttons.empty? then
+      $vibeman.buttons.each do |vibeman_button|
+        if x + center_x >= vibeman_button.x and x + center_x <= vibeman_button.x + vibeman_button.width and
+          y + center_y >= vibeman_button.y and y + center_y <= vibeman_button.y + vibeman_button.height then
+          vibeman_button.is_gazed = true
+        end
+      end
+    end
+
+    if $vibeman.change_type_radio_buttons and not $vibeman.change_type_radio_buttons.empty? then
+      $vibeman.change_type_radio_buttons.each do |vibeman_radio_button|
+        if x + center_x >= vibeman_radio_button.x and x + center_x <= vibeman_radio_button.x + vibeman_radio_button.size and
+          y + center_y >= vibeman_radio_button.y and y + center_y <= vibeman_radio_button.y + vibeman_radio_button.size then
+          vibeman_radio_button.is_gazed = true
+        end
+      end
+    end
   end
 
   def render
@@ -383,6 +462,9 @@ class TitleScene < Scene::Base
     @start_button.draw if @start_button
     @exit_button.draw if @exit_button
     @window_mode_button.draw if @window_mode_button
+
+    @vibeman_start_button.draw if @vibeman_start_button and not $vibeman.is_active_dialog
+    $vibeman.draw if $vibeman and $vibeman.is_active_dialog
 
     @poi.draw if @poi
   end
@@ -976,6 +1058,8 @@ class GameScene < Scene::Base
       @border and @swimmers and not @swimmers.empty? and @container and not @mode == :start
 
     if @poi and @poi.mode == :transport then
+      $vibeman.run if $vibeman
+
       @catch_objects.each do |catch_object|
         catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
 

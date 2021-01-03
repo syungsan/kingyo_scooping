@@ -11,7 +11,7 @@ require "dxruby"
 
 class RadioButton
 
-  attr_accessor :x, :y, :id, :name, :target
+  attr_accessor :x, :y, :id, :name, :target, :is_gazed
   attr_reader :size
 
   def initialize(x, y, id=0, size=20, markColor=C_BLACK, innerColor=C_WHITE, frameColor=C_BLACK, option={})

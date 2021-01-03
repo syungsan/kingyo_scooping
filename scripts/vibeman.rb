@@ -11,31 +11,44 @@ require "dxruby"
 
 class VibeMan
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :target, :z,
-                :title_label, :set_time_label, :time_input_box, :connect_button, :test_button
-  attr_reader :width, :height, :is_active_dialog, :buttons, :is_connecting
+  attr_accessor :x, :y, :shadow_x, :shadow_y, :name, :id, :target, :z,
+                :title_label, :set_time_label, :time_input_box, :connect_button, :test_button, :is_active_dialog,
+                :ok_button, :output_box, :change_type_labels, :change_type_radio_buttons
+  attr_reader :width, :height, :buttons, :is_connecting
 
   if __FILE__ == $0 then
     require "../lib/dxruby/fonts"
     require "../lib/dxruby/roundbox"
     require "../lib/dxruby/images"
     require "../lib/dxruby/button"
+    require "../lib/dxruby/color"
+    require "../lib/dxruby/ui"
+    require "../lib/encode"
+
     CONNECT_BUTTON_IMAGE = "../images/m_1.png"
     TEST_BUTTON_IMAGE = "../images/m_3.png"
     TIME_UP_BUTTON_IMAGE = "../images/yazirusi_r.png"
     TIME_DOWN_BUTTON_IMAGE = "../images/yazirusi_l.png"
-    CLOSE_BUTTON_IMAGE = "../images/Close_Box_Red.png"
+    OK_BUTTON_IMAGE = "../images/m_2.png"
+    CLICK_SE = "../sounds/push13.wav"
   else
     require "./lib/dxruby/fonts"
     require "./lib/dxruby/roundbox"
     require "./lib/dxruby/images"
     require "./lib/dxruby/button"
+    require "./lib/dxruby/color"
+    require "./lib/dxruby/ui"
+    require "./lib/encode"
+
     CONNECT_BUTTON_IMAGE = "./images/m_1.png"
     TEST_BUTTON_IMAGE = "./images/m_3.png"
     TIME_UP_BUTTON_IMAGE = "./images/yazirusi_r.png"
     TIME_DOWN_BUTTON_IMAGE = "./images/yazirusi_l.png"
-    CLOSE_BUTTON_IMAGE = "./images/Close_Box_Red.png"
+    OK_BUTTON_IMAGE = "./images/m_2.png"
+    CLICK_SE = "./sounds/push13.wav"
   end
+
+  include Color
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
@@ -58,7 +71,7 @@ class VibeMan
       @serials = []
       @responses = []
       @vibemans = []
-      @type = 0
+      @vibe_type = 1
       @vibe_time = 200
     end
 
@@ -157,12 +170,12 @@ class VibeMan
     def vibe
 
       @vibemans.each do |vibeman|
-        case @type
-
-        when 0
-          vibeman[:serial].write("9\n")
+        case @vibe_type
 
         when 1
+          vibeman[:serial].write("9\n")
+
+        when 2
           vibeman[:serial].write("8:2:#{@vibe_time}\n")
         end
         response = vibeman[:serial].read(14)
@@ -190,6 +203,8 @@ class VibeMan
   def initialize(x=0, y=0, width=100, height=100, option={})
     option = {:frame_thickness=>2, :radius=>10, :bg_color=>C_WHITE, :frame_color=>C_GREEN,
               :name=>"vibeman", :id=>0, :target=>Window, :z=>0}.merge(option)
+
+    @click_se = Sound.new(CLICK_SE)
 
     @frame_thickness = option[:frame_thickness]
     @radius = option[:radius]
@@ -219,20 +234,22 @@ class VibeMan
 
     @core = Core.new(self)
 
-    @title_label = Fonts.new(0, 0, "Vibeman Control", @height * 0.1, C_GRAY, {:target=>@image, :edge=>true})
-    @title_label.set_pos((@width - @title_label.width) * 0.67, (@height - @title_label.height) * 0.06)
+    @title_label = Fonts.new(0, 0, "Vibeman Control",
+                             @height * 0.07, C_GRAY, {:target=>@image, :edge=>true})
+    @title_label.set_pos((@width - @title_label.width) * 0.67, (@height - @title_label.height) * 0.04)
 
-    @output_box = Images.new(@x + @width * 0.05, @y + @height * 0.2, @width * 0.9, @height * 0.25,
-                              "", @height * 0.05, C_WHITE, C_BLACK)
+    @output_box = Images.new(@x + @width * 0.05, @y + @height * 0.13, @width * 0.9, @height * 0.25,
+                              "", @height * 0.034, C_WHITE, C_BLACK)
     @output_box.frame(C_BROWN, @output_box.height * 0.03)
 
-    @time_input_box = Images.new(@x + @width * 0.35, @y + @height * 0.6, @width * 0.3, @height * 0.1,
+    @time_input_box = Images.new(@x + @width * 0.35, @y + @height * 0.468, @width * 0.3, @height * 0.1,
                                  @core.vibe_time.to_s, @height * 0.1, C_WHITE, C_BLACK)
     @time_input_box.frame(C_YELLOW, @time_input_box.height * 0.05)
 
     connect_button_width = @width * 0.3
     connect_button_height = connect_button_width * 0.4
-    @connect_button = Button.new(@x + (@width - connect_button_width) * 0.8, @y + (@height - connect_button_height) * 0.9,
+    @connect_button = Button.new(@x + (@width - connect_button_width) * 0.8,
+                                 @y + (@height - connect_button_height) * 0.83,
                                  connect_button_width, connect_button_height, string="Connect",
                             font_size=connect_button_height * 0.7)
 
@@ -241,7 +258,7 @@ class VibeMan
 
     test_button_width = @width * 0.3
     test_button_height = test_button_width * 0.4
-    @test_button = Button.new(@x + (@width - test_button_width) * 0.2, @y + (@height - test_button_height) * 0.9,
+    @test_button = Button.new(@x + (@width - test_button_width) * 0.2, @y + (@height - test_button_height) * 0.83,
                               test_button_width, test_button_height, string="Test",
                                  font_size=test_button_height * 0.7)
 
@@ -251,25 +268,57 @@ class VibeMan
     time_up_button_image = Image.load(TIME_UP_BUTTON_IMAGE)
     time_up_button_scale_y = @height * 0.1 / time_up_button_image.height
     time_up_button_scale_x = time_up_button_scale_y
-    time_up_button_converted_image = Images.scale_resize(time_up_button_image, time_up_button_scale_x, time_up_button_scale_y)
+    time_up_button_converted_image = Images.scale_resize(time_up_button_image,
+                                                         time_up_button_scale_x, time_up_button_scale_y)
 
     @time_up_button = Button.new(0, 0, time_up_button_converted_image.width, time_up_button_converted_image.height)
     @time_up_button.set_image(time_up_button_converted_image)
-    @time_up_button.set_pos(@x + (@width - @time_up_button.width) * 0.75, @y + (@height - @time_up_button.height) * 0.665)
+    @time_up_button.set_pos(@x + (@width - @time_up_button.width) * 0.75,
+                            @y + (@height - @time_up_button.height) * 0.52)
 
     time_down_button_image = Image.load(TIME_DOWN_BUTTON_IMAGE)
     time_down_button_scale_y = @height * 0.1 / time_down_button_image.height
     time_down_button_scale_x = time_down_button_scale_y
-    time_down_button_converted_image = Images.scale_resize(time_down_button_image, time_down_button_scale_x, time_down_button_scale_y)
+    time_down_button_converted_image = Images.scale_resize(time_down_button_image,
+                                                           time_down_button_scale_x, time_down_button_scale_y)
 
-    @time_down_button = Button.new(0, 0, time_down_button_converted_image.width, time_down_button_converted_image.height)
+    @time_down_button = Button.new(0, 0, time_down_button_converted_image.width,
+                                   time_down_button_converted_image.height)
     @time_down_button.set_image(time_down_button_converted_image)
-    @time_down_button.set_pos(@x + (@width - @time_down_button.width) * 0.25, @y + (@height - @time_down_button.height) * 0.665)
+    @time_down_button.set_pos(@x + (@width - @time_down_button.width) * 0.25,
+                              @y + (@height - @time_down_button.height) * 0.52)
 
-    @set_time_label = Fonts.new(0, 0, "vibration time", @height * 0.07, C_BLACK, {:target=>@image, :shadow=>false})
-    @set_time_label.set_pos((@width - @set_time_label.width) * 0.64, (@height - @set_time_label.height) * 0.55)
+    @set_time_label = Fonts.new(0, 0, "vibration time", @height * 0.05, C_BLACK,
+                                {:target=>@image, :shadow=>false})
+    @set_time_label.set_pos((@width - @set_time_label.width) * 0.64, (@height - @set_time_label.height) * 0.43)
 
-    @buttons = [@connect_button, @test_button, @time_up_button, @time_down_button]
+    ok_button_width = @width * 0.3
+    ok_button_height = ok_button_width * 0.4
+    @ok_button = Button.new(@x + (@width - ok_button_width) * 0.5, @y + (@height - ok_button_height) * 0.95,
+                            ok_button_width, ok_button_height, string="OK", font_size=ok_button_height * 0.7)
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @ok_button.set_image(Images.fit_resize(ok_button_image, @ok_button.width, @ok_button.height))
+
+    change_type_texts = ["Type-" + "\x87\x54".encode("BINARY"), "Type-" + "\x87\x55".encode("BINARY")]
+    @change_type_labels = []
+    @change_type_radio_buttons = []
+
+    2.times do |index|
+      change_type_label = Fonts.new(0, 0, change_type_texts[index], @height * 0.04, C_BLACK)
+      change_type_label.shadow = false
+      @change_type_labels << change_type_label
+      change_type_radio_button = RadioButton.new(0, 0, index)
+      @change_type_radio_buttons << change_type_radio_button
+    end
+    @change_type_radio_buttons[0].setCheck(true)
+
+    2.times do |index|
+      @change_type_labels[index].set_pos(@x + @width * 0.43, @y + @height * 0.61 + (@height * 0.06 * index))
+      @change_type_radio_buttons[index].setPos(@x + @width * 0.33, @y + @height * 0.62 + (@height * 0.06 * index))
+    end
+
+    @buttons = [@connect_button, @test_button, @time_up_button, @time_down_button, @ok_button]
 
     @is_active_dialog = true
     @is_challenge_connect = false
@@ -278,17 +327,30 @@ class VibeMan
     @is_connecting = false
 
     @test_button.enable = false
+
+    @vibe_time = 200
+    @response_count = 0
   end
 
   def set_pos(x, y)
     @x = x
     @y = y
-    @output_box.set_pos(@x + @width * 0.05, @y + @height * 0.2)
-    @time_input_box.set_pos(@x + @width * 0.35, @y + @height * 0.6)
-    @connect_button.set_pos(@x + (@width - @connect_button.width) * 0.8, @y + (@height - @connect_button.height) * 0.9)
-    @test_button.set_pos(@x + (@width - @test_button.width) * 0.2, @y + (@height - @test_button.height) * 0.9)
-    @time_up_button.set_pos(@x + (@width - @time_up_button.width) * 0.75, @y + (@height - @time_up_button.height) * 0.665)
-    @time_down_button.set_pos(@x + (@width - @time_down_button.width) * 0.25, @y + (@height - @time_down_button.height) * 0.665)
+
+    @output_box.set_pos(@x + @width * 0.05, @y + @height * 0.13)
+    @connect_button.set_pos(@x + (@width - @connect_button.width) * 0.8, @y + (@height - @connect_button.height) * 0.83)
+    @test_button.set_pos(@x + (@width - @test_button.width) * 0.2, @y + (@height - @test_button.height) * 0.83)
+
+    @time_input_box.set_pos(@x + @width * 0.35, @y + @height * 0.468)
+    @time_up_button.set_pos(@x + (@width - @time_up_button.width) * 0.75,
+                            @y + (@height - @time_up_button.height) * 0.52)
+    @time_down_button.set_pos(@x + (@width - @time_down_button.width) * 0.25,
+                              @y + (@height - @time_down_button.height) * 0.52)
+    @ok_button.set_pos(@x + (@width - @ok_button.width) * 0.5, @y + (@height - @ok_button.height) * 0.95)
+
+    2.times do |index|
+      @change_type_labels[index].set_pos(@x + @width * 0.43, @y + @height * 0.61 + (@height * 0.06 * index))
+      @change_type_radio_buttons[index].setPos(@x + @width * 0.33, @y + @height * 0.62 + (@height * 0.06 * index))
+    end
   end
 
   def callback_output(output)
@@ -318,9 +380,11 @@ class VibeMan
 
   def update
 
-    if (@connect_button and @connect_button.is_enable and (@connect_button.pushed? or @connect_button.is_gazed)) then
+    if (@connect_button and @connect_button.is_enable and
+      (@connect_button.pushed? or @connect_button.is_gazed)) and @is_active_dialog then
       @connect_button.is_gazed = false
 
+      @click_se.play if @click_se
       unless @is_connecting then
         @output_box.string = "Now connecting..."
       else
@@ -345,27 +409,105 @@ class VibeMan
       @challenge_connect_count += 1
     end
 
-    if (@test_button and @test_button.is_enable and (@test_button.pushed? or @test_button.is_gazed)) then
+    if (@test_button and @test_button.is_enable and
+      (@test_button.pushed? or @test_button.is_gazed)) and @is_active_dialog then
       @test_button.is_gazed = false
 
+      @click_se.play if @click_se
       if @is_connecting then
         @output_box.string = "Now testing..."
         @core.vibe
       end
     end
+
+    if (@time_up_button and (@time_up_button.pushing? or @time_up_button.is_gazed)) and @is_active_dialog then
+      @time_up_button.is_gazed = false
+      @click_se.play if @click_se
+      @vibe_time += 1
+      @time_input_box.string = @vibe_time.to_s
+      @core.vibe_time = @vibe_time
+    end
+
+    if (@time_down_button and (@time_down_button.pushing? or @time_down_button.is_gazed)) and @is_active_dialog then
+      @time_down_button.is_gazed = false
+      @click_se.play if @click_se
+      @vibe_time -= 1
+      @time_input_box.string = @vibe_time.to_s
+      @core.vibe_time = @vibe_time
+    end
+
+    if (@ok_button and (@ok_button.pushed? or @ok_button.is_gazed)) and @is_active_dialog then
+      @ok_button.is_gazed = false
+      @is_active_dialog = false
+
+      @core.vibe_time = @output_box.string.to_i
+      @vibe_time = @time_input_box.string.to_i
+
+      @click_se.play if @click_se
+    end
+
+    if @buttons and not @buttons.empty? and @is_active_dialog then
+      @buttons.each do |button|
+        button.hovered?
+      end
+    end
+
+    if @is_active_dialog then
+      check_id = nil
+      for change_type_radio_button in @change_type_radio_buttons do
+
+        if change_type_radio_button.checked? or change_type_radio_button.is_gazed then
+          change_type_radio_button.setCheck(true) if change_type_radio_button.is_gazed
+          change_type_radio_button.is_gazed = false
+          @click_se.play if @click_se
+          check_id = change_type_radio_button.id
+
+          case check_id
+          when 0 then
+            @core.type = 0
+          when 1 then
+            @core.type = 1
+          end
+        end
+      end
+
+      if check_id then
+        for change_type_radio_button in @change_type_radio_buttons do
+          unless change_type_radio_button.id == check_id then
+            change_type_radio_button.setCheck(false)
+          end
+        end
+      end
+    end
+  end
+
+  def run
+    @core.vibe if @is_connecting
   end
 
   def draw
-    @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z)
-    @target.draw(@x, @y, @image, @z)
-    @title_label.draw
-    @output_box.draw
-    @time_input_box.draw
-    @connect_button.draw
-    @test_button.draw
-    @time_up_button.draw
-    @time_down_button.draw
-    @set_time_label.draw
+
+    if @is_active_dialog then
+      @target.draw(@x + @shadow_x, @y + @shadow_y, @shadow, @z)
+      @target.draw(@x, @y, @image, @z)
+
+      @title_label.draw
+      @output_box.draw
+
+      @connect_button.draw
+      @test_button.draw
+      @ok_button.draw
+
+      @time_input_box.draw
+      @time_up_button.draw
+      @time_down_button.draw
+      @set_time_label.draw
+
+      2.times do |index|
+        @change_type_radio_buttons[index].draw
+        @change_type_labels[index].draw
+      end
+    end
   end
 
   def vanish
@@ -387,10 +529,14 @@ if __FILE__ == $0 then
   PHENOMENA_FONT = "../fonts/Phenomena-Bold.ttf"
   Font.install(PHENOMENA_FONT)
 
+  JIYUNO_TSUBASA_FONT = "../fonts/JiyunoTsubasa.ttf"
+  Font.install(JIYUNO_TSUBASA_FONT)
+
   Window.width = 1280
   Window.height = 720
 
-  vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.height * 0.5, {:bg_color=>C_IVORY, :frame_color=>C_BROWN})
+  vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.height * 0.7,
+                        {:bg_color=>C_IVORY, :frame_color=>C_BROWN})
   vibeman.set_pos((Window.width - vibeman.width) * 0.96, (Window.height - vibeman.height) * 0.93)
 
   vibeman.title_label.font_name = "Ballpark"
@@ -398,17 +544,16 @@ if __FILE__ == $0 then
   vibeman.connect_button.font_name = "Phenomena"
   vibeman.test_button.font_name = "Phenomena"
   vibeman.time_input_box.font_name = "Phenomena"
+  vibeman.ok_button.font_name = "Phenomena"
+  vibeman.output_box.font_name = "自由の翼フォント"
+  2.times do |index|
+    vibeman.change_type_labels[index].font_name = "自由の翼フォント"
+  end
 
   Window.bgcolor = C_GREEN
   Window.loop do
     vibeman.update if vibeman and vibeman.is_active_dialog
     vibeman.draw if vibeman and vibeman.is_active_dialog
-
-    if vibeman.buttons and not vibeman.buttons.empty? then
-      vibeman.buttons.each do |button|
-        button.hovered?
-      end
-    end
   end
 end
 
