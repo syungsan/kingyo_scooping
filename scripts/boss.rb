@@ -8,7 +8,7 @@ require "dxruby"
 
 class Boss < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved, :angle_candidate
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved, :angle_candidate, :is_attackable
   attr_reader :width, :height, :collision_ratios, :bubble_shots, :mode, :pre_mode
 
   if __FILE__ == $0 then
@@ -36,8 +36,10 @@ class Boss < Sprite
 
   BORDER_COLLISION_RATIOS_FOR_BOSS = [0.01, 0.2, 0.2, 0.01]
 
-  MAX_BUBBLE_SHOT_NUMBER = 6
+  MAX_BUBBLE_SHOT_NUMBER = 7
   IS_SHOT_BUBBLE = true
+
+  TARGET_ADHESION_RANGE_RATIO = 1.0
 
   def initialize(x=0, y=0, width=100, height=100, angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 3], :escape=>[1, 3]},
@@ -93,8 +95,6 @@ class Boss < Sprite
     @attack_target = attack_target
     @borders = borders
 
-    @is_all_bubble_borned = false
-
     if IS_SHOT_BUBBLE then
       @bubble_shots = []
       MAX_BUBBLE_SHOT_NUMBER.times do
@@ -102,8 +102,10 @@ class Boss < Sprite
         @bubble_shots.push(bubble_shot)
       end
     end
+    self.is_shot = false
+    @is_attackable = false
 
-    modes = [:wait, :move]
+      modes = [:wait, :move]
     self.change_mode(modes[rand(2)])
   end
 
@@ -149,7 +151,18 @@ class Boss < Sprite
     end
 
     Sprite.check(@borders + @bubble_shots) if @borders and @bubble_shots and IS_SHOT_BUBBLE
-    Sprite.check(@bubble_shots + [@attack_target]) if @bubble_shots and @attack_target and IS_SHOT_BUBBLE
+    Sprite.check(@bubble_shots + [@attack_target] + [self]) if @bubble_shots and @attack_target and IS_SHOT_BUBBLE
+
+    unless @is_reserved then
+      if (self.x + self.center_x - (@attack_target.x + @attack_target.center_x)) ** 2 +
+        ((self.y + self.center_y - (@attack_target.y + @attack_target.center_y)) ** 2) <=
+        (@attack_target.width * 0.5 * TARGET_ADHESION_RANGE_RATIO) ** 2 then
+
+        self.is_shot = false if @is_shot
+      else
+        self.is_shot = true if not @is_shot and @is_attackable
+      end
+    end
   end
 
   def change_mode(mode)
@@ -184,10 +197,8 @@ class Boss < Sprite
           @speed = rand_float(@speed_ranges[:escape][0], @speed_ranges[:escape][1])
           @old_speed = @speed
 
-          if personality == :against then
-            @bubble_shots.each do |bubble_shot|
-              bubble_shot.is_wait = false
-            end
+          if personality == :against and @is_reserved then
+            self.is_shot = true
           end
         else
           mode = :ignore
@@ -245,9 +256,10 @@ class Boss < Sprite
   end
 
   def escape
+
     if @escape_count > @escape_length then
-      @bubble_shots.each do |bubble_shot|
-        bubble_shot.is_wait = true
+      if @is_reserved then
+        self.is_shot = false
       end
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
@@ -261,6 +273,20 @@ class Boss < Sprite
 
   def catched
     @speed = @old_speed * CATCHED_ANIME_SPEED_RATIO if @speed == @old_speed
+  end
+
+  def is_shot=(is_shot=true)
+
+    if IS_SHOT_BUBBLE and @bubble_shots and not @bubble_shots.empty? then
+      @is_shot = is_shot
+
+      is_wait = false if is_shot
+      is_wait = true unless is_shot
+
+      @bubble_shots.each do |bubble_shot|
+        bubble_shot.is_wait = is_wait
+      end
+    end
   end
 
   def hit(obj)
@@ -352,9 +378,10 @@ class Boss < Sprite
       # @scale = 0
       @born_span_count = 0
       @killed_by_poi = false
+      @is_wait = true
 
       self.fit_pos_for_mother_ship
-      self.is_wait = false
+      self.change_mode(:wait)
     end
 
     def fit_pos_for_mother_ship
@@ -363,7 +390,7 @@ class Boss < Sprite
       self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
     end
 
-    def is_wait=(is_wait=false)
+    def is_wait=(is_wait=true)
       @is_wait = is_wait
       self.change_mode(:preparation) unless @is_wait
     end
@@ -392,8 +419,6 @@ class Boss < Sprite
     end
 
     def update
-
-      # p @mode
 
       case @mode
 
@@ -518,6 +543,7 @@ if __FILE__ == $0 then
                     0.2, poi, border.blocks)
     boss.set_pos(random_int(border.x, border.x + border.width - boss.width),
                  random_int(border.y, border.y + border.height - boss.height))
+    boss.is_attackable = true
     bosss.push(boss)
   end
 
@@ -547,16 +573,12 @@ if __FILE__ == $0 then
 
     if Input.keyPush?(K_SPACE) then
       bosss.each do |boss|
-        boss.bubble_shots.each do |bubble_shot|
-          bubble_shot.is_wait = true
-        end
+        boss.is_shot = false
       end
     end
     if Input.keyPush?(K_RETURN) then
       bosss.each do |boss|
-        boss.bubble_shots.each do |bubble_shot|
-          bubble_shot.is_wait = false
-        end
+        boss.is_shot = true
       end
     end
   end

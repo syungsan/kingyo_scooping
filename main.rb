@@ -298,10 +298,10 @@ class TitleScene < Scene::Base
                                  "Vibeman", vibeman_button_converted_image.height * 0.4, {:font_name=>"Ballpark", :str_color=>C_CREAM})
     @vibeman_start_button.set_image(vibeman_button_converted_image)
     @vibeman_start_button.name = "vibeman_button"
-    @vibeman_start_button.set_pos((Window.width - @vibeman_start_button.width) * 0.99, (Window.height - @vibeman_start_button.height) * 0.99)
+    @vibeman_start_button.set_pos((Window.width - @vibeman_start_button.width) * 0.99, (Window.height - @vibeman_start_button.height) * 0.98)
 
     $vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.height * 0.7, {:bg_color=>C_IVORY, :frame_color=>C_BROWN})
-    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.7)
+    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.6)
     $vibeman.is_active_dialog = false
 
     $vibeman.title_label.font_name = "Ballpark"
@@ -388,15 +388,15 @@ class TitleScene < Scene::Base
     if @vibeman_is_appear and $vibeman then
       if @vibeman_appear_count <= 1 then
         $vibeman.set_pos(ease_in_out_quad(@vibeman_appear_count, Window.width, -1 * $vibeman.width * 1.06, 1),
-                         (Window.height - $vibeman.height) * 0.7)
+                         (Window.height - $vibeman.height) * 0.6)
         @vibeman_appear_count += 0.01
       else
         @vibeman_appear_count = 0
         @vibeman_is_appear = false
       end
     end
-    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.7) if not
-    $vibeman.x == Window.width and not $vibeman.y == (Window.height - $vibeman.height) * 0.7 and not $vibeman.is_active_dialog
+    $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.6) if not
+    $vibeman.x == Window.width and not $vibeman.y == (Window.height - $vibeman.height) * 0.6 and not $vibeman.is_active_dialog
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
@@ -527,7 +527,7 @@ class GameScene < Scene::Base
   POI_IS_VIEW_IMPACT_RANGE = true
 
   FIRST_STAGE_NUMBER = 1
-  FIRST_MODE = :start
+  FIRST_MODE = :alert
   MAX_STAGE_NUMBER = 3
 
   IMPACT_GAINS = [1.0, 2.0, 3.0]
@@ -796,7 +796,16 @@ class GameScene < Scene::Base
 
     when :boss
 
-      self.boss_init if @swimmers.select { |obj| obj.class == Boss}.empty?
+      if @swimmers.select { |obj| obj.class == Boss}.empty? then
+        self.boss_init
+      else
+        bosss = @swimmers.select { |obj| obj.class == Boss }
+        bosss.each do |boss|
+          unless boss.is_attackable then
+            boss.is_attackable = true
+          end
+        end
+      end
 
       if @bgm then
         @bgm.stop
@@ -1015,7 +1024,7 @@ class GameScene < Scene::Base
           bosss = @swimmers.select { |obj| obj.class == Boss }
 
           bosss.each do |boss|
-            if boss.bubble_shots and not boss.bubble_shots.empty? then
+            if boss.bubble_shots and not boss.bubble_shots.empty? and boss.is_attackable then
 
               boss.bubble_shots.each do |bubble_shot|
                 bubble_shot.z = Z_POSITION_TOP if not bubble_shot.z == Z_POSITION_TOP
@@ -1134,7 +1143,9 @@ class GameScene < Scene::Base
       if @swimmers and not @swimmers.empty? then
 
         @swimmers.each do |swimmer|
-          if not swimmer.z == Z_POSITION_BOTTOM and not swimmer.is_reserved then
+          if not swimmer.z == Z_POSITION_BOTTOM and not swimmer.is_reserved and
+            not (swimmer.class == Boss and @mode == :alert) then
+
             if (swimmer.x + swimmer.center_x - (x + center_x)) ** 2 +
               ((swimmer.y + swimmer.center_y - (y + center_y)) ** 2) <=
               (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
@@ -1181,9 +1192,7 @@ class GameScene < Scene::Base
           techinical_max_size = Window.height * BOSS_SCALE_RANGES[1]
           $scores[:catched_boss_number] += 1
 
-          catched_object.bubble_shots.each do |bubble_shot|
-            bubble_shot.is_wait = true
-          end
+          catched_object.is_shot = false
 
         elsif catched_object.class == Weed then
           techinical_max_size = Window.height * WEED_SCALE_RANGES[@stage_number - 1][1]
@@ -1387,7 +1396,7 @@ class ResultScene < Scene::Base
       $scores[:technical_point] >= COMMENDATION_POINT * 1.0 and $scores[:technical_point] < COMMENDATION_POINT * 1.1
     $scores[:cognomen], $scores[:color] = "金魚人", C_PURPLE if
       $scores[:technical_point] >= COMMENDATION_POINT * 1.1 and $scores[:technical_point] < COMMENDATION_POINT * 1.2
-    $scores[:cognomen], $scores[:color] = "金魚神", C_RED if $scores[:technical_point] >= COMMENDATION_POINT * 1.3
+    $scores[:cognomen], $scores[:color] = "金魚神", C_RED if $scores[:technical_point] >= COMMENDATION_POINT * 1.2
 
     @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, {:font_name=>"チェックポイントフォント"})
     @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.03)
