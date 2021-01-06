@@ -1726,7 +1726,7 @@ class NameEntryScene < Scene::Base
     message_dialog_width = message_dialog_height * 2
     message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
                              :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
-    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, 0, message_dialog_option)
     @message_dialog.set_message("通信エラー…", "タイトルに戻ります。", @message_dialog.height * 0.25, C_RED, "みかちゃん")
     @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
 
@@ -2039,7 +2039,7 @@ class RankingScene < Scene::Base
     message_dialog_width = message_dialog_height * 2
     message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
                              :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
-    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, message_dialog_option)
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, 0, message_dialog_option)
     @message_dialog.set_message("通信エラー…", "タイトルに戻ります。", @message_dialog.height * 0.25, C_RED, "みかちゃん")
     @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5, (Window.height - @message_dialog.height) * 0.5)
 
@@ -2265,10 +2265,13 @@ class EndingScene < Scene::Base
   ENDING_BGM = "./sounds/itsuka_miagete_ta_tooi_sora.mp3"
   CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
 
-  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  RETURN_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
 
-  BASE_FONT_SIZE = 64
+  OK_BUTTON_IMAGE = "./images/m_4.png"
+  CANCEL_BUTTON_IMAGE = "./images/m_1.png"
+
+  BASE_FONT_SIZE_RATIO = 0.07
   FONT_SHADOW_OFF_SET_X = 3
   FONT_SHADOW_OFF_SET_Y = 3
   BASE_Y_INTERVAL = 100
@@ -2298,9 +2301,10 @@ class EndingScene < Scene::Base
     sum_interval = 0
 
     staff_datas.each do |staff_data|
-      sprite_font = SpriteFont.new(0, 0, staff_data[0], BASE_FONT_SIZE * staff_data[1].to_f, hex_to_rgb(staff_data[2].hex).values,
-                                   C_DEFAULT, {:font_name=>staff_data[3], :shadow=>true, :shadow_color=>C_SHADOW,
-                                               :shadow_x=>FONT_SHADOW_OFF_SET_X, :shadow_y=>FONT_SHADOW_OFF_SET_Y})
+      sprite_font = SpriteFont.new(0, 0, staff_data[0], Window.height * BASE_FONT_SIZE_RATIO * staff_data[1].to_f,
+                                   hex_to_rgb(staff_data[2].hex).values, C_DEFAULT,
+                                   {:font_name=>staff_data[3], :shadow=>true, :shadow_color=>C_SHADOW,
+                                    :shadow_x=>FONT_SHADOW_OFF_SET_X, :shadow_y=>FONT_SHADOW_OFF_SET_Y})
       sum_interval += BASE_Y_INTERVAL * staff_data[4].to_f
       sprite_font.set_pos((Window.width - sprite_font.width) * 0.5, Window.height + sum_interval)
       @sprite_fonts.push(sprite_font)
@@ -2317,7 +2321,8 @@ class EndingScene < Scene::Base
 
     @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO,
+                                               :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
 
     @illusts = []
@@ -2328,24 +2333,58 @@ class EndingScene < Scene::Base
       @illusts.push(illust)
     end
 
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    exit_button_scale = Window.height * 0.05 / exit_button_image.height
-    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
-    @exit_button = Button.new
-    @exit_button.set_image(exit_button_converted_image)
-    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @exit_button.set_pos(Window.width - @exit_button.width, 0)
+    return_button_image = Image.load(RETURN_BUTTON_IMAGE)
+    return_button_scale = Window.height * 0.05 / return_button_image.height
+    return_button_converted_image = Images.scale_resize(return_button_image, return_button_scale, return_button_scale)
+    @return_button = Button.new
+    @return_button.set_image(return_button_converted_image)
+    @return_button.set_string("Return", return_button_converted_image.height * 0.6,
+                            "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @return_button.set_pos(Window.width - @return_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
     window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
-    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    window_mode_button_converted_image =
+      Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+    @window_mode_button.set_pos(Window.width - (@return_button.width + @window_mode_button.width), 0)
 
-    @buttons = [@exit_button, @window_mode_button]
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(
+      0, 0, Window.width, Window.height, [164, 128, 128, 128])
+
+    message_dialog_height = Window.height * 0.5
+    message_dialog_width = message_dialog_height * 2
+    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round,
+                             :radius=>message_dialog_height * 0.05,
+                             :bg_color=>C_CREAM, :frame_color=>C_CYAN}
+    @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height,
+                                        1, message_dialog_option)
+    @message_dialog.set_message("タイトルに戻りますか？", "",
+                                @message_dialog.height * 0.15, C_BROWN, "みかちゃん")
+    @message_dialog.set_pos((Window.width - @message_dialog.width) * 0.5,
+                            (Window.height - @message_dialog.height) * 0.5)
+
+    @message_dialog.ok_button.font_color = C_DARK_BLUE
+    @message_dialog.ok_button.font_name = "07ラノベPOP"
+    @message_dialog.ok_button.name = "message_ok_button"
+
+    @message_dialog.cancel_button.font_color = C_DARK_BLUE
+    @message_dialog.cancel_button.font_name = "07ラノベPOP"
+    @message_dialog.cancel_button.name = "message_cancel_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @message_dialog.ok_button.set_image(
+      Images.fit_resize(ok_button_image, @message_dialog.ok_button.width, @message_dialog.ok_button.height))
+
+    cancel_button_image = Image.load(CANCEL_BUTTON_IMAGE)
+    @message_dialog.cancel_button.set_image(Images.fit_resize(
+      cancel_button_image, @message_dialog.cancel_button.width, @message_dialog.cancel_button.height))
+
+    @buttons = [@return_button, @window_mode_button, @message_dialog.ok_button, @message_dialog.cancel_button]
 
     @bgm = Bass.loadSample(ENDING_BGM)
     @bgm.play(:loop=>false, :volume=>0.7)
@@ -2355,7 +2394,9 @@ class EndingScene < Scene::Base
 
   def update
 
-    if @sprite_fonts and not @sprite_fonts.empty? and @sprite_fonts[-1].y <= (Window.height - @sprite_fonts[-1].height) * 0.6 then
+    if @sprite_fonts and not @sprite_fonts.empty? and @sprite_fonts[-1].y <=
+      (Window.height - @sprite_fonts[-1].height) * 0.6 then
+
       if @next_scene_wait_count < MAX_NEXT_SCENE_WAIT_COUNT then
         @next_scene_wait_count += 1
       else
@@ -2384,16 +2425,35 @@ class EndingScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
-      @exit_button.is_gazed = false
-      self.did_disappear
-      exit
+    if (@return_button and (@return_button.pushed? or @return_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @return_button.is_gazed = false
+      @click_se.play if @click_se
+      @is_returnable = true
     end
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        button.hovered? if not @is_returnable or
+          (button.name == "message_ok_button" or button.name == "message_cancel_button")
       end
+    end
+
+    if @message_dialog and
+      (@message_dialog.ok_button.pushed? or @message_dialog.ok_button.is_gazed) and @is_returnable then
+      @message_dialog.ok_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @bgm.stop
+      self.next_scene = TitleScene
+      @is_returnable = false
+    end
+
+    if @message_dialog and
+      (@message_dialog.cancel_button.pushed? or @message_dialog.cancel_button.is_gazed) and @is_returnable then
+      @message_dialog.cancel_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_returnable = false
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
@@ -2405,11 +2465,15 @@ class EndingScene < Scene::Base
 
   def gazed(x, y, center_x, center_y)
 
+
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if x + center_x >= button.x and x + center_x <= button.x + button.width and
-          y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+
+        if not @is_returnable or (button.name == "message_ok_button" or button.name == "message_cancel_button") then
+          if x + center_x >= button.x and x + center_x <= button.x + button.width and
+            y + center_y >= button.y and y + center_y <= button.y + button.height then
+            button.is_gazed = true
+          end
         end
       end
     end
@@ -2432,8 +2496,11 @@ class EndingScene < Scene::Base
       end
     end
 
-    @exit_button.draw if @exit_button
+    @return_button.draw if @return_button
     @window_mode_button.draw if @window_mode_button
+
+    Window.draw(0, 0, @cover_layer) if @cover_layer and @is_returnable
+    @message_dialog.draw if @message_dialog and @is_returnable
 
     @poi.draw if @poi
   end
@@ -2444,4 +2511,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop SpriteScene, $config.fps, $config.frame_step
+Scene.main_loop EndingScene, $config.fps, $config.frame_step
