@@ -30,7 +30,7 @@ class VibeMan
     TIME_UP_BUTTON_IMAGE = "../images/yazirusi_r.png"
     TIME_DOWN_BUTTON_IMAGE = "../images/yazirusi_l.png"
     OK_BUTTON_IMAGE = "../images/m_2.png"
-    CLICK_SE = "../sounds/push13.wav"
+    CLICK_SE = "../sounds/meka_ge_mouse_s02.wav"
   else
     require "./lib/dxruby/fonts"
     require "./lib/dxruby/roundbox"
@@ -45,7 +45,7 @@ class VibeMan
     TIME_UP_BUTTON_IMAGE = "./images/yazirusi_r.png"
     TIME_DOWN_BUTTON_IMAGE = "./images/yazirusi_l.png"
     OK_BUTTON_IMAGE = "./images/m_2.png"
-    CLICK_SE = "./sounds/push13.wav"
+    CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   end
 
   include Color

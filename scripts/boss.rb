@@ -8,7 +8,8 @@ require "dxruby"
 
 class Boss < Sprite
 
-  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag, :is_reserved, :angle_candidate, :is_attackable
+  attr_accessor :shadow_x, :shadow_y, :name, :id, :is_drag,
+                :is_reserved, :angle_candidate, :is_attackable, :hp
   attr_reader :width, :height, :collision_ratios, :bubble_shots, :mode, :pre_mode
 
   if __FILE__ == $0 then
@@ -16,13 +17,19 @@ class Boss < Sprite
     require "../lib/dxruby/images"
     require "../lib/weighted_randomizer"
     require "../lib/dxruby/easing"
+
     IMAGE = "../images/boss_kingyo.PNG"
+    DAMAGED_SE = "../sounds/ani_fa_mon03.wav"
+    DIED_SE = "../sounds/ani_fa_doragon03.wav"
   else
     require "./lib/common"
     require "./lib/dxruby/images"
     require "./lib/weighted_randomizer"
     require "./lib/dxruby/easing"
+
     IMAGE = "./images/boss_kingyo.PNG"
+    DAMAGED_SE = "./sounds/ani_fa_mon03.wav"
+    DIED_SE = "./sounds/ani_fa_doragon03.wav"
   end
 
   include Common
@@ -41,6 +48,9 @@ class Boss < Sprite
 
   TARGET_ADHESION_RANGE_RATIO = 1.0
 
+  HP = 3
+  MAX_DAMAGED_COUNT = 10
+
   def initialize(x=0, y=0, width=100, height=100, angle=0, id=0,
                  speed_ranges={:wait=>[0, 1], :move=>[1, 3], :escape=>[1, 3]},
                  mode_ranges={:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]},
@@ -50,7 +60,8 @@ class Boss < Sprite
 
     image0 = Image.load_tiles(IMAGE, 4, 1, true)
     image1 = image0.map { |image| image.flush([64, 0, 0, 0]) }
-    image01s = [image0, image1]
+    image2 = image0.map { |image| image.flush([255, 0, 0]) }
+    image012s = [image0, image1, image2]
 
     scale_x = width / image0[0].width.to_f if width
     scale_y = height / image0[0].height.to_f if height
@@ -58,9 +69,9 @@ class Boss < Sprite
     scale_y = scale_x unless height
 
     @images = []
-    image01s.each do |image01|
+    image012s.each do |image012|
       images = []
-      image01.map do |image|
+      image012.map do |image|
         images.push(Images.scale_resize(image, scale_x, scale_y))
       end
       @images.push(images)
@@ -102,11 +113,16 @@ class Boss < Sprite
         @bubble_shots.push(bubble_shot)
       end
     end
+
     self.is_shot = false
     @is_attackable = false
 
-      modes = [:wait, :move]
-    self.change_mode(modes[rand(2)])
+    @damaged_se = Sound.new(DAMAGED_SE)
+    @died_se = Sound.new(DIED_SE)
+    @hp = HP
+    @damaged_count = 0
+
+    self.change_mode(:start)
   end
 
   def set_pos(x, y)
@@ -121,9 +137,15 @@ class Boss < Sprite
   end
 
   def update
+
     @anime_count += @speed * ANIME_ADJUST_SPEED_RATIO if @speed
     @anime_count = 0 if @anime_count > @images[0].size
-    self.image = @images[0][@anime_count.floor]
+
+    if @mode == :damaged or @mode == :died then
+      self.image = @images[2][@anime_count.floor]
+    else
+      self.image = @images[0][@anime_count.floor]
+    end
     @shadow_image = @images[1][@anime_count.floor]
 
     case @mode
@@ -139,9 +161,12 @@ class Boss < Sprite
     when :catched
       self.catched
 
-    when :reserved, :ignore, :broke
+    when :reserved, :ignore, :broke, :recovery, :start
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
+
+    when :damaged, :died
+      self.damaged
     end
 
     if IS_SHOT_BUBBLE and @bubble_shots and not @bubble_shots.empty? then
@@ -153,7 +178,7 @@ class Boss < Sprite
     Sprite.check(@borders + @bubble_shots) if @borders and @bubble_shots and IS_SHOT_BUBBLE
     Sprite.check(@bubble_shots + [@attack_target] + [self]) if @bubble_shots and @attack_target and IS_SHOT_BUBBLE
 
-    unless @is_reserved then
+    if not @is_reserved and IS_SHOT_BUBBLE then
       if (self.x + self.center_x - (@attack_target.x + @attack_target.center_x)) ** 2 +
         ((self.y + self.center_y - (@attack_target.y + @attack_target.center_y)) ** 2) <=
         (@attack_target.width * 0.5 * TARGET_ADHESION_RANGE_RATIO) ** 2 then
@@ -209,6 +234,12 @@ class Boss < Sprite
       @pre_mode = @mode
 
     when :broke
+
+    when :damaged
+      @damaged_se.play
+
+    when :died
+      @died_se.play
     end
     @mode = mode
   end
@@ -289,6 +320,19 @@ class Boss < Sprite
     end
   end
 
+  def damaged
+    if @damaged_count > MAX_DAMAGED_COUNT then
+      @damaged_count = 0
+      if @mode == :damaged then
+        self.change_mode(:recovery)
+      elsif @mode == :died
+        self.change_mode(:catched)
+      end
+    else
+      @damaged_count += 1
+    end
+  end
+
   def hit(obj)
 
   end
@@ -298,7 +342,7 @@ class Boss < Sprite
     self.target.draw_ex(self.x + @shadow_x, self.y + @shadow_y, @shadow_image, {:z=>self.z, :angle=>self.angle})
     self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :angle=>self.angle})
 
-    if @bubble_shots and not @bubble_shots.empty? then
+    if @bubble_shots and not @bubble_shots.empty? and IS_SHOT_BUBBLE then
       @bubble_shots.each do |bubble_shot|
         bubble_shot.draw
       end
@@ -477,10 +521,10 @@ class Boss < Sprite
     def hit(obj)
 
       if not @mode == :disappear and not @mode == :preparation then
-        if obj.class == Border::Block then
+        if @borders.include?(obj) then
           self.change_mode(:disappear)
         end
-        if obj.class == Poi then
+        if obj == @attack_target then
           self.change_mode(:disappear)
           @killed_by_poi = true
         end

@@ -216,7 +216,7 @@ class TitleScene < Scene::Base
   include Color
   include Easing
 
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   START_GAME_SE = "./sounds/decision27.wav"
   BACK_GROUND_IMAGE = "./images/VectorNaturalGreenBackground_S.png"
   START_BUTTON_IMAGE = "./images/start_button.png"
@@ -503,7 +503,7 @@ class GameScene < Scene::Base
   include Common
   include Color
 
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   MAIN_BGM = "./sounds/minamo.mp3"
   ALERT_BGM = "./sounds/nc40157.wav"
   BOSS_BGM = "./sounds/boss_panic_big_march.mp3"
@@ -527,7 +527,7 @@ class GameScene < Scene::Base
   POI_IS_VIEW_IMPACT_RANGE = true
 
   FIRST_STAGE_NUMBER = 1
-  FIRST_MODE = :alert
+  FIRST_MODE = :start
   MAX_STAGE_NUMBER = 3
 
   IMPACT_GAINS = [1.0, 2.0, 3.0]
@@ -1150,8 +1150,18 @@ class GameScene < Scene::Base
               ((swimmer.y + swimmer.center_y - (y + center_y)) ** 2) <=
               (@poi.width * 0.5 * POI_CATCH_ADJUST_RANGE_RATIO) ** 2 then
 
-              swimmer.change_mode(:catched)
-              @catch_objects.push([swimmer, [swimmer.x - x, swimmer.y - y]])
+              if not swimmer.class == Boss then
+                swimmer.change_mode(:catched)
+                @catch_objects.push([swimmer, [swimmer.x - x, swimmer.y - y]])
+              else
+                swimmer.hp -= 1
+                if swimmer.hp > 0 then
+                  swimmer.change_mode(:damaged)
+                else
+                  swimmer.change_mode(:died)
+                  @catch_objects.push([swimmer, [swimmer.x - x, swimmer.y - y]])
+                end
+              end
             end
           end
         end
@@ -1358,7 +1368,7 @@ class ResultScene < Scene::Base
   include Common
   include Color
 
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   CONGRATULATIONS_SE = "./sounds/nc134713.wav"
   OK_BUTTON_IMAGE = "./images/m_4.png"
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
@@ -1588,7 +1598,7 @@ class NameEntryScene < Scene::Base
   include Color
   include Common
 
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   NAME_ENTRY_BGM = "./sounds/yuugure.mp3"
 
   NAME_ENTRY_BUTTON_IMAGE = "./images/942037.png"
@@ -1924,7 +1934,7 @@ class RankingScene < Scene::Base
   include Common
   include Color
 
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   PAGE_UP_BUTTON = "./images/1396945_up.png"
   PAGE_DOWN_BUTTON = "./images/1396945_down.png"
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
@@ -2253,7 +2263,7 @@ class EndingScene < Scene::Base
   BACKGROUND_IMAGE = "./images/BG00a1_80a.jpg"
   STAFF_DATA_FILE = "./data/staff.csv"
   ENDING_BGM = "./sounds/itsuka_miagete_ta_tooi_sora.mp3"
-  CLICK_SE = "./sounds/push13.wav"
+  CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
 
   EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
@@ -2275,6 +2285,8 @@ class EndingScene < Scene::Base
   POI_HEIGHT_SIZE_RATIO = 0.2
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
+
+  POI_CATCH_ADJUST_RANGE_RATIO = 1.0
 
   def init
 
@@ -2300,11 +2312,19 @@ class EndingScene < Scene::Base
     background_image = Image.load(BACKGROUND_IMAGE)
     @background_image = Images.fit_resize(background_image, Window.width, Window.height)
 
+    @mouse = Sprite.new
+    @mouse.collision = [0, 0]
+
+    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
+                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
+
     @illusts = []
     ILLUST_MAX_NUMBER.times do
       illust_number = rand(NUMBER_OF_ILLUST)
       relative_size = Window.height * ILLUST_RELATIVE_SCALES[illust_number]
-      illust = Illust.new(illust_number, relative_size, [0, 0, Window.width, Window.height])
+      illust = Illust.new(illust_number, relative_size, [0, 0, Window.width, Window.height], @poi)
       @illusts.push(illust)
     end
 
@@ -2327,16 +2347,8 @@ class EndingScene < Scene::Base
 
     @buttons = [@exit_button, @window_mode_button]
 
-    @mouse = Sprite.new
-    @mouse.collision = [0, 0]
-
-    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
-                   MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
-    @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
-
     @bgm = Bass.loadSample(ENDING_BGM)
-    @bgm.play(:loop=>false, :volume=>0.8)
+    @bgm.play(:loop=>false, :volume=>0.7)
 
     @next_scene_wait_count = 0
   end
@@ -2387,6 +2399,8 @@ class EndingScene < Scene::Base
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
     @poi.update if @poi
+
+    Sprite.check(@illusts + [@poi]) if @illusts and not @illusts.empty? and @poi
   end
 
   def gazed(x, y, center_x, center_y)
@@ -2430,4 +2444,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop SplashScene, $config.fps, $config.frame_step
+Scene.main_loop SpriteScene, $config.fps, $config.frame_step

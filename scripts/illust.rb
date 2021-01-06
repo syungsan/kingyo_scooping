@@ -8,17 +8,19 @@ require "dxruby"
 
 class Illust < Sprite
 
-  attr_accessor :id, :name, :is_drag
-  attr_reader :width, :height
+  attr_accessor :id, :name, :is_drag, :mode
+  attr_reader :width, :height, :illust_number
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
     require "../lib/common"
     ILLUSTS =  Dir.glob("../images/illust_*.png")
+    CRUSHED_IMAGE = "../images/splash-clip-art.png"
   else
     require "./lib/dxruby/images"
     require "./lib/common"
     ILLUSTS =  Dir.glob("./images/illust_*.png")
+    CRUSHED_IMAGE = "./images/splash-clip-art.png"
   end
 
   include Common
@@ -28,16 +30,23 @@ class Illust < Sprite
   IN_MARGIN_RATIO = 0.5
   OUT_MARGIN_RATIO = 0.8
 
-  def initialize(illust_number, height_size, bound_rect, speed_ranges=[2.0, 5.0], rotation_speed_ranges=[1, 4],
-                 name="illust", id=0, target=Window, is_drag=false)
+  MAX_CRUSH_COUNT = 60
+
+  def initialize(illust_number, height_size, bound_rect, attack_target=nil, speed_ranges=[2.0, 5.0],
+                 rotation_speed_ranges=[1, 4], name="illust", id=0, target=Window, is_drag=false)
     super()
 
-    image_src = Image.load(ILLUSTS[illust_number])
+    @illust_number = illust_number
+    image_src = Image.load(ILLUSTS[@illust_number])
     scale_y = height_size / image_src.height.to_f
     scale_x = scale_y
+    crush_image_src = Image.load(CRUSHED_IMAGE)
 
     image = Images.scale_resize(image_src, scale_x, scale_y)
-    self.image = image
+    crush_image = Images.scale_resize(crush_image_src, scale_x * 2, scale_y * 2)
+    @images = [image, crush_image]
+
+    self.image = @images[0]
     @width = self.image.width
     @height = self.image.height
     @speed_ranges = speed_ranges
@@ -48,6 +57,8 @@ class Illust < Sprite
     self.target = target
     @is_drag = is_drag
 
+    @attack_target = attack_target
+
     @bound_rect = bound_rect
     @init_bounds = [[[@bound_rect[0], @bound_rect[0] + @bound_rect[2] - @height], @bound_rect[1] - @height],
                [@bound_rect[0] - @height, [@bound_rect[1], @bound_rect[1] + @bound_rect[3] - @height]],
@@ -55,11 +66,26 @@ class Illust < Sprite
                [[@bound_rect[0], @bound_rect[0] + @bound_rect[2] - @height], @bound_rect[1] + @bound_rect[3]]]
 
     self.constract
+
+    @crush_count = 0
+    self.change_mode(:normal)
   end
 
   def set_pos(x, y)
     self.x = x
     self.y = y
+  end
+
+  def change_mode(mode)
+
+    case mode
+
+    when :normal
+
+    when :crushed
+      self.image = @images[1]
+    end
+    @mode = mode
   end
 
   def constract
@@ -93,19 +119,41 @@ class Illust < Sprite
 
     @speed = rand_float(@speed_ranges[0], @speed_ranges[1])
     @rotation_speed = SIGN[rand(2)] * random_int(@rotation_speed_ranges[0], @rotation_speed_ranges[1])
+
+    self.change_mode(:normal)
   end
 
   def update
 
-    radian = @direction * (Math::PI / 180)
-    self.x += Math.cos(radian) * @speed
-    self.y += Math.sin(radian) * @speed
-    self.angle += @rotation_speed
+    if @mode == :normal then
+      radian = @direction * (Math::PI / 180)
+      self.x += Math.cos(radian) * @speed
+      self.y += Math.sin(radian) * @speed
+      self.angle += @rotation_speed
 
-    margin = @height * OUT_MARGIN_RATIO
-    if self.x < @bound_rect[0] - @height - margin or self.x > @bound_rect[0] + @bound_rect[2] + margin or
-      self.y < @bound_rect[1] - @height - margin or self.y > @bound_rect[1] + @bound_rect[3] + margin then
-      self.constract
+      margin = @height * OUT_MARGIN_RATIO
+      if self.x < @bound_rect[0] - @height - margin or self.x > @bound_rect[0] + @bound_rect[2] + margin or
+        self.y < @bound_rect[1] - @height - margin or self.y > @bound_rect[1] + @bound_rect[3] + margin then
+        self.constract
+      end
+
+    elsif @mode == :crushed then
+      if @crush_count >= MAX_CRUSH_COUNT then
+        @crush_count = 0
+
+        self.constract
+        self.alpha = 255
+        self.image = @images[0]
+      else
+        self.alpha = 255 - ((255 / MAX_CRUSH_COUNT) * @crush_count)
+        @crush_count += 1
+      end
+    end
+  end
+
+  def hit(obj)
+    if obj == @attack_target and not @mode == :crushed then
+      self.change_mode(:crushed)
     end
   end
 

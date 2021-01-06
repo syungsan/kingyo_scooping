@@ -97,8 +97,7 @@ class Kingyo < Sprite
     @personal_w_ran = WeightedRandomizer.new(personality_weights)
     @escape_cahange_timing = escape_change_timing
 
-    modes = [:wait, :move]
-    self.change_mode(modes[rand(2)])
+    self.change_mode(:start)
   end
 
   def set_pos(x, y)
@@ -126,7 +125,7 @@ class Kingyo < Sprite
     when :catched
       self.catched
 
-    when :reserved, :ignore, :broke
+    when :reserved, :ignore, :broke, :recovery, :start
       modes = [:wait, :move]
       self.change_mode(modes[rand(2)])
     end
