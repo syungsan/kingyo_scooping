@@ -33,7 +33,7 @@ class Illust < Sprite
   MAX_CRUSH_COUNT = 60
 
   def initialize(illust_number, height_size, bound_rect, attack_target=nil, speed_ranges=[2.0, 5.0],
-                 rotation_speed_ranges=[1, 4], name="illust", id=0, target=Window, is_drag=false)
+                 rotation_speed_ranges=[1.0, 4.0], name="illust", id=0, target=Window, is_drag=false)
     super()
 
     @illust_number = illust_number
@@ -49,6 +49,7 @@ class Illust < Sprite
     self.image = @images[0]
     @width = self.image.width
     @height = self.image.height
+    self.collision = [@width * 0.2, @height * 0.2, @width * 0.8, @height * 0.8]
     @speed_ranges = speed_ranges
     @rotation_speed_ranges = rotation_speed_ranges
 
@@ -118,7 +119,7 @@ class Illust < Sprite
     self.set_pos(x, y)
 
     @speed = rand_float(@speed_ranges[0], @speed_ranges[1])
-    @rotation_speed = SIGN[rand(2)] * random_int(@rotation_speed_ranges[0], @rotation_speed_ranges[1])
+    @rotation_speed = SIGN[rand(2)] * rand_float(@rotation_speed_ranges[0], @rotation_speed_ranges[1])
 
     self.change_mode(:normal)
   end
@@ -158,23 +159,24 @@ class Illust < Sprite
   end
 
   def draw
-    self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :center_x=>nil, :center_y=>nil,
-                                                     :alpha=>self.alpha, :blend=>:alpha, :color=>[255, 255, 255], :angle=>self.angle, :z=>self.z})
+    self.target.draw_ex(self.x, self.y, self.image,
+                        {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :center_x=>nil, :center_y=>nil,
+                         :alpha=>self.alpha, :blend=>:alpha, :color=>[255, 255, 255], :angle=>self.angle, :z=>self.z})
   end
 end
 
 
 if __FILE__ == $0 then
 
-  Window.width = 1280
-  Window.height = 720
+  Window.width = 1920
+  Window.height = 1080
 
-  relative_scales = [0.2, 0.15, 0.2, 0.25, 0.45, 0.27]
+  relative_scales = [0.12, 0.09, 0.12, 0.16, 0.25, 0.14]
 
   illusts = []
   12.times do
     illust_number = rand(6)
-    relative_size = Window.height * relative_scales[illust_number]
+    relative_size = Window.width * relative_scales[illust_number]
     illust = Illust.new(illust_number, relative_size, [0, 0, Window.width, Window.height])
     illusts.push(illust)
   end

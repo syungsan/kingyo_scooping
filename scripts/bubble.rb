@@ -104,8 +104,8 @@ end
 
 if __FILE__ == $0 then
 
-  Window.width = 1280
-  Window.height = 720
+  Window.width = 1920
+  Window.height = 1080
 
   bubble_scale_up_speed_min = 1
   bubble_scale_up_speed_max = bubble_scale_up_speed_min * 1.004
@@ -124,7 +124,7 @@ if __FILE__ == $0 then
                         [bubble_amplification_speed_min, bubble_amplification_speed_max],
                         [bubble_angular_velo_up_speed_min, bubble_angular_velo_up_speed_max])
     bubble.set_x([-1 * bubble.width * Math.sqrt(2), Window.width + (bubble.width * Math.sqrt(2))])
-    bubble.set_y([Window.height + bubble.height, Window.height * 1.5])
+    bubble.set_y([Window.height + bubble.height, Window.height * 1.1])
     bubbles.push(bubble)
   end
 

@@ -148,18 +148,18 @@ if __FILE__ == $0 then
   CANCEL_BUTTON_IMAGE = "../images/m_1.png"
 
 =begin
-  message_dialog_height = Window.height * 0.4
-  message_dialog_width = message_dialog_height * 2
-  message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+  message_dialog_width = Window.width * 0.5
+  message_dialog_height = message_dialog_width * 0.5
+  message_dialog_option = {:frame_thickness=>(message_dialog_width * 0.02).round, :radius=>message_dialog_height * 0.03,
                            :bg_color=>[128, 255, 255, 255], :frame_color=>C_YELLOW}
   message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height,
                                      1, message_dialog_option)
   message_dialog.set_message("通信エラー…", "タイトルに戻ります。",
                              message_dialog.height * 0.25, C_RED, "みかちゃん")
 =end
-  message_dialog_height = Window.height * 0.5
-  message_dialog_width = message_dialog_height * 2
-  message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+  message_dialog_width = Window.width * 0.5
+  message_dialog_height = message_dialog_width * 0.5
+  message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.02).round, :radius=>message_dialog_height * 0.03,
                            :bg_color=>[128, 255, 255, 255], :frame_color=>C_CYAN}
   message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height,
                                      1, message_dialog_option)

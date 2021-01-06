@@ -84,7 +84,7 @@ if __FILE__ == $0 then
   Window.width = 1280
   Window.height = 720
 
-  loading_kingyo = LoadingAnime.new(0, 0, nil, Window.height * 0.3)
+  loading_kingyo = LoadingAnime.new(0, 0, nil, Window.width * 0.2)
   loading_kingyo.set_pos(0, Window.height - loading_kingyo.height)
   loading_kingyo.is_anime = true
 

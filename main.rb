@@ -1937,14 +1937,14 @@ class RankingScene < Scene::Base
   CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   PAGE_UP_BUTTON = "./images/1396945_up.png"
   PAGE_DOWN_BUTTON = "./images/1396945_down.png"
-  EXIT_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
   OK_BUTTON_IMAGE = "./images/m_4.png"
+  RETURN_BUTTON_IMAGE = "./images/m_1.png"
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE_RATIO = 0.2
+  POI_WIDTH_SIZE_RATIO = 0.13
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -1960,43 +1960,35 @@ class RankingScene < Scene::Base
     @title_label = Fonts.new(0, 0, "ランキング TOP100", Window.height * 0.07, C_DARK_BLUE, {:font_name=>"チェックポイントフォント"})
     @title_label.set_pos((Window.width - @title_label.width) * 0.5, (Window.height - @title_label.height) * 0.04)
 
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    exit_button_scale = Window.height * 0.05 / exit_button_image.height
-    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
-    @exit_button = Button.new
-    @exit_button.set_image(exit_button_converted_image)
-    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @exit_button.set_pos(Window.width - @exit_button.width, 0)
-
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
     window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+    @window_mode_button.set_pos(Window.width - @window_mode_button.width, 0)
 
-    return_button_image = Image.load(OK_BUTTON_IMAGE)
+    return_button_image = Image.load(RETURN_BUTTON_IMAGE)
     @return_button = Button.new(Window.width * 0.4, Window.height * 0.85, Window.width * 0.2, Window.height * 0.1, "タイトルに戻る",
-                                Window.height * 0.06, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
+                                Window.height * 0.045, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
     @return_button.set_image(Images.fit_resize(return_button_image, Window.width * 0.2, Window.height * 0.1))
 
     page_up_button_image = Image.load(PAGE_UP_BUTTON)
-    page_up_button_scale = Window.height * 0.15 / page_up_button_image.height
+    page_up_button_scale = Window.width * 0.07 / page_up_button_image.width
     page_up_button_converted_image = Images.scale_resize(page_up_button_image, page_up_button_scale, page_up_button_scale)
     @page_up_button = Button.new
     @page_up_button.set_image(page_up_button_converted_image)
     @page_up_button.set_pos((Window.width - @page_up_button.width) * 0.953, (Window.height - @page_up_button.height) * 0.35)
 
     page_down_button_image = Image.load(PAGE_DOWN_BUTTON)
-    page_down_button_scale = Window.height * 0.15 / page_down_button_image.height
+    page_down_button_scale = Window.width * 0.07 / page_down_button_image.width
     page_down_button_converted_image = Images.scale_resize(page_down_button_image, page_down_button_scale, page_down_button_scale)
     @page_down_button = Button.new()
     @page_down_button.set_image(page_down_button_converted_image)
     @page_down_button.set_pos((Window.width - @page_down_button.width) * 0.95, (Window.height - @page_down_button.height) * 0.65)
 
-    @buttons = [@exit_button, @window_mode_button, @return_button, @page_up_button, @page_down_button]
+    @buttons = [@window_mode_button, @return_button, @page_up_button, @page_down_button]
 
     @click_se = Sound.new(CLICK_SE)
 
@@ -2017,14 +2009,14 @@ class RankingScene < Scene::Base
                           [bubble_amplification_speed_min, bubble_amplification_speed_max],
                           [bubble_angular_velo_up_speed_min, bubble_angular_velo_up_speed_max])
       bubble.set_x([-1 * bubble.width * Math.sqrt(2), Window.width + (bubble.width * Math.sqrt(2))])
-      bubble.set_y([Window.height + bubble.height, Window.height * 1.5])
+      bubble.set_y([Window.height + bubble.height, Window.height * 1.1])
       @bubbles.push(bubble)
     end
 
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.width * POI_WIDTH_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
@@ -2032,12 +2024,12 @@ class RankingScene < Scene::Base
     @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [164, 128, 128, 128])
 
     @is_connect_error = false
-    @loading_kingyo = LoadingAnime.new(0, 0, nil, Window.height * 0.3)
+    @loading_kingyo = LoadingAnime.new(0, 0, nil, Window.width * 0.2)
     @loading_kingyo.set_pos(0, Window.height - @loading_kingyo.height)
 
-    message_dialog_height = Window.height * 0.4
-    message_dialog_width = message_dialog_height * 2
-    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round, :radius=>message_dialog_height * 0.05,
+    message_dialog_width = Window.width * 0.5
+    message_dialog_height = message_dialog_width * 0.5
+    message_dialog_option = {:frame_thickness=>(message_dialog_width * 0.02).round, :radius=>message_dialog_width * 0.03,
                              :bg_color=>C_CREAM, :frame_color=>C_YELLOW}
     @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height, 0, message_dialog_option)
     @message_dialog.set_message("通信エラー…", "タイトルに戻ります。", @message_dialog.height * 0.25, C_RED, "みかちゃん")
@@ -2122,7 +2114,8 @@ class RankingScene < Scene::Base
   end
 
   def make_list_box(items, colors)
-    @list_box = ScoreListBox.new(250, 150, Window.width - 500, Window.height - 350, Window.height * SCROLL_SPEED_RATIO)
+    @list_box = ScoreListBox.new(0, 0, Window.width * 0.74, Window.height * 0.68, Window.height * SCROLL_SPEED_RATIO)
+    @list_box.set_pos((Window.width - @list_box.width) * 0.5, (Window.height - @list_box.height) * 0.42)
     @list_box.set_items(items, [2, 5, 4, 3, 5], C_ROYAL_BLUE, colors, 3, "みかちゃん")
   end
 
@@ -2271,21 +2264,21 @@ class EndingScene < Scene::Base
   OK_BUTTON_IMAGE = "./images/m_4.png"
   CANCEL_BUTTON_IMAGE = "./images/m_1.png"
 
-  BASE_FONT_SIZE_RATIO = 0.07
+  BASE_FONT_SIZE_RATIO = 0.04
   FONT_SHADOW_OFF_SET_X = 3
   FONT_SHADOW_OFF_SET_Y = 3
   BASE_Y_INTERVAL = 100
 
   BGM_TIME = 89
   MAX_NEXT_SCENE_WAIT_COUNT = 240
-  ILLUST_RELATIVE_SCALES = [0.2, 0.15, 0.2, 0.25, 0.4, 0.27]
+  ILLUST_RELATIVE_SCALES = [0.12, 0.09, 0.12, 0.16, 0.25, 0.14]
   ILLUST_MAX_NUMBER = 15
   NUMBER_OF_ILLUST = 6
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE_RATIO = 0.2
+  POI_WIDTH_SIZE_RATIO = 0.13
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -2301,7 +2294,7 @@ class EndingScene < Scene::Base
     sum_interval = 0
 
     staff_datas.each do |staff_data|
-      sprite_font = SpriteFont.new(0, 0, staff_data[0], Window.height * BASE_FONT_SIZE_RATIO * staff_data[1].to_f,
+      sprite_font = SpriteFont.new(0, 0, staff_data[0], Window.width * BASE_FONT_SIZE_RATIO * staff_data[1].to_f,
                                    hex_to_rgb(staff_data[2].hex).values, C_DEFAULT,
                                    {:font_name=>staff_data[3], :shadow=>true, :shadow_color=>C_SHADOW,
                                     :shadow_x=>FONT_SHADOW_OFF_SET_X, :shadow_y=>FONT_SHADOW_OFF_SET_Y})
@@ -2319,7 +2312,7 @@ class EndingScene < Scene::Base
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.width * POI_WIDTH_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                                :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO,
                                                :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
@@ -2328,13 +2321,13 @@ class EndingScene < Scene::Base
     @illusts = []
     ILLUST_MAX_NUMBER.times do
       illust_number = rand(NUMBER_OF_ILLUST)
-      relative_size = Window.height * ILLUST_RELATIVE_SCALES[illust_number]
+      relative_size = Window.width * ILLUST_RELATIVE_SCALES[illust_number]
       illust = Illust.new(illust_number, relative_size, [0, 0, Window.width, Window.height], @poi)
       @illusts.push(illust)
     end
 
     return_button_image = Image.load(RETURN_BUTTON_IMAGE)
-    return_button_scale = Window.height * 0.05 / return_button_image.height
+    return_button_scale = Window.width * 0.065 / return_button_image.width
     return_button_converted_image = Images.scale_resize(return_button_image, return_button_scale, return_button_scale)
     @return_button = Button.new
     @return_button.set_image(return_button_converted_image)
@@ -2343,7 +2336,7 @@ class EndingScene < Scene::Base
     @return_button.set_pos(Window.width - @return_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
     window_mode_button_converted_image =
       Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
 
@@ -2356,10 +2349,10 @@ class EndingScene < Scene::Base
     @cover_layer = Image.new(Window.width, Window.height).box_fill(
       0, 0, Window.width, Window.height, [164, 128, 128, 128])
 
-    message_dialog_height = Window.height * 0.5
-    message_dialog_width = message_dialog_height * 2
-    message_dialog_option = {:frame_thickness=>(message_dialog_height * 0.05).round,
-                             :radius=>message_dialog_height * 0.05,
+    message_dialog_width = Window.width * 0.5
+    message_dialog_height = message_dialog_width * 0.5
+    message_dialog_option = {:frame_thickness=>(message_dialog_width * 0.02).round,
+                             :radius=>message_dialog_width * 0.03,
                              :bg_color=>C_CREAM, :frame_color=>C_CYAN}
     @message_dialog = MessageDialog.new(0, 0, message_dialog_width, message_dialog_height,
                                         1, message_dialog_option)
@@ -2511,4 +2504,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop EndingScene, $config.fps, $config.frame_step
+Scene.main_loop RankingScene, $config.fps, $config.frame_step

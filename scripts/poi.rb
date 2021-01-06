@@ -380,11 +380,11 @@ if __FILE__ == $0 then
   MAX_COUNT_IN_GAZE_AREA = 30
   MAX_GAZE_COUNT = 60
 
-  POI_HEIGHT_SIZE = Window.height * 0.35
+  POI_WIDTH_SIZE = Window.height * 0.35
   POI_GAZE_RADIUS_RATIO = 0.5
 
   @mouse = Sprite.new(0, 0)
-  @poi = Poi.new(0, 0, nil, POI_HEIGHT_SIZE, @mouse,
+  @poi = Poi.new(0, 0, nil, POI_WIDTH_SIZE, @mouse,
                  MAX_GAZE_COUNT, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
                                   :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
   @poi.view_impact_range = true

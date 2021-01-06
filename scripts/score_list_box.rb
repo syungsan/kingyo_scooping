@@ -54,6 +54,11 @@ class ScoreListBox
     @page_number = 1
   end
 
+  def set_pos(x, y)
+    @x = x
+    @y = y
+  end
+
   def set_items(items, horizontal_division_ratios, default_text_color, target_colors, color_target_index,
                 font_type="‚l‚r ‚oƒSƒVƒbƒN", vertical_division=10)
 
@@ -136,7 +141,8 @@ if __FILE__ == $0 then
 
   colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
 
-  list_box = ScoreListBox.new(25, 25, 1230, 670, Window.height * SCROLL_SPEED_RATIO)
+  list_box = ScoreListBox.new(0, 0, Window.width * 0.8, Window.height * 0.6, Window.height * SCROLL_SPEED_RATIO)
+  list_box.set_pos((Window.width - list_box.width) * 0.5, (Window.height - list_box.height) * 0.5)
   list_box.set_items(items, [3, 8, 7, 4], C_ROYAL_BLUE, colors, 3)
 
   Window.bgcolor = [127, 255, 212]
