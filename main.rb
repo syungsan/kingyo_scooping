@@ -193,7 +193,7 @@ class SplashScene < Scene::Base
     @card.draw
   end
 
-  def did_disappear
+  def will_disappear
 
   end
 end
@@ -355,7 +355,7 @@ class TitleScene < Scene::Base
 
     if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
-      self.did_disappear
+      self.will_disappear
       exit
     end
 
@@ -469,7 +469,7 @@ class TitleScene < Scene::Base
     @poi.draw if @poi
   end
 
-  def did_disappear
+  def will_disappear
 
   end
 end
@@ -913,7 +913,7 @@ class GameScene < Scene::Base
 
     if @exit_button and (@exit_button.pushed? or @exit_button.is_gazed) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
-      self.did_disappear
+      self.will_disappear
       exit
     end
 
@@ -1119,7 +1119,7 @@ class GameScene < Scene::Base
     if @mode == :game_over or @mode == :game_clear then
       if @end_count > 240 then
         @end_count = 0
-        self.did_disappear
+        self.will_disappear
         self.next_scene = ResultScene
       else
         @end_count += 1
@@ -1346,7 +1346,7 @@ class GameScene < Scene::Base
     @stage_info_label.draw if @stage_info_label and (@mode == :start or @mode == :game_over or @mode == :game_clear)
   end
 
-  def did_disappear
+  def will_disappear
     if @bgm then
       @bgm.stop
       @main_bgm.free if @main_bgm
@@ -1516,7 +1516,7 @@ class ResultScene < Scene::Base
 
     if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
-      self.did_disappear
+      self.will_disappear
       exit
     end
 
@@ -1578,7 +1578,7 @@ class ResultScene < Scene::Base
     @poi.draw if @poi
   end
 
-  def did_disappear
+  def will_disappear
 
   end
 end
@@ -1612,6 +1612,7 @@ class NameEntryScene < Scene::Base
   CANCEL_BUTTON_IMAGE = "./images/m_1.png"
 
   MAX_NAME_INPUT_NUMBER = 8
+  HIRA_GANA_SIZE = [17, 5]
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
@@ -1630,7 +1631,8 @@ class NameEntryScene < Scene::Base
     @bgm = Bass.loadSample(NAME_ENTRY_BGM)
 
     floor_image = Image.load(FLOOR_IMAGE)
-    floor_src_image = Images.scale_resize(floor_image, 1.0, 1.0)
+    floor_image_scale = Window.width * 0.2 / floor_image.width.to_f
+    floor_src_image = Images.scale_resize(floor_image, floor_image_scale, floor_image_scale)
     floor_rt = RenderTarget.new(Window.width, Window.height)
     floor_rt.drawTile(0, 0, [[0]], [floor_src_image], nil, nil, nil, nil)
     @floor_image = floor_rt.to_image
@@ -1697,8 +1699,9 @@ class NameEntryScene < Scene::Base
                                 "ˆê•¶ŽšÁ‚·", Window.height * 0.065, {:str_color=>C_DARK_BLUE, :font_name=>"07ƒ‰ƒmƒxPOP"})
     @delete_button.set_image(Images.fit_resize(delete_button_image, Window.width * 0.2, Window.height * 0.1))
 
-    name_entry_button_width = Window.height * 0.1
-    name_entry_button_height = Window.height * 0.1
+    name_entry_pre_width = Window.width * 0.96
+    name_entry_button_width = name_entry_pre_width / HIRA_GANA_SIZE[0]
+    name_entry_button_height = name_entry_button_width
     name_entry_button_image = Image.load(NAME_ENTRY_BUTTON_IMAGE)
     name_entry_button_x_scale =  name_entry_button_width / name_entry_button_image.width
     name_entry_button_y_scale = name_entry_button_height / name_entry_button_image.height
@@ -1708,7 +1711,8 @@ class NameEntryScene < Scene::Base
 
     @name_entry = NameEntry.new(0, 0, name_entry_button_width, name_entry_button_height, name_entry_buttons_font_size,
                                C_BROWN, C_WHITE, {:font_name=>"‚Ý‚©‚¿‚á‚ñ"})
-    @name_entry.set_pos((Window.width - @name_entry.width) * 0.5, (Window.height - @name_entry.height) * 0.6)
+    @name_entry.set_pos((Window.width - @name_entry.width) * 0.5 - HIRA_GANA_SIZE[0] * 0.5,
+                        (Window.height - @name_entry.height) * 0.6 - HIRA_GANA_SIZE[1] * 0.5)
     @name_entry.set_image(name_entry_button_coverted_image)
 
     @input_box.string = $scores[:name]
@@ -1837,7 +1841,7 @@ class NameEntryScene < Scene::Base
           self.send_to_database
           @loading_kingyo.is_anime = false
           self.next_scene = RankingScene
-          self.did_disappear
+          self.will_disappear
         rescue
           if retry_count < RETRY_MAX_COUNT
             sleep RETRY_WAIT_TIME
@@ -1846,7 +1850,7 @@ class NameEntryScene < Scene::Base
           else
             @is_connect_error = true
             @loading_kingyo.is_anime = false
-            self.did_disappear
+            self.will_disappear
             false
           end
         end
@@ -1989,7 +1993,7 @@ class NameEntryScene < Scene::Base
     @poi.draw if @poi
   end
 
-  def did_disappear
+  def will_disappear
     if @bgm then
       @bgm.stop
       @bgm.free
@@ -2337,7 +2341,7 @@ class RankingScene < Scene::Base
     @poi.draw if @poi
   end
 
-  def did_disappear
+  def will_disappear
 
   end
 end
@@ -2613,7 +2617,7 @@ class EndingScene < Scene::Base
     @poi.draw if @poi
   end
 
-  def did_disappear
+  def will_disappear
 
   end
 end
