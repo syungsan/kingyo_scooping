@@ -12,6 +12,8 @@ class NameEntry
 
   if __FILE__ == $0
     require "../lib/dxruby/button"
+  else
+    require "./lib/dxruby/button"
   end
 
   HIRA_GANA = [["‚ ", "‚¢", "‚¤", "‚¦", "‚¨"],
@@ -116,7 +118,7 @@ if __FILE__ == $0
   Window.height = 720
 
   name_entry = NameEntry.new(0, 0, 70, 70, 54, C_BLACK, C_WHITE)
-  name_entry.setPos((Window.width - name_entry.width) * 0.5, (Window.height - name_entry.height) * 0.5)
+  name_entry.set_pos((Window.width - name_entry.width) * 0.5, (Window.height - name_entry.height) * 0.5)
 
   Window.loop do
     for word_button in name_entry.word_buttons do
