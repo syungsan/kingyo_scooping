@@ -1371,8 +1371,9 @@ class ResultScene < Scene::Base
   CLICK_SE = "./sounds/meka_ge_mouse_s02.wav"
   CONGRATULATIONS_SE = "./sounds/nc134713.wav"
   OK_BUTTON_IMAGE = "./images/m_4.png"
-  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  RETURN_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+  CANCEL_BUTTON_IMAGE = "./images/m_1.png"
 
   COMMENDATION_POINT = 800
   CONFETTI_MAX_NUMBER = 800
@@ -1380,7 +1381,7 @@ class ResultScene < Scene::Base
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE_RATIO = 0.2
+  POI_WIDTH_SIZE_RATIO = 0.13
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
 
@@ -1391,6 +1392,7 @@ class ResultScene < Scene::Base
 
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_MISTY_ROSE)
 
+    $scores[:technical_point] = 1000
     $scores[:cognomen], $scores[:color] = "ウンコちゃん", C_BROWN if $scores[:technical_point] < COMMENDATION_POINT * 0.5
     $scores[:cognomen], $scores[:color] = "ザコりん", C_CYAN if
       $scores[:technical_point] >= COMMENDATION_POINT * 0.5 and $scores[:technical_point] < COMMENDATION_POINT * 0.6
@@ -1411,7 +1413,8 @@ class ResultScene < Scene::Base
     @titleLabel = Fonts.new(0, 0, "結果", Window.height * 0.1, C_PURPLE, {:font_name=>"チェックポイントフォント"})
     @titleLabel.set_pos((Window.width - @titleLabel.width) * 0.5, (Window.height - @titleLabel.height) * 0.03)
 
-    @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点", Window.height * 0.05, C_GREEN, {:font_name=>"自由の翼フォント"})
+    @score_label = Fonts.new(0, 0, "SCORE : #{$scores[:score]}点",
+                             Window.height * 0.05, C_GREEN, {:font_name=>"自由の翼フォント"})
     @score_label.set_pos((Window.width - @score_label.width) * 0.5, (Window.height - @score_label.height) * 0.18)
 
     @catched_kingyo_number_label = Fonts.new(0, 0, "金魚捕獲数 : #{$scores[:catched_kingyo_number]}匹",
@@ -1426,15 +1429,18 @@ class ResultScene < Scene::Base
 
     @max_combo_label = Fonts.new(0, 0, "MAXコンボ : #{$scores[:max_combo]}",
                                  Window.height * 0.07, C_ORANGE, {:font_name=>"自由の翼フォント"})
-    @max_combo_label.set_pos((Window.width - @max_combo_label.width) * 0.5, (Window.height - @max_combo_label.height) * 0.48)
+    @max_combo_label.set_pos((Window.width - @max_combo_label.width) * 0.5,
+                             (Window.height - @max_combo_label.height) * 0.48)
 
     @technical_point_label = Fonts.new(0, 0, "テクニカルポイント : #{$scores[:technical_point]}",
                                        Window.height * 0.05, C_DARK_BLUE, {:font_name=>"自由の翼フォント"})
-    @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5, (Window.height - @technical_point_label.height) * 0.6)
+    @technical_point_label.set_pos((Window.width - @technical_point_label.width) * 0.5,
+                                   (Window.height - @technical_point_label.height) * 0.6)
 
     @cognomen_label = Fonts.new(0, 0, "称号 : #{$scores[:cognomen]}",
                                 Window.height * 0.1, $scores[:color], {:font_name=>"たぬき油性マジック"})
-    @cognomen_label.set_pos((Window.width - @cognomen_label.width) * 0.5, (Window.height - @cognomen_label.height) * 0.75)
+    @cognomen_label.set_pos((Window.width - @cognomen_label.width) * 0.5,
+                            (Window.height - @cognomen_label.height) * 0.75)
     @cognomen_label.set_weight = true
 
     ok_button_image = Image.load(OK_BUTTON_IMAGE)
@@ -1442,32 +1448,66 @@ class ResultScene < Scene::Base
                             Window.height * 0.08, {:str_color=>C_DARK_BLUE, :font_name=>"07ラノベPOP"})
     @ok_button.set_image(Images.fit_resize(ok_button_image, Window.width * 0.2, Window.height * 0.1))
 
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    exit_button_scale = Window.height * 0.05 / exit_button_image.height
-    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
-    @exit_button = Button.new
-    @exit_button.set_image(exit_button_converted_image)
-    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @exit_button.set_pos(Window.width - @exit_button.width, 0)
+    return_button_image = Image.load(RETURN_BUTTON_IMAGE)
+    return_button_scale = Window.width * 0.065 / return_button_image.width
+    return_button_converted_image = Images.scale_resize(return_button_image, return_button_scale, return_button_scale)
+    @return_button = Button.new
+    @return_button.set_image(return_button_converted_image)
+    @return_button.set_string("Return", return_button_converted_image.height * 0.6,
+                              "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @return_button.set_pos(Window.width - @return_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
-    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image,
+                                                             window_mode_button_scale, window_mode_button_scale)
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+    @window_mode_button.set_pos(Window.width - (@return_button.width + @window_mode_button.width), 0)
 
-    @buttons = [@ok_button, @exit_button, @window_mode_button]
+    return_message_dialog_width = Window.width * 0.5
+    return_message_dialog_height = return_message_dialog_width * 0.5
+    return_message_dialog_option = {:frame_thickness=>(return_message_dialog_width * 0.02).round,
+                                    :radius=>return_message_dialog_width * 0.03,
+                                    :bg_color=>C_CREAM, :frame_color=>C_CYAN}
+    @return_message_dialog = MessageDialog.new(0, 0, return_message_dialog_width, return_message_dialog_height,
+                                               1, return_message_dialog_option)
+    @return_message_dialog.set_message("タイトルに戻りますか？", "",
+                                       @return_message_dialog.height * 0.15, C_BROWN, "みかちゃん")
+    @return_message_dialog.set_pos((Window.width - @return_message_dialog.width) * 0.5,
+                                   (Window.height - @return_message_dialog.height) * 0.5)
+
+    @return_message_dialog.ok_button.font_color = C_DARK_BLUE
+    @return_message_dialog.ok_button.font_name = "07ラノベPOP"
+    @return_message_dialog.ok_button.name = "return_message_ok_button"
+
+    @return_message_dialog.cancel_button.font_color = C_DARK_BLUE
+    @return_message_dialog.cancel_button.font_name = "07ラノベPOP"
+    @return_message_dialog.cancel_button.name = "return_message_cancel_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @return_message_dialog.ok_button.set_image(
+      Images.fit_resize(ok_button_image, @return_message_dialog.ok_button.width,
+                        @return_message_dialog.ok_button.height))
+
+    cancel_button_image = Image.load(CANCEL_BUTTON_IMAGE)
+    @return_message_dialog.cancel_button.set_image(Images.fit_resize(
+      cancel_button_image, @return_message_dialog.cancel_button.width, @return_message_dialog.cancel_button.height))
+
+    @is_returnable = false
+
+    @buttons = [@ok_button, @return_button, @window_mode_button,
+                @return_message_dialog.ok_button, @return_message_dialog.cancel_button]
 
     if $scores[:technical_point] >= COMMENDATION_POINT then
 
-      confetti_size_min = Window.height * 0.03
+      confetti_size_min = Window.width * 0.0169
       confetti_size_max = confetti_size_min * 3
       confetti_accel_min = 0.02
       confetti_accel_max = confetti_accel_min * 4
-      confetti_amp_min = Window.height * 0.005
+      confetti_amp_min = Window.width * 0.0028
       confetti_amp_max = confetti_amp_min * 2
       confetti_rot_speed_min = 0.5
       confetti_rot_speed_max = confetti_rot_speed_min * 15
@@ -1487,12 +1527,15 @@ class ResultScene < Scene::Base
       @congratulations_se.play
     end
 
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0,
+                                                                   Window.width, Window.height, [164, 128, 128, 128])
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.width * POI_WIDTH_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO,
+                                               :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
   end
 
@@ -1504,7 +1547,7 @@ class ResultScene < Scene::Base
       end
     end
 
-    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_returnable and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -1514,13 +1557,15 @@ class ResultScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
-      @exit_button.is_gazed = false
-      self.will_disappear
-      exit
+    if (@return_button and not @is_returnable and
+      (@return_button.pushed? or @return_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @return_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_returnable = true
     end
 
-    if @ok_button and (@ok_button.pushed? or @ok_button.is_gazed) then
+    if @ok_button and not @is_returnable and (@ok_button.pushed? or @ok_button.is_gazed) then
       @click_se.play if @click_se
       if $scores[:technical_point] >= COMMENDATION_POINT then
         self.next_scene = EndingScene
@@ -1531,8 +1576,31 @@ class ResultScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        if @is_returnable and (button.name == "return_message_ok_button" or
+          button.name == "return_message_cancel_button") then
+          button.hovered?
+        elsif not @is_returnable and
+          not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+          button.hovered?
+        end
       end
+    end
+
+    if @return_message_dialog and @is_returnable and
+      (@return_message_dialog.ok_button.pushed? or @return_message_dialog.ok_button.is_gazed) then
+      @return_message_dialog.ok_button.is_gazed = false
+
+      @click_se.play if @click_se
+      self.next_scene = TitleScene
+      @is_returnable = false
+    end
+
+    if @return_message_dialog and @is_returnable and
+      (@return_message_dialog.cancel_button.pushed? or @return_message_dialog.cancel_button.is_gazed) then
+      @return_message_dialog.cancel_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_returnable = false
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
@@ -1546,7 +1614,14 @@ class ResultScene < Scene::Base
       @buttons.each do |button|
         if x + center_x >= button.x and x + center_x <= button.x + button.width and
           y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+
+          if @is_returnable and (button.name == "return_message_ok_button" or
+            button.name == "return_message_cancel_button") then
+            button.is_gazed = true
+          elsif not @is_returnable and
+            not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+            button.is_gazed = true
+          end
         end
       end
     end
@@ -1572,8 +1647,11 @@ class ResultScene < Scene::Base
     @cognomen_label.draw if @cognomen_label
 
     @ok_button.draw if @ok_button
-    @exit_button.draw if @exit_button
+    @return_button.draw if @return_button
     @window_mode_button.draw if @window_mode_button
+
+    Window.draw(0, 0, @cover_layer) if @cover_layer and @is_returnable
+    @return_message_dialog.draw if @return_message_dialog and @is_returnable
 
     @poi.draw if @poi
   end
@@ -2623,4 +2701,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop NameEntryScene, $config.fps, $config.frame_step
+Scene.main_loop ResultScene, $config.fps, $config.frame_step

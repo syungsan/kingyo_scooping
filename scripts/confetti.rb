@@ -22,7 +22,8 @@ class Confetti < Sprite
 
   include Common
 
-  def initialize(max_y=0, x_ranges=[0, 800], y_ranges=[0, 300], size_ranges=[1, 5], accel_ranges=[1, 5], amp_ranges=[1, 5], rot_speed_ranges=[1, 5],
+  def initialize(max_y=0, x_ranges=[0, 800], y_ranges=[0, 300], size_ranges=[1, 5], accel_ranges=[1, 5],
+                 amp_ranges=[1, 5], rot_speed_ranges=[1, 5],
                  angular_velo_ranges=[1, 5], id=0, name="confetti", target=Window, is_drag=false)
     super()
 
@@ -106,11 +107,11 @@ if __FILE__ == $0 then
   Window.width = 1280
   Window.height = 720
 
-  confetti_size_min = Window.height * 0.03
+  confetti_size_min = Window.width * 0.0169
   confetti_size_max = confetti_size_min * 3
   confetti_accel_min = 0.02
   confetti_accel_max = confetti_accel_min * 4
-  confetti_amp_min = Window.height * 0.005
+  confetti_amp_min = Window.width * 0.0028
   confetti_amp_max = confetti_amp_min * 2
   confetti_rot_speed_min = 0.5
   confetti_rot_speed_max = confetti_rot_speed_min * 15
@@ -119,9 +120,12 @@ if __FILE__ == $0 then
 
   confettis = []
   600.times do
-    confetti = Confetti.new(Window.height, [0, 800], [-600, 0], [confetti_size_min, confetti_size_max],
-                            [confetti_accel_min, confetti_accel_max], [confetti_amp_min, confetti_amp_max],
-                            [confetti_rot_speed_min, confetti_rot_speed_max], [confetti_angular_velo_min, confetti_angular_velo_max])
+    confetti = Confetti.new(Window.height, [0, 800], [-600, 0],
+                            [confetti_size_min, confetti_size_max],
+                            [confetti_accel_min, confetti_accel_max],
+                            [confetti_amp_min, confetti_amp_max],
+                            [confetti_rot_speed_min, confetti_rot_speed_max],
+                            [confetti_angular_velo_min, confetti_angular_velo_max])
     confetti.set_x([-1 * confetti.width * Math.sqrt(2), Window.width + (confetti.width * Math.sqrt(2))])
     confetti.set_y([-1 * confetti.height * Math.sqrt(2), -1 * Window.height + confetti.height * Math.sqrt(2)])
     confettis.push(confetti)
