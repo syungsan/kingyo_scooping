@@ -56,8 +56,10 @@ class Card < Sprite
   def set_text(front_text, back_text, font_size, front_color, back_color, font_type="‚l‚r ‚oƒSƒVƒbƒN")
     front_font = Font.new(font_size, font_type)
     back_font = Font.new(font_size, font_type)
-    @front_image.draw_font_ex((@width - font_size) * 0.5, (@height - font_size) * 0.5, front_text, front_font, {:color=>front_color})
-    @back_image.draw_font_ex((@width - font_size) * 0.5, (@height - font_size) * 0.5, back_text, back_font, {:color=>back_color})
+    @front_image.draw_font_ex((@width - font_size) * 0.5,
+                              (@height - font_size) * 0.5, front_text, front_font, {:color=>front_color})
+    @back_image.draw_font_ex((@width - font_size) * 0.5,
+                             (@height - font_size) * 0.5, back_text, back_font, {:color=>back_color})
     self.constract
   end
 

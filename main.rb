@@ -8,9 +8,6 @@ if defined?(ExerbRuntime)
   Dir.chdir(File.dirname(ExerbRuntime.filepath))
 end
 
-# この実行スクリプトのあるディレクトリに移動
-Dir.chdir(File.expand_path("..", __FILE__))
-
 require "dxruby" # DXRuby本体
 require "./lib/dxruby/scene"
 
@@ -23,6 +20,7 @@ require "./lib/dxruby/scene"
 # みかちゃん
 # Ballpark
 # Boldhead
+# Phenomena
 
 
 class Configuration
@@ -30,7 +28,7 @@ class Configuration
   attr_reader :fps, :frame_step, :app_name, :app_sub_title, :copyright, :ver_number,
               :post_url, :get_url, :default_name
 
-  require "./lib/display" # ディスプレイ情報取得
+  require "./lib/display"
   require "./lib/dxruby/color"
   require "./scripts/resolution"
 
@@ -41,22 +39,12 @@ class Configuration
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby, DXRuby & VisualuRuby."
-  VERSION_NUMBER = "0.9.4"
+  VERSION_NUMBER = "0.9.5"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
   FRAME_STEP = 1
   FRAME_SKIP = true
-  WINDOWED = true
-
-  # 初期のウィンドウカラー
-  DEFAULT_BACK_GROUND_COLER = C_AQUA_MARINE
-
-  # 最大で表示できるウィンドウサイズ
-  WINDOW_SIZE = FHD
-
-  # 起動時にウィンドウを画面中央に表示する
-  IS_WINDOW_CENTER = true
 
   # データベース POST URL
   POST_URL = "http://tk2-254-36598.vs.sakura.ne.jp/ranking/kingyo_scoopings/record"
@@ -65,6 +53,12 @@ class Configuration
   GET_URL = "http://tk2-254-36598.vs.sakura.ne.jp/ranking/kingyo_scoopings/show"
 
   DEFAULT_NAME = "ななしさん"
+
+  # 初期のウィンドウカラー
+  DEFAULT_BACK_GROUND_COLER = C_AQUA_MARINE
+
+  # 起動時にウィンドウを画面中央に表示する
+  IS_WINDOW_CENTER = true
 
   TANUKI_MAGIC_FONT = "./fonts/TanukiMagic.ttf"
   JIYUNO_TSUBASA_FONT = "./fonts/JiyunoTsubasa.ttf"
@@ -106,7 +100,8 @@ class Configuration
     Font.install(BALL_PARK_FONT)
     Font.install(PHENOMENA_FONT)
 
-    resolutions =  Window.get_screen_modes.select { |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
+    resolutions =  Window.get_screen_modes.select {
+      |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
 
     option = {:resolutions=>resolutions, :app_name=>APPLICATION_NAME, :version=>VERSION_NUMBER}
     resolution = VRLocalScreen.modalform(nil, nil, ResolutionDialog, nil, option)
@@ -162,13 +157,15 @@ class SplashScene < Scene::Base
   def init
     @copyright_1_label = Fonts.new(0, 0, "Produced by", Window.height * 0.02, C_GREEN,
                              {:font_name=>"Boldhead"})
-    @copyright_1_label.set_pos((Window.width - @copyright_1_label.width) * 0.5, (Window.height - @copyright_1_label.height) * 0.6)
+    @copyright_1_label.set_pos((Window.width - @copyright_1_label.width) * 0.5,
+                               (Window.height - @copyright_1_label.height) * 0.6)
 
     @copyright_2_label = Fonts.new(0, 0, "Tadano Laboratory", Window.height * 0.02, C_RED,
                              {:font_name=>"Boldhead"})
-    @copyright_2_label.set_pos((Window.width - @copyright_2_label.width) * 0.5, (Window.height - @copyright_2_label.height) * 0.63)
+    @copyright_2_label.set_pos((Window.width - @copyright_2_label.width) * 0.5,
+                               (Window.height - @copyright_2_label.height) * 0.63)
 
-    @card = Card.new(0, 0, Window.height * 0.2, Window.height * 0.2)
+    @card = Card.new(0, 0, Window.width * 0.11, Window.width * 0.11)
     @card.set_pos((Window.width - @card.width) * 0.5, (Window.height - @card.height) * 0.45)
 
     @card.set_image(SYMBOL_FRONT_IMAGE, SYMBOL_BACK_IMAGE)
@@ -182,14 +179,14 @@ class SplashScene < Scene::Base
     if @wait_count >= MAX_WAIT_COUNT then
       self.next_scene = TitleScene
     else
-      @card.update
+      @card.update if @card
       @wait_count += 1
     end
   end
 
   def render
-    @copyright_1_label.draw
-    @copyright_2_label.draw
+    @copyright_1_label.draw if @copyright_1_label
+    @copyright_2_label.draw if @copyright_2_label
     @card.draw
   end
 
@@ -201,8 +198,6 @@ end
 
 # タイトル・シーン
 class TitleScene < Scene::Base
-
-  # attr_reader :transition_image
 
   require "./lib/dxruby/images"
   require "./lib/dxruby/fonts"
@@ -224,11 +219,13 @@ class TitleScene < Scene::Base
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
   RANKING_BUTTON_IMAGE = "./images/ranking_button.png"
   VIBEMAN_BUTTON_IMAGE = "./images/1067276.png"
+  OK_BUTTON_IMAGE = "./images/m_4.png"
+  CANCEL_BUTTON_IMAGE = "./images/m_1.png"
 
   MAX_COUNT_IN_WINDOW = 40
   MAX_COUNT_IN_GAZE_AREA = 30
 
-  POI_HEIGHT_SIZE_RATIO = 0.2
+  POI_WIDTH_SIZE_RATIO = 0.13
   MAX_GAZE_COUNT = 15
   POI_GAZE_RADIUS_RATIO = 0.8
   
@@ -250,22 +247,27 @@ class TitleScene < Scene::Base
 
     @sub_title_label = Fonts.new(0, 0, $config.app_sub_title, Window.height * 0.1, C_ORANGE,
                                  {:font_name=>"AR教科書体M"})
-    @sub_title_label.set_pos((Window.width - @sub_title_label.width) * 0.5, (Window.height - @sub_title_label.height) * 0.12)
+    @sub_title_label.set_pos((Window.width - @sub_title_label.width) * 0.5,
+                             (Window.height - @sub_title_label.height) * 0.12)
 
-    @version_number_label = Fonts.new(0, 0, "Version #{$config.ver_number}", @title_label.height * 0.3, C_GREEN,
-                                    {:font_name=>"自由の翼フォント"})
-    @version_number_label.set_pos(@title_label.x + @title_label.width - @version_number_label.width, @title_label.y + @title_label.height)
+    @version_number_label = Fonts.new(0, 0, "Version #{$config.ver_number}",
+                                      @title_label.height * 0.3, C_GREEN, {:font_name=>"自由の翼フォント"})
+    @version_number_label.set_pos(@title_label.x + @title_label.width - @version_number_label.width,
+                                  @title_label.y + @title_label.height)
 
     @copyright_label = Fonts.new(0, 0, $config.copyright, Window.height * 0.06, C_BLACK,
                                 {:font_name=>"07ラノベPOP"})
-    @copyright_label.set_pos((Window.width - @copyright_label.width) * 0.5, (Window.height - @copyright_label.height) * 0.9)
+    @copyright_label.set_pos((Window.width - @copyright_label.width) * 0.5,
+                             (Window.height - @copyright_label.height) * 0.9)
 
     ranking_button_image = Image.load(RANKING_BUTTON_IMAGE)
     ranking_button_scale = Window.height * 0.04 / ranking_button_image.height
-    ranking_button_converted_image = Images.scale_resize(ranking_button_image, ranking_button_scale, ranking_button_scale)
+    ranking_button_converted_image = Images.scale_resize(ranking_button_image,
+                                                         ranking_button_scale, ranking_button_scale)
     @ranking_button = Button.new
     @ranking_button.set_image(ranking_button_converted_image)
-    @ranking_button.set_pos((Window.width - @ranking_button.width) * 0.5, (Window.height - @ranking_button.height) * 0.6)
+    @ranking_button.set_pos((Window.width - @ranking_button.width) * 0.5,
+                            (Window.height - @ranking_button.height) * 0.6)
 
     start_button_image = Image.load(START_BUTTON_IMAGE)
     start_button_scale = Window.height * 0.06 / start_button_image.height
@@ -275,16 +277,18 @@ class TitleScene < Scene::Base
     @start_button.set_pos((Window.width - @start_button.width) * 0.5, (Window.height - @start_button.height) * 0.73)
 
     exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    exit_button_scale = Window.height * 0.05 / exit_button_image.height
+    exit_button_scale = Window.width * 0.065 / exit_button_image.width
     exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
     @exit_button = Button.new
     @exit_button.set_image(exit_button_converted_image)
-    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.6,
+                              "07ラノベPOP", {:color=>C_DARK_BLUE})
     @exit_button.set_pos(Window.width - @exit_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
-    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image,
+                                                             window_mode_button_scale, window_mode_button_scale)
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
@@ -293,14 +297,20 @@ class TitleScene < Scene::Base
 
     vibeman_button_image = Image.load(VIBEMAN_BUTTON_IMAGE)
     vibeman_button_scale = Window.height * 0.08 / vibeman_button_image.height
-    vibeman_button_converted_image = Images.scale_resize(vibeman_button_image, vibeman_button_scale, vibeman_button_scale)
-    @vibeman_start_button = Button.new(0, 0, vibeman_button_converted_image.width, vibeman_button_converted_image.height,
-                                 "Vibeman", vibeman_button_converted_image.height * 0.4, {:font_name=>"Ballpark", :str_color=>C_CREAM})
+    vibeman_button_converted_image = Images.scale_resize(vibeman_button_image,
+                                                         vibeman_button_scale, vibeman_button_scale)
+    @vibeman_start_button = Button.new(0, 0, vibeman_button_converted_image.width,
+                                       vibeman_button_converted_image.height,
+                                 "Vibeman", vibeman_button_converted_image.height * 0.4,
+                                       {:font_name=>"Ballpark", :str_color=>C_CREAM})
     @vibeman_start_button.set_image(vibeman_button_converted_image)
-    @vibeman_start_button.name = "vibeman_button"
-    @vibeman_start_button.set_pos((Window.width - @vibeman_start_button.width) * 0.99, (Window.height - @vibeman_start_button.height) * 0.98)
+    @vibeman_start_button.name = "vibeman_start_button"
+    @vibeman_start_button.set_pos((Window.width - @vibeman_start_button.width) * 0.99,
+                                  (Window.height - @vibeman_start_button.height) * 0.98)
 
-    $vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.height * 0.7, {:bg_color=>C_IVORY, :frame_color=>C_BROWN})
+    $vibeman = VibeMan.new(0, 0, Window.width * 0.24, Window.width * 0.398,
+                           {:bg_color=>C_IVORY, :frame_color=>C_BROWN,
+                            :frame_thickness=>(Window.width * 0.004).to_i, :radius=>Window.width * 0.02})
     $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.6)
     $vibeman.is_active_dialog = false
 
@@ -315,18 +325,53 @@ class TitleScene < Scene::Base
       $vibeman.change_type_labels[index].font_name = "自由の翼フォント"
     end
 
-    @buttons = [@start_button, @exit_button, @window_mode_button, @ranking_button, @vibeman_start_button]
+    exit_message_dialog_width = Window.width * 0.5
+    exit_message_dialog_height = exit_message_dialog_width * 0.5
+    exit_message_dialog_option = {:frame_thickness=>(exit_message_dialog_width * 0.02).round,
+                                    :radius=>exit_message_dialog_width * 0.03,
+                                    :bg_color=>C_CREAM, :frame_color=>C_CYAN}
+    @exit_message_dialog = MessageDialog.new(0, 0, exit_message_dialog_width, exit_message_dialog_height,
+                                               1, exit_message_dialog_option)
+    @exit_message_dialog.set_message("アプリを終了しますか？", "",
+                                       @exit_message_dialog.height * 0.15, C_BROWN, "みかちゃん")
+    @exit_message_dialog.set_pos((Window.width - @exit_message_dialog.width) * 0.5,
+                                   (Window.height - @exit_message_dialog.height) * 0.5)
+
+    @exit_message_dialog.ok_button.font_color = C_DARK_BLUE
+    @exit_message_dialog.ok_button.font_name = "07ラノベPOP"
+    @exit_message_dialog.ok_button.name = "exit_message_ok_button"
+
+    @exit_message_dialog.cancel_button.font_color = C_DARK_BLUE
+    @exit_message_dialog.cancel_button.font_name = "07ラノベPOP"
+    @exit_message_dialog.cancel_button.name = "exit_message_cancel_button"
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @exit_message_dialog.ok_button.set_image(
+      Images.fit_resize(ok_button_image, @exit_message_dialog.ok_button.width,
+                        @exit_message_dialog.ok_button.height))
+
+    cancel_button_image = Image.load(CANCEL_BUTTON_IMAGE)
+    @exit_message_dialog.cancel_button.set_image(Images.fit_resize(
+      cancel_button_image, @exit_message_dialog.cancel_button.width, @exit_message_dialog.cancel_button.height))
+
+    @is_exitable = false
+
+    @buttons = [@start_button, @exit_button, @window_mode_button, @ranking_button, @exit_message_dialog.ok_button,
+                @exit_message_dialog.cancel_button, @vibeman_start_button]
 
     @is_start_button_blink = false
     @start_button_blink_count = 0
     @wait_stage_change_count = 0
 
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0,
+                                                                   Window.width, Window.height, [164, 128, 128, 128])
     @mouse = Sprite.new
     @mouse.collision = [0, 0]
 
-    @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
+    @poi = Poi.new(0, 0, nil, Window.width * POI_WIDTH_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, nil, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+                                               :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO,
+                                               :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
 
     @vibeman_is_appear = false
@@ -335,7 +380,7 @@ class TitleScene < Scene::Base
 
   def update
 
-    if @start_button and (@start_button.pushed? or @start_button.is_gazed) then
+    if @start_button and not @is_exitable and (@start_button.pushed? or @start_button.is_gazed) then
       @start_button.is_gazed = false
       @is_start_button_blink = true unless @is_start_button_blink
       @start_button.hover = false if @start_button.is_hoverable
@@ -343,7 +388,7 @@ class TitleScene < Scene::Base
       @wait_stage_change_count = 0
     end
 
-    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_exitable and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -353,13 +398,15 @@ class TitleScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if (@exit_button and (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+    if (@exit_button and not @is_exitable and
+      (@exit_button.pushed? or @exit_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
       @exit_button.is_gazed = false
-      self.will_disappear
-      exit
+
+      @click_se.play if @click_se
+      @is_exitable = true
     end
 
-    if (@ranking_button and (@ranking_button.pushed? or @ranking_button.is_gazed)) then
+    if (@ranking_button and not @is_exitable and (@ranking_button.pushed? or @ranking_button.is_gazed)) then
       @ranking_button.is_gazed = false
       @click_se.play if @click_se
       self.next_scene = RankingScene
@@ -367,19 +414,32 @@ class TitleScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered? if not button.name == "vibeman_button" or not $vibeman.is_active_dialog
+        if $vibeman.is_active_dialog and not button.name == "vibeman_start_button" then
+          button.hovered?
+        elsif not $vibeman.is_active_dialog and button.name == "vibeman_start_button" and not @is_exitable then
+          button.hovered?
+        end
+        if @is_exitable and (button.name == "exit_message_ok_button" or
+          button.name == "exit_message_cancel_button") then
+          button.hovered?
+        elsif not @is_exitable and not (button.name == "exit_message_ok_button" or
+          button.name == "exit_message_cancel_button") then
+          button.hovered?
+        end
       end
     end
 
-    if (@vibeman_start_button and (@vibeman_start_button.pushed? or @vibeman_start_button.is_gazed)) and not $vibeman.is_active_dialog then
+    if (@vibeman_start_button and not @is_exitable and (@vibeman_start_button.pushed? or
+      @vibeman_start_button.is_gazed)) and not $vibeman.is_active_dialog then
       @vibeman_start_button.is_gazed = false
+
       $vibeman.is_active_dialog = true
       @click_se.play if @click_se
       @vibeman_is_appear = true
     end
     $vibeman.update if $vibeman
 
-    if $vibeman.buttons and not $vibeman.buttons.empty? and $vibeman.is_active_dialog then
+    if $vibeman.buttons and not $vibeman.buttons.empty? and $vibeman.is_active_dialog and not @is_exitable then
       $vibeman.buttons.each do |vibeman_button|
         vibeman_button.hovered?
       end
@@ -396,7 +456,28 @@ class TitleScene < Scene::Base
       end
     end
     $vibeman.set_pos(Window.width, (Window.height - $vibeman.height) * 0.6) if not
-    $vibeman.x == Window.width and not $vibeman.y == (Window.height - $vibeman.height) * 0.6 and not $vibeman.is_active_dialog
+    $vibeman.x == Window.width and
+      not $vibeman.y == (Window.height - $vibeman.height) * 0.6 and not $vibeman.is_active_dialog
+
+    if @is_exitable then
+      $vibeman.is_lock = true
+    else
+      $vibeman.is_lock = false
+    end
+
+    if @exit_message_dialog and @is_exitable and
+      (@exit_message_dialog.ok_button.pushed? or @exit_message_dialog.ok_button.is_gazed) then
+      @exit_message_dialog.ok_button.is_gazed = false
+      exit
+    end
+
+    if @exit_message_dialog and @is_exitable and
+      (@exit_message_dialog.cancel_button.pushed? or @exit_message_dialog.cancel_button.is_gazed) then
+      @exit_message_dialog.cancel_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_exitable = false
+    end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
 
@@ -424,13 +505,20 @@ class TitleScene < Scene::Base
       @buttons.each do |button|
         if x + center_x >= button.x and x + center_x <= button.x + button.width and
           y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+
+          if @is_exitable and (button.name == "exit_message_ok_button" or
+            button.name == "exit_message_cancel_button") then
+            button.is_gazed = true
+          elsif not @is_exitable and
+            not (button.name == "exit_message_ok_button" or button.name == "exit_message_cancel_button") then
+            button.is_gazed = true
+          end
         end
       end
     end
     @poi.mode = :search
 
-    if $vibeman.buttons and not $vibeman.buttons.empty? then
+    if $vibeman.buttons and not $vibeman.buttons.empty? and not @is_exitable then
       $vibeman.buttons.each do |vibeman_button|
         if x + center_x >= vibeman_button.x and x + center_x <= vibeman_button.x + vibeman_button.width and
           y + center_y >= vibeman_button.y and y + center_y <= vibeman_button.y + vibeman_button.height then
@@ -439,10 +527,12 @@ class TitleScene < Scene::Base
       end
     end
 
-    if $vibeman.change_type_radio_buttons and not $vibeman.change_type_radio_buttons.empty? then
+    if $vibeman.change_type_radio_buttons and not $vibeman.change_type_radio_buttons.empty? and not @is_exitable then
       $vibeman.change_type_radio_buttons.each do |vibeman_radio_button|
-        if x + center_x >= vibeman_radio_button.x and x + center_x <= vibeman_radio_button.x + vibeman_radio_button.size and
-          y + center_y >= vibeman_radio_button.y and y + center_y <= vibeman_radio_button.y + vibeman_radio_button.size then
+        if x + center_x >= vibeman_radio_button.x and
+          x + center_x <= vibeman_radio_button.x + vibeman_radio_button.size and
+          y + center_y >= vibeman_radio_button.y and
+          y + center_y <= vibeman_radio_button.y + vibeman_radio_button.size then
           vibeman_radio_button.is_gazed = true
         end
       end
@@ -465,6 +555,9 @@ class TitleScene < Scene::Base
 
     @vibeman_start_button.draw if @vibeman_start_button and not $vibeman.is_active_dialog
     $vibeman.draw if $vibeman and $vibeman.is_active_dialog
+
+    Window.draw(0, 0, @cover_layer) if @cover_layer and @is_exitable
+    @exit_message_dialog.draw if @exit_message_dialog and @is_exitable
 
     @poi.draw if @poi
   end
@@ -745,6 +838,7 @@ class GameScene < Scene::Base
       if  @stage_number == 1 then
         if @bgm then
           @bgm.stop
+          @bgm = nil
         end
         if @main_bgm then
           @bgm = @main_bgm
@@ -762,6 +856,7 @@ class GameScene < Scene::Base
 
       if @bgm then
         @bgm.stop
+        @bgm = nil
       end
       if @stage_info_label then
         @stage_info_label.string = "Game Over"
@@ -773,6 +868,7 @@ class GameScene < Scene::Base
 
       if @bgm then
         @bgm.stop
+        @bgm = nil
       end
       if @stage_info_label then
         @stage_info_label.string = "Game Clear"
@@ -786,6 +882,7 @@ class GameScene < Scene::Base
 
       if @bgm then
         @bgm.stop
+        @bgm = nil
       end
       if @alert_bgm then
         @bgm = @alert_bgm
@@ -809,6 +906,7 @@ class GameScene < Scene::Base
 
       if @bgm then
         @bgm.stop
+        @bgm = nil
       end
       if @boss_bgm then
         @bgm = @boss_bgm
@@ -1349,6 +1447,7 @@ class GameScene < Scene::Base
   def will_disappear
     if @bgm then
       @bgm.stop
+      @bgm = nil
       @main_bgm.free if @main_bgm
       @alert_bgm.free if @alert_bgm
       @boss_bgm.free if @boss_bgm
@@ -1980,6 +2079,7 @@ class NameEntryScene < Scene::Base
 
       @click_se.play if @click_se
       @bgm.stop
+      @bgm = nil
       self.next_scene = TitleScene
       @is_returnable = false
     end
@@ -2074,7 +2174,7 @@ class NameEntryScene < Scene::Base
   def will_disappear
     if @bgm then
       @bgm.stop
-      @bgm.free
+      @bgm = nil
     end
   end
 end
@@ -2632,6 +2732,7 @@ class EndingScene < Scene::Base
 
       @click_se.play if @click_se
       @bgm.stop
+      @bgm = nil
       self.next_scene = TitleScene
       @is_returnable = false
     end
@@ -2701,4 +2802,4 @@ class EndingScene < Scene::Base
 end
 
 
-Scene.main_loop ResultScene, $config.fps, $config.frame_step
+Scene.main_loop SplashScene, $config.fps, $config.frame_step
