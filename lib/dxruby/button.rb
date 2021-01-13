@@ -335,7 +335,7 @@ class Button
   end
 
   def draw
-    @target.draw_ex(@x, @y, @image, {:scale_x=>@scale_x, :scale_y=>@scale_y, :alpha=>@alpha, :angle=>@angle, :x=>@z})
+    @target.draw_ex(@x, @y, @image, {:scale_x=>@scale_x, :scale_y=>@scale_y, :alpha=>@alpha, :angle=>@angle, :z=>@z})
   end
 
   def vanish

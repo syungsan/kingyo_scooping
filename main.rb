@@ -604,8 +604,10 @@ class GameScene < Scene::Base
   SPLASH_RARGE_SE = "./sounds/water-throw-stone2.wav"
   CHANGE_STAGE_SE = "./sounds/sei_ge_bubble06.wav"
 
-  EXIT_BUTTON_IMAGE = "./images/s_3.png"
+  OK_BUTTON_IMAGE = "./images/m_4.png"
+  RETURN_BUTTON_IMAGE = "./images/s_3.png"
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
+  CANCEL_BUTTON_IMAGE = "./images/m_1.png"
   STONE_TILE_IMAGE = "./images/stone_tile.png"
   AQUARIUM_BACK_IMAGE = "./images/seamless-water.jpg"
 
@@ -676,6 +678,7 @@ class GameScene < Scene::Base
   MAIN_ALERT_STRING = "警告！ ボス金魚出現！"
   SUB_ALERT_STRING = "WARNING!"
 
+  Z_POSITION_FLY = 400
   Z_POSITION_TOP = 300
   Z_POSITION_UP = 200
   Z_POSITION_DOWN = 100
@@ -701,24 +704,61 @@ class GameScene < Scene::Base
     @alert_bgm = Bass.loadSample(ALERT_BGM)
     @boss_bgm = Bass.loadSample(BOSS_BGM)
 
-    exit_button_image = Image.load(EXIT_BUTTON_IMAGE)
-    exit_button_scale = Window.height * 0.05 / exit_button_image.height
-    exit_button_converted_image = Images.scale_resize(exit_button_image, exit_button_scale, exit_button_scale)
-    @exit_button = Button.new
-    @exit_button.set_image(exit_button_converted_image)
-    @exit_button.set_string("Exit", exit_button_converted_image.height * 0.7, "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @exit_button.set_pos(Window.width - @exit_button.width, 0)
+    return_button_image = Image.load(RETURN_BUTTON_IMAGE)
+    return_button_scale = Window.width * 0.065 / return_button_image.width
+    return_button_converted_image = Images.scale_resize(return_button_image, return_button_scale, return_button_scale)
+    @return_button = Button.new
+    @return_button.set_image(return_button_converted_image)
+    @return_button.set_string("Return", return_button_converted_image.height * 0.6,
+                              "07ラノベPOP", {:color=>C_DARK_BLUE})
+    @return_button.set_pos(Window.width - @return_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
-    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
+    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image,
+                                                             window_mode_button_scale, window_mode_button_scale)
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
-    @window_mode_button.set_pos(Window.width - (@exit_button.width + @window_mode_button.width), 0)
+    @window_mode_button.set_pos(Window.width - (@return_button.width + @window_mode_button.width), 0)
 
-    @buttons = [@exit_button, @window_mode_button]
+    return_message_dialog_width = Window.width * 0.5
+    return_message_dialog_height = return_message_dialog_width * 0.5
+    return_message_dialog_option = {:frame_thickness=>(return_message_dialog_width * 0.02).round,
+                                    :radius=>return_message_dialog_width * 0.03,
+                                    :bg_color=>C_CREAM, :frame_color=>C_CYAN}
+    @return_message_dialog = MessageDialog.new(0, 0, return_message_dialog_width, return_message_dialog_height,
+                                               1, return_message_dialog_option)
+    @return_message_dialog.set_message("タイトルに戻りますか？", "",
+                                       @return_message_dialog.height * 0.15, C_BROWN, "みかちゃん")
+    @return_message_dialog.set_pos((Window.width - @return_message_dialog.width) * 0.5,
+                                   (Window.height - @return_message_dialog.height) * 0.5)
+    @return_message_dialog.z = Z_POSITION_TOP
+
+    @return_message_dialog.ok_button.font_color = C_DARK_BLUE
+    @return_message_dialog.ok_button.font_name = "07ラノベPOP"
+    @return_message_dialog.ok_button.name = "return_message_ok_button"
+    @return_message_dialog.ok_button.z = Z_POSITION_TOP
+
+    @return_message_dialog.cancel_button.font_color = C_DARK_BLUE
+    @return_message_dialog.cancel_button.font_name = "07ラノベPOP"
+    @return_message_dialog.cancel_button.name = "return_message_cancel_button"
+    @return_message_dialog.cancel_button.z = Z_POSITION_TOP
+
+    ok_button_image = Image.load(OK_BUTTON_IMAGE)
+    @return_message_dialog.ok_button.set_image(
+      Images.fit_resize(ok_button_image, @return_message_dialog.ok_button.width,
+                        @return_message_dialog.ok_button.height))
+
+    cancel_button_image = Image.load(CANCEL_BUTTON_IMAGE)
+    @return_message_dialog.cancel_button.set_image(Images.fit_resize(
+      cancel_button_image, @return_message_dialog.cancel_button.width, @return_message_dialog.cancel_button.height))
+
+    @is_returnable = false
+
+    @buttons = [@return_button, @window_mode_button, @return_message_dialog.ok_button,
+                @return_message_dialog.cancel_button]
 
     stone_tile_image = Image.load(STONE_TILE_IMAGE)
     stone_tile_image_scale = Window.height * 0.3 / stone_tile_image.height
@@ -999,7 +1039,7 @@ class GameScene < Scene::Base
 
   def update
 
-    if @window_mode_button and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
+    if @window_mode_button and not @is_returnable and (@window_mode_button.pushed? or @window_mode_button.is_gazed) then
       @window_mode_button.is_gazed = false
       if Window.windowed? then
         Window.windowed = false
@@ -1009,16 +1049,48 @@ class GameScene < Scene::Base
       @click_se.play if @click_se
     end
 
-    if @exit_button and (@exit_button.pushed? or @exit_button.is_gazed) or Input.key_push?(K_ESCAPE) then
-      @exit_button.is_gazed = false
-      self.will_disappear
-      exit
+    if (@return_button and not @is_returnable and
+      (@return_button.pushed? or @return_button.is_gazed)) or Input.key_push?(K_ESCAPE) then
+      @return_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_returnable = true
+      @poi.z = Z_POSITION_FLY
     end
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        button.hovered?
+        if @is_returnable and (button.name == "return_message_ok_button" or
+          button.name == "return_message_cancel_button") then
+          button.hovered?
+        elsif not @is_returnable and
+          not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+          button.hovered?
+        end
       end
+    end
+
+    if @return_message_dialog and @is_returnable and
+      (@return_message_dialog.ok_button.pushed? or @return_message_dialog.ok_button.is_gazed) then
+      @return_message_dialog.ok_button.is_gazed = false
+
+      if @bgm then
+        @bgm.stop
+        @bgm = nil
+      end
+      @click_se.play if @click_se
+      self.next_scene = TitleScene
+      @is_returnable = false
+      @poi.z = Z_POSITION_TOP
+    end
+
+    if @return_message_dialog and @is_returnable and
+      (@return_message_dialog.cancel_button.pushed? or @return_message_dialog.cancel_button.is_gazed) then
+      @return_message_dialog.cancel_button.is_gazed = false
+
+      @click_se.play if @click_se
+      @is_returnable = false
+      @poi.z = Z_POSITION_TOP
     end
 
     @mouse.x, @mouse.y = Input.mouse_pos_x, Input.mouse_pos_y if @mouse
@@ -1227,11 +1299,18 @@ class GameScene < Scene::Base
 
   def gazed(x, y, center_x, center_y)
 
-    if @buttons and not @buttons.empty? and not @mode == :start then
+    if @buttons and not @buttons.empty? then
       @buttons.each do |button|
         if x + center_x >= button.x and x + center_x <= button.x + button.width and
           y + center_y >= button.y and y + center_y <= button.y + button.height then
-          button.is_gazed = true
+
+          if @is_returnable and (button.name == "return_message_ok_button" or
+            button.name == "return_message_cancel_button") then
+            button.is_gazed = true
+          elsif not @is_returnable and
+            not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+            button.is_gazed = true
+          end
         end
       end
     end
@@ -1407,6 +1486,7 @@ class GameScene < Scene::Base
     Window.draw_shader(0, 0, @shader_rt, @wave_shader) if @shader_rt and @wave_shader and @mode == :start
 
     @container.draw if @container and not @mode == :start
+
     @poi.draw if @poi
 
     if @swimmers and not @swimmers.empty? and not @mode == :start then
@@ -1421,8 +1501,8 @@ class GameScene < Scene::Base
       end
     end
 
-    @exit_button.draw
-    @window_mode_button.draw
+    @return_button.draw if @return_button
+    @window_mode_button.draw if @window_mode_button
 
     @score_label.draw if @score_label and not @mode == :start
     @bgm_info.draw if @bgm_info and @bgm_info.mode == :run and not @mode == :start
@@ -1440,8 +1520,11 @@ class GameScene < Scene::Base
 
     @alert.draw if @alert and @alert.mode == :run and not @mode == :start
 
-    Window.draw(0, 0, @cover_layer, Z_POSITION_TOP) if @cover_layer and (@mode == :game_over or @mode == :game_clear)
+    Window.draw(0, 0, @cover_layer, Z_POSITION_TOP) if @cover_layer and ((@mode == :game_over or @mode == :game_clear) or @is_returnable)
+
     @stage_info_label.draw if @stage_info_label and (@mode == :start or @mode == :game_over or @mode == :game_clear)
+
+    @return_message_dialog.draw if @return_message_dialog and @is_returnable
   end
 
   def will_disappear
