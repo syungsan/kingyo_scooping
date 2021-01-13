@@ -771,7 +771,8 @@ class GameScene < Scene::Base
 
     aquarium_back_image = Image.load(AQUARIUM_BACK_IMAGE)
     aquarium_back_image_scale = Window.height * 0.15 / aquarium_back_image.height
-    aquarium_back_converted_image = Images.scale_resize(aquarium_back_image, aquarium_back_image_scale, aquarium_back_image_scale)
+    aquarium_back_converted_image = Images.scale_resize(aquarium_back_image, aquarium_back_image_scale,
+                                                        aquarium_back_image_scale)
     aquarium_back_rt = RenderTarget.new(Window.width, Window.height)
     aquarium_back_rt.drawTile(0, 0, [[0]], [aquarium_back_converted_image], nil, nil, nil, nil)
     @aquarium_back_image = aquarium_back_rt.to_image
@@ -805,7 +806,8 @@ class GameScene < Scene::Base
 
     @poi = Poi.new(0, 0, nil, Window.height * POI_HEIGHT_SIZE_RATIO, @mouse,
                    MAX_GAZE_COUNT, self, @container, {:max_count_in_window=>MAX_COUNT_IN_WINDOW,
-                                         :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO, :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
+                                         :gaze_radius_ratio=>POI_GAZE_RADIUS_RATIO,
+                                                      :max_count_in_gaze_area=>MAX_COUNT_IN_GAZE_AREA})
     @poi.set_pos((Window.width - @poi.width) * 0.5, (Window.height - @poi.height) * 0.5)
     @poi.z = Z_POSITION_TOP
 
@@ -831,13 +833,15 @@ class GameScene < Scene::Base
     @poi_gauges = []
     MAX_POI_GAUGE_NUMBER.times do |index|
       poi_gauge = PoiGage.new(nil, poi_gauge_height_size)
-      poi_gauge.set_pos((Window.width - poi_gauge.width) * 0.85 + (poi_gauge_interval * index), (Window.height - poi_gauge.height) * 0.96)
+      poi_gauge.set_pos((Window.width - poi_gauge.width) * 0.85 + (poi_gauge_interval * index),
+                        (Window.height - poi_gauge.height) * 0.96)
       poi_gauge.z = Z_POSITION_UP
       @poi_gauges.push(poi_gauge)
     end
     @poi_gauges.reverse!
 
-    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, [164, 128, 128, 128])
+    @cover_layer = Image.new(Window.width, Window.height).box_fill(0, 0,
+                                                                   Window.width, Window.height, [164, 128, 128, 128])
 
     @alert = Alert.new(0, 0, Window.width, Window.height)
     @alert.z = Z_POSITION_TOP
@@ -870,7 +874,8 @@ class GameScene < Scene::Base
 
       if @stage_info_label then
         @stage_info_label.string = "ステージ#{@stage_number}"
-        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5,
+                                  (Window.height - @stage_info_label.height) * 0.5)
       end
 
     when :normal
@@ -886,8 +891,10 @@ class GameScene < Scene::Base
         end
         if @bgm_info then
           @bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
-                             {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                             {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+                             {:title=>"たぬき油性マジック",
+                              :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
+                             {:title=>@bgm_info.height * 0.3, :data=>@bgm_info.height * 0.2,
+                              :copyright=>@bgm_info.height * 0.25})
           @bgm_info.mode = :run
         end
       end
@@ -901,7 +908,8 @@ class GameScene < Scene::Base
       if @stage_info_label then
         @stage_info_label.string = "Game Over"
         @stage_info_label.color = C_CREAM
-        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5,
+                                  (Window.height - @stage_info_label.height) * 0.5)
       end
 
     when :game_clear
@@ -913,7 +921,8 @@ class GameScene < Scene::Base
       if @stage_info_label then
         @stage_info_label.string = "Game Clear"
         @stage_info_label.color = C_MIKUSAN
-        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5, (Window.height - @stage_info_label.height) * 0.5)
+        @stage_info_label.set_pos((Window.width - @stage_info_label.width) * 0.5,
+                                  (Window.height - @stage_info_label.height) * 0.5)
       end
 
     when :alert
@@ -955,7 +964,8 @@ class GameScene < Scene::Base
       if @bgm_info then
         @bgm_info.set_info({:title=>BOSS_BGM_DATE[0], :data=>BOSS_BGM_DATE[1], :copyright=>BOSS_BGM_DATE[2]},
                            {:title=>"たぬき油性マジック", :data=>"たぬき油性マジック", :copyright=>"たぬき油性マジック"},
-                           {:title=>@bgm_info.height * 0.24, :data=>@bgm_info.height * 0.2, :copyright=>@bgm_info.height * 0.25})
+                           {:title=>@bgm_info.height * 0.24, :data=>@bgm_info.height * 0.2,
+                            :copyright=>@bgm_info.height * 0.25})
         @bgm_info.mode = :run
       end
     end
@@ -1141,8 +1151,9 @@ class GameScene < Scene::Base
           end
         end
 
-        if @poi.impact_radius and (swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
-          ((swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
+        if @poi.impact_radius and not @is_returnable and
+          (swimmer.x + swimmer.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
+            ((swimmer.y + swimmer.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
 
           if swimmer.class == Kingyo or swimmer.class == Boss or swimmer.class == Weed then
 
@@ -1181,7 +1192,8 @@ class GameScene < Scene::Base
           end
         end
 
-        if @poi.impact_radius and (@container.x + @container.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
+        if @poi.impact_radius and not @is_returnable and
+          (@container.x + @container.center_x - (@poi.x + (@poi.width * 0.5))) ** 2 +
           ((@container.y + @container.center_y - (@poi.y + (@poi.height * 0.5))) ** 2) <= @poi.impact_radius ** 2 then
 
           container_radian = Math.atan2(@container.y + @container.center_y - (@poi.y + (@poi.height * 0.5)),
@@ -1190,7 +1202,7 @@ class GameScene < Scene::Base
           @container.change_mode(:escape)
         end
 
-        if not @swimmers.select { |obj| obj.class == Boss }.empty? then
+        if not @swimmers.select { |obj| obj.class == Boss }.empty? and not @is_returnable then
           bosss = @swimmers.select { |obj| obj.class == Boss }
 
           bosss.each do |boss|
@@ -1315,7 +1327,7 @@ class GameScene < Scene::Base
       end
     end
 
-    if @poi and not @mode == :start then
+    if @poi and not @mode == :start and not @is_returnable then
       @catch_objects = []
       if @swimmers and not @swimmers.empty? then
 
@@ -1445,7 +1457,8 @@ class GameScene < Scene::Base
         weight_ratio = 1 - (1 / (1 + (combo * 0.8)))
 
         @combo_label = SpriteFont.new(0, 0, "#{combo}コンボ！", 164, C_PURPLE, C_DEFAULT,
-                                      {:font_name=>"みかちゃん", :weight=>true,  :shadow=>true, :shadow_color=>[128, 128, 128, 128]})
+                                      {:font_name=>"みかちゃん", :weight=>true,  :shadow=>true,
+                                       :shadow_color=>[128, 128, 128, 128]})
         @combo_label.alpha = 0
         @combo_label.z = Z_POSITION_TOP
         @combo_label.fade_move(geometric_centers, v_changes, weight_ratio, [0, 0, Window.width, Window.height])
@@ -1520,7 +1533,8 @@ class GameScene < Scene::Base
 
     @alert.draw if @alert and @alert.mode == :run and not @mode == :start
 
-    Window.draw(0, 0, @cover_layer, Z_POSITION_TOP) if @cover_layer and ((@mode == :game_over or @mode == :game_clear) or @is_returnable)
+    Window.draw(0, 0, @cover_layer, Z_POSITION_TOP) if @cover_layer and
+      ((@mode == :game_over or @mode == :game_clear) or @is_returnable)
 
     @stage_info_label.draw if @stage_info_label and (@mode == :start or @mode == :game_over or @mode == :game_clear)
 
@@ -1574,7 +1588,6 @@ class ResultScene < Scene::Base
 
     @background = Image.new(Window.width, Window.height).box_fill(0, 0, Window.width, Window.height, C_MISTY_ROSE)
 
-    $scores[:technical_point] = 1000
     $scores[:cognomen], $scores[:color] = "ウンコちゃん", C_BROWN if $scores[:technical_point] < COMMENDATION_POINT * 0.5
     $scores[:cognomen], $scores[:color] = "ザコりん", C_CYAN if
       $scores[:technical_point] >= COMMENDATION_POINT * 0.5 and $scores[:technical_point] < COMMENDATION_POINT * 0.6
