@@ -27,7 +27,8 @@ module Display
     smCxScreen = 0
     smCyScreen = 1
 
-    displayDimension = Win32API.new('user32', 'GetSystemMetrics', %w(i), 'i') # Win32APIを叩いてます
+    # Win32APIを叩いてます
+    displayDimension = Win32API.new('user32', 'GetSystemMetrics', %w(i), 'i')
     displayWidth = displayDimension.call(smCxScreen)
     displayHeight = displayDimension.call(smCyScreen)
 
@@ -49,7 +50,8 @@ module Display
       _windowY = nil
     end
 
-    return {:isSquare=>_isSquare, :windowX => _windowX, :windowY => _windowY, :windowWidth => initWindowSize[0], :windowHeight => initWindowSize[1]}
+    return {:isSquare=>_isSquare, :windowX=>_windowX, :windowY=>_windowY, :windowWidth=>initWindowSize[0],
+            :windowHeight=>initWindowSize[1]}
   end
 
   def setDisplayFixWindow(windowSize=HD, isCenter=true)
@@ -58,7 +60,8 @@ module Display
     smCxScreen = 0
     smCyScreen = 1
 
-    displayDimension = Win32API.new('user32', 'GetSystemMetrics', %w(i), 'i') # Win32APIを叩いてます
+    # Win32APIを叩いてます
+    displayDimension = Win32API.new('user32', 'GetSystemMetrics', %w(i), 'i')
     displayWidth = displayDimension.call(smCxScreen)
     displayHeight = displayDimension.call(smCyScreen)
 
@@ -71,9 +74,10 @@ module Display
       _windowY = nil
     end
 
-    return {:windowX => _windowX, :windowY => _windowY, :windowWidth => windowSize[0], :windowHeight => windowSize[1]}
+    return {:windowX=>_windowX, :windowY=>_windowY, :windowWidth=>windowSize[0], :windowHeight=>windowSize[1]}
   end
 
+  # 取得したハンドルを使用してWindowを最前面表示させる
   def set_window_top(hWnd)
 
     set_window_pos = Win32API.new('User32', 'SetWindowPos', 'IIIIIII', 'I')
@@ -90,7 +94,5 @@ end
 if __FILE__ == $0
 
   include Display
-  p getInitWindowRect(XGA)
+  p setDisplay(XGA)
 end
-
-

@@ -3,7 +3,7 @@
 $KCODE= "s"
 require "jcode"
 
-# common.rb Ver 1.2
+# common.rb Ver 1.0
 # Ruby汎用ライブラリ
 
 require "Win32API"
@@ -13,7 +13,7 @@ require "win32ole"
 module Common
 
   # スレッド停止処理
-  def kill_thread (t_name) # 引数 - スレッド・オブジェクト
+  def kill_thread(t_name) # 引数 - スレッド・オブジェクト
     Thread.kill(t_name)
   end
 
@@ -30,7 +30,7 @@ module Common
   # 配列の要素の重複のあるすべての順序付き組み合わせを返す
   def all_rep_permu(array) # 引数 - 配列
     all_rep_permu = []
-    array.count.times{|i| all_rep_permu += array.repeated_permutation(i + 1).to_a.collect{|a| a.join}}
+    array.count.times { |i| all_rep_permu += array.repeated_permutation(i + 1).to_a.collect { |a| a.join } }
     return all_rep_permu
   end
 
@@ -41,7 +41,7 @@ module Common
     return y <=> 0 # 符号を返す関数（sign）
   end
 
-  # 一次元配列シャッフルの最強アルゴリズム（"フィッシャー・ヤッテ"のアルゴリズム）
+  # 一次元配列シャッフルの最強アルゴリズム（"フィッシャー・イェーツ"のアルゴリズム）
   def fisher_yates(items) # 引数 - 配列
     for i in (items.length-1).downto(0)
       j = rand(i + 1)
@@ -54,7 +54,6 @@ module Common
   @beep = Win32API.new("kernel32", "Beep", %w(l l), 'l')
 
   def play_beep
-
     begin
       @beep.call(304, 250) # beep関数の呼び出し。304は周波数、250は音の長さ。
     rescue
@@ -71,13 +70,12 @@ module Common
     risk = ["\\", "/", ":", "*", "?", '"', "<", ">", "|"]
     flag = true
 
-    strings.map{ |letter|
+    strings.map { |letter|
       flag = false if risk.include?(letter)
     }
     return flag
   end
 
-  # "show_result"用のメソッド
   # "log"フォルダ内のフォルダ名を取得
   def dir_s_entries(path)
 
@@ -86,7 +84,7 @@ module Common
     ary.delete("..")
     dir = []
 
-    ary.map{ |i|
+    ary.map { |i|
 
       if File.directory?("#{path}/#{i}")
         dir << i
@@ -96,7 +94,6 @@ module Common
   end
 
   def dir_rename(name, out)
-
     begin
       File.rename(name, out)
     rescue
@@ -105,20 +102,18 @@ module Common
   end
 
   def get_absolute_path(filename)
-
     fso = WIN32OLE.new("Scripting.FileSystemObject")
     return fso.GetAbsolutePathName(filename)
   end
 
-  def calc_float(time_f)
-
-    time = (time_f * 100).to_i / 100.0 # 小数点第2位未満を切り捨て
-    return time
+  def calc_float(f)
+    float = (f * 100).to_i / 100.0 # 小数点第2位未満を切り捨て
+    return float
   end
 
   def hex_to_rgb(hex=0xffeedd)
     rgb = {}
-    %w(r g b).inject(hex) {|a,i| rest, rgb[i] = a.divmod 256; rest}
+    %w(r g b).inject(hex) { |a,i| rest, rgb[i] = a.divmod 256; rest }
     return rgb
   end
 

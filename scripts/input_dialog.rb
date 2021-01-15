@@ -3,7 +3,7 @@
 $KCODE= "s"
 require "jcode"
 
-# input_dialog.rb Ver 0.9.1
+# input_dialog.rb Ver 1.0
 # ログ情報入力用ダイアログ
 
 require "vr/vruby"

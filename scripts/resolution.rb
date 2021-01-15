@@ -3,7 +3,7 @@
 $KCODE= "s"
 require "jcode"
 
-# input_dialog.rb Ver 0.8.0
+# resolution.rb Ver 1.0
 # 画面解像度選択ダイアログ
 
 # require "vr/vruby"
@@ -40,12 +40,16 @@ class ResolutionDialog < VRModalDialog
     self.caption = "#{options[:app_name]} Ver#{options[:version]} <Select resolution>"
     self.move dialog_x, dialog_y, DIALOG_WIDTH, DIALOG_HEIGHT
 
-    addControl(VRStatic, "title_label", "プレイする解像度を選んでください", 0, 0, 20 * "プレイする解像度を選んでください".length * 0.5, 20)
-    addControl(VRStatic, "info_label", "表示可能な解像度の一覧", 0, 0, 16 * "表示可能な解像度の一覧".length * 0.5, 16)
-    addControl(VRListbox,"item_listbox","list of resolutions",0,0,DIALOG_WIDTH * 0.8,DIALOG_HEIGHT * 0.4,0x00800000)
+    addControl(VRStatic, "title_label", "プレイする解像度を選んでください", 0, 0,
+               20 * "プレイする解像度を選んでください".length * 0.5, 20)
+    addControl(VRStatic, "info_label", "表示可能な解像度の一覧", 0, 0,
+               16 * "表示可能な解像度の一覧".length * 0.5, 16)
 
-    addControl(VRRadiobutton,"full_radio_button","full screen",0,0,130,20,0x0300)
-    addControl(VRRadiobutton,"windowed_radio_button","windowed",0,0,130,20,0x0300)
+    addControl(VRListbox, "item_listbox", "list of resolutions", 0, 0, DIALOG_WIDTH * 0.8,
+               DIALOG_HEIGHT * 0.4, 0x00800000)
+
+    addControl(VRRadiobutton, "full_radio_button", "full screen", 0, 0, 130, 20, 0x0300)
+    addControl(VRRadiobutton, "windowed_radio_button", "windowed", 0, 0, 130, 20, 0x0300)
 
     addControl(VRButton, "ok_button", "OK", 0, 0, 120, 40)
     addControl(VRButton, "cancel_button", "キャンセル", 0, 0, 120, 40)
@@ -143,10 +147,11 @@ if __FILE__ == $0
 
   require "dxruby"
 
-  APPLICATION_NAME = "金魚すくい"
-  VERSION_NUMBER = "0.9.4"
+  APPLICATION_NAME = "My Application"
+  VERSION_NUMBER = "1.0.0"
 
-  resolutions =  Window.get_screen_modes.select { |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
+  resolutions =
+    Window.get_screen_modes.select { |resolution| resolution.delete_at(2) }.uniq!.sort {|a,b| a[0] <=> b[0]}.reverse
 
   option = {:resolutions=>resolutions, :app_name=>APPLICATION_NAME, :version=>VERSION_NUMBER}
   p resolution = VRLocalScreen.modalform(nil, nil, ResolutionDialog, nil, option)

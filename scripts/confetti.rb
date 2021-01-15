@@ -63,11 +63,8 @@ class Confetti < Sprite
   def constract
 
     self.image.clear
-    size = self.rand_float(@size_ranges[0], @size_ranges[1])
     color = [rand(256), rand(256), rand(256)]
-    self.image.box_fill(0, 0, size, size, color)
-    @width = self.image.width
-    @height = self.image.height
+    self.image.box_fill(0, 0, @width, @height, color)
 
     @accel = self.rand_float(@accel_ranges[0], @accel_ranges[1])
     @amp = self.rand_float(@amp_ranges[0], @amp_ranges[1])
@@ -107,11 +104,11 @@ if __FILE__ == $0 then
   Window.width = 1280
   Window.height = 720
 
-  confetti_size_min = Window.width * 0.0169
+  confetti_size_min = Window.height * 0.03
   confetti_size_max = confetti_size_min * 3
   confetti_accel_min = 0.02
   confetti_accel_max = confetti_accel_min * 4
-  confetti_amp_min = Window.width * 0.0028
+  confetti_amp_min = Window.height * 0.005
   confetti_amp_max = confetti_amp_min * 2
   confetti_rot_speed_min = 0.5
   confetti_rot_speed_max = confetti_rot_speed_min * 15

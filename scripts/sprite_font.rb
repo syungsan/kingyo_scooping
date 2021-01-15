@@ -20,18 +20,23 @@ class SpriteFont < Sprite
 
   def initialize(x=0, y=0, text="sample", font_size=24, font_color=[255, 255, 255], frame_color=[0, 0, 0, 0], option={},
                  id=0, name="sprite_font", is_drag=false, target=Window)
-    option = {:font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :weight=>400, :italic=>false, :auto_fitting=>false, :edge=>false, :edge_color=>[0, 0, 0],
-              :edge_width=>2, :edge_level=>4, :shadow=>false, :shadow_edge=>false, :shadow_color=>[0, 0, 0], :shadow_x=>1, :shadow_y=>1,
-              :anti_alias=>true}.merge(option)
+    option = {:font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :weight=>400, :italic=>false, :auto_fitting=>false, :edge=>false,
+              :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4, :shadow=>false, :shadow_edge=>false,
+              :shadow_color=>[0, 0, 0], :shadow_x=>1, :shadow_y=>1, :anti_alias=>true}.merge(option)
     super()
+
     self.x = x
     self.y = y
-    font = Font.new(font_size, option[:font_name], {:weight=>option[:weight], :italic=>option[:italic], :auto_fitting=>option[:auto_fitting]})
+    font = Font.new(font_size, option[:font_name], {:weight=>option[:weight], :italic=>option[:italic],
+                                                    :auto_fitting=>option[:auto_fitting]})
     image = Image.new(font.get_width(text), font_size, frame_color) unless option[:shadow]
-    image = Image.new(font.get_width(text) + option[:shadow_x], font_size + option[:shadow_y], frame_color) if option[:shadow]
-    image.draw_font_ex(0, 0, text, font, {:color=>font_color, :edge=>option[:edge], :edge_color=>option[:edge_color], :edge_width=>option[:edge_width],
-                       :edge_level=>option[:edge_level], :shadow=>option[:shadow], :shadow_edge=>option[:shadow_edge], :shadow_color=>option[:shadow_color],
-                       :shadow_x=>option[:shadow_x], :shadow_y=>option[:shadow_y], :anti_alias=>option[:anti_alias]})
+    image =
+      Image.new(font.get_width(text) + option[:shadow_x], font_size + option[:shadow_y], frame_color) if option[:shadow]
+    image.draw_font_ex(0, 0, text, font, {:color=>font_color, :edge=>option[:edge], :edge_color=>option[:edge_color],
+                                          :edge_width=>option[:edge_width], :edge_level=>option[:edge_level],
+                                          :shadow=>option[:shadow], :shadow_edge=>option[:shadow_edge],
+                                          :shadow_color=>option[:shadow_color], :shadow_x=>option[:shadow_x],
+                                          :shadow_y=>option[:shadow_y], :anti_alias=>option[:anti_alias]})
     self.image = image
     @width = self.image.width
     @height = self.image.height
@@ -105,8 +110,9 @@ class SpriteFont < Sprite
   end
 
   def draw
-    self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :center_x=>nil, :center_y=>nil,
-                                                     :alpha=>self.alpha, :blend=>:alpha, :color=>[255, 255, 255], :angle=>self.angle, :z=>self.z})
+    self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :center_x=>nil,
+                                                     :center_y=>nil, :alpha=>self.alpha, :blend=>:alpha,
+                                                     :color=>[255, 255, 255], :angle=>self.angle, :z=>self.z})
   end
 end
 
@@ -116,7 +122,8 @@ if __FILE__ == $0 then
   Window.width = 800
   Window.height = 600
 
-  sprite_font = SpriteFont.new(0, 0, "‚±‚ê‚ÍƒeƒXƒg‚Å‚·B", 18, C_RED, C_DEFAULT, {:shadow=>true, :shadow_color=>[128, 128, 128, 128]})
+  sprite_font = SpriteFont.new(0, 0, "‚±‚ê‚ÍƒeƒXƒg‚Å‚·B", 18, C_RED, C_DEFAULT,
+                               {:shadow=>true, :shadow_color=>[128, 128, 128, 128]})
   sprite_font.fade_move
 
   Window.bgcolor = C_GREEN

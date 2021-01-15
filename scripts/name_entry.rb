@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# name_entry.rb Ver 1.1
+# name_entry.rb Ver 1.0
 
 require "dxruby"
 
@@ -37,7 +37,8 @@ class NameEntry
   attr_accessor :x, :y, :id, :name, :target
   attr_reader :width, :height, :word_buttons
 
-  def initialize(x, y, button_width=48, button_height=48, font_size=40, str_color=C_BLACK, base_color=C_WHITE, option={})
+  def initialize(x, y, button_width=48, button_height=48, font_size=40,
+                 str_color=C_BLACK, base_color=C_WHITE, option={})
     option = {:id=>0, :name=>"name_entry", :target=>Window, :font_name=>"ＭＳ Ｐゴシック"}.merge(option)
 
     @words = HIRA_GANA
@@ -45,6 +46,7 @@ class NameEntry
     @target = option[:target]
     @x = x
     @y = y
+
     @button_width = button_width
     @button_height = button_height
     @font_size = font_size
@@ -67,7 +69,7 @@ class NameEntry
     for i in 0...@words.size
       for j in 0...@words[i].size
 
-        if @words[i][j] != "" then
+        unless @words[i][j] == "" then
 
           # 隣接ボタンの間を1dot開けないとボタンを複数選択してしまう
           word_button = Button.new(@x + ((@button_width + 1) * i), @y + ((@button_height + 1) * j),

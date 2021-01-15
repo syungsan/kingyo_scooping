@@ -15,6 +15,7 @@ module Easing
   # @param c [Number] 変化量
   # @param d [Number] 1.0
   # @return [Number] 結果
+
   def ease_in_out_quad(t, b, c, d)
     t /= (d / 2.0)
     return (c / 2.0 * t * t + b) if t < 1.0
@@ -28,6 +29,7 @@ module Easing
   # @param c [Number] 変化量
   # @param d [Number] 1.0
   # @return [Number] 結果
+
   def ease_in_out_cubic(t, b, c, d)
     t /= (d / 2.0)
     return (c / 2.0 * t * t * t + b) if t < 1.0

@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# card.rb Ver 0.9.1
+# card.rb Ver 1.0
 # 汎用カードキャラクタ
 
 require "dxruby"
@@ -43,19 +43,24 @@ class Card < Sprite
   end
 
   def set_image(front_image, back_image)
+
     image = Image.load(front_image)
     @front_image = RenderTarget.new(@width, @height).
       draw_scale(0, 0, image, @width / image.width.to_f, @height / image.height.to_f, 0, 0).update.to_image
+
     image = Image.load(back_image)
     @back_image = RenderTarget.new(@width, @height).
       draw_scale(0, 0, image, @width / image.width.to_f, @height / image.height.to_f, 0, 0).update.to_image
+
     image.dispose
     self.constract
   end
 
   def set_text(front_text, back_text, font_size, front_color, back_color, font_type="ＭＳ Ｐゴシック")
+
     front_font = Font.new(font_size, font_type)
     back_font = Font.new(font_size, font_type)
+
     @front_image.draw_font_ex((@width - font_size) * 0.5,
                               (@height - font_size) * 0.5, front_text, front_font, {:color=>front_color})
     @back_image.draw_font_ex((@width - font_size) * 0.5,
@@ -64,6 +69,7 @@ class Card < Sprite
   end
 
   def constract
+
     unless @is_flip then
       self.image = @front_image
     else
@@ -72,8 +78,10 @@ class Card < Sprite
   end
 
   def update
+
     if @mode == :turn then
       @scale_x = Math.cos(@degree / 180.0 * Math::PI).abs
+
       if @degree == 90 or @degree == 270 then
         unless @is_flip then
           @is_flip = true
@@ -82,6 +90,7 @@ class Card < Sprite
         end
         self.constract
       end
+
       @degree += self.flip_speed
       @degree = 0 if @degree == 360
     end

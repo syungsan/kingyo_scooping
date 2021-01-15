@@ -171,12 +171,12 @@ if __FILE__ == $0 then
   Window.width = 1920
   Window.height = 1080
 
-  relative_scales = [0.12, 0.09, 0.12, 0.16, 0.25, 0.14]
+  relative_scales = [0.18, 0.14, 0.18, 0.24, 0.38, 0.21]
 
   illusts = []
   12.times do
     illust_number = rand(6)
-    relative_size = Window.width * relative_scales[illust_number]
+    relative_size = Window.height * relative_scales[illust_number]
     illust = Illust.new(illust_number, relative_size, [0, 0, Window.width, Window.height])
     illusts.push(illust)
   end

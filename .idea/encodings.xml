@@ -2,6 +2,7 @@
 <project version="4">
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/data/staff.csv" charset="windows-31j" />
+    <file url="file://$PROJECT_DIR$/lib/audio/mciver3.rb" charset="windows-31j" />
     <file url="file://$PROJECT_DIR$/lib/dxruby/Bass.rb" charset="windows-31j" />
   </component>
 </project>

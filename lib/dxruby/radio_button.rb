@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# ui.rb Ver 0.8
+# radio_button.rb Ver 1.0
 # ボタン作成用ライブラリ
 
 require "dxruby"
@@ -11,18 +11,19 @@ require "dxruby"
 
 class RadioButton
 
-  attr_accessor :x, :y, :id, :name, :target, :is_gazed
+  attr_accessor :x, :y, :id, :name, :target, :add_push, :z
   attr_reader :size
 
   def initialize(x, y, id=0, size=20, markColor=C_BLACK, innerColor=C_WHITE, frameColor=C_BLACK, option={})
-    option = {:id=>0, :name=>"RadioButton", :markSize=>6, :frameSize=>2, :target=>Window}.merge(option)
+    option = {:id=>0, :name=>"radio_button", :markSize=>6, :frameSize=>2, :z=>0, :target=>Window}.merge(option)
 
-    self.target = option[:target]
-    self.x = x
-    self.y = y
+    @target = option[:target]
+    @x = x
+    @y = y
+    @z = option[:z]
     @size = size
-    self.name = option[:name]
-    self.id = id
+    @name = option[:name]
+    @id = id
 
     @markColor = markColor
     @innerColor = innerColor
@@ -35,7 +36,8 @@ class RadioButton
   end
 
   def constract
-    @image.dispose if @image and !@image.disposed?
+
+    @image.dispose if @image and not @image.disposed?
     @image = Image.new(@size, @size, C_DEFAULT)
 
     @image.circleFill(@size * 0.5, @size * 0.5, size * 0.5, @frameColor)
@@ -43,6 +45,7 @@ class RadioButton
   end
 
   def setCheck(bool)
+
     if bool then
       unless @isCheck then
         @image.circleFill(@size * 0.5, @size * 0.5, @markSize, @markColor)
@@ -56,20 +59,21 @@ class RadioButton
 
   #描画位置の設定
   def setPos(x, y)
-    self.x, self.y = x, y
+    @x, @y = x, y
   end
 
   def draw
-    self.target.drawEx(self.x, self.y, @image)
+    @target.draw(@x, @y, @image, @z)
   end
 
   #ボタンを押下した時の処理
   def checked?
+
     mouseX = Input.mousePosX
     mouseY = Input.mousePosY
 
-    if Input.mousePush?(M_LBUTTON) and !@isCheck then
-      if mouseX >= self.x and mouseX <= self.x + @size and mouseY >= self.y and mouseY <= self.y + @size then
+    if Input.mousePush?(M_LBUTTON) and not @isCheck then
+      if mouseX >= @x and mouseX <= @x + @size and mouseY >= @y and mouseY <= @y + @size then
 
         self.setCheck(true)
         @isCheck = true

@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# log.rb Ver 0.9.1
+# log.rb Ver 1.0
 
 require "dxruby"
 

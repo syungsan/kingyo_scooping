@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# button.rb Ver 1.1
+# button.rb Ver 1.0
 # ƒ{ƒ^ƒ“ì¬—pƒ‰ƒCƒuƒ‰ƒŠ
 
 require "dxruby"
@@ -12,15 +12,16 @@ require "dxruby"
 class Button
 
   attr_accessor :x, :y, :alpha, :angle, :scale_x, :scale_y, :z,
-                :name, :id, :target, :is_gazed, :is_enable #=> is_gaze‚Í‹ü“ü—Í—p‚É’Ç‰Á‚µ‚½
+                :name, :id, :target, :add_push, :is_enable
   attr_reader :width, :height, :string, :is_hoverable
 
   def initialize(x=0, y=0, width=100, height=40, string="", font_size=36, option={})
-    option = {:color=>[120 ,120, 120], :str_color=>[255, 255, 255], :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :gr_color1=>[220, 220, 220],
-              :gr_color2=>[70, 70, 70], :is_hoverable=>true, :scale_x=>1, :scale_y=>1, :alpha=>255, :angle=>0, :z=>0,
-              :str_weight=>400, :str_italic=>false, :str_auto_fitting=>false, :str_shadow=>false, :str_shadow_color=>[0, 0, 0],
-              :str_alpha=>0, :str_angle=>0, :str_edge=>false, :str_edge_color=>[0, 0, 0], :str_edge_width=>2, :str_edge_level=>4,
-              :name=>"button", :id=>0, :target=>Window}.merge(option)
+    option = {:color=>[120 ,120, 120], :str_color=>[255, 255, 255], :font_name=>"‚l‚r ‚oƒSƒVƒbƒN",
+              :gr_color1=>[220, 220, 220], :gr_color2=>[70, 70, 70], :is_hoverable=>true, :scale_x=>1, :scale_y=>1,
+              :alpha=>255, :angle=>0, :z=>0, :str_weight=>400, :str_italic=>false, :str_auto_fitting=>false,
+              :str_shadow=>false, :str_shadow_color=>[0, 0, 0], :str_alpha=>0, :str_angle=>0, :str_edge=>false,
+              :str_edge_color=>[0, 0, 0], :str_edge_width=>2, :str_edge_level=>4, :name=>"button", :id=>0,
+              :target=>Window}.merge(option)
 
     @x = x
     @y = y
@@ -88,12 +89,14 @@ class Button
   def draw_string
 
     unless @string == "" then
-      font = Font.new(@font_size, @font_name, {:weight=>@str_weight, :italic=>@str_italic, :auto_fitting=>@str_auto_fitting})
+      font = Font.new(@font_size, @font_name,
+                      {:weight=>@str_weight, :italic=>@str_italic, :auto_fitting=>@str_auto_fitting})
       string_width = font.get_width(@string)
       @images.each do |image|
         image.draw_font_ex((@width - string_width) * 0.5, (@height - font.size) * 0.5, @string, font,
-                        {:color=>@str_color, :shadow=>@str_shadow, :shadow_color=>@str_shadow_color, :alpha=>@str_alpha, :angle=>@str_angle,
-                         :edge=>@str_edge, :edge_color=>@str_edge_color, :edge_width=>@str_edge_width, :edge_level=>@str_edge_level})
+                           {:color=>@str_color, :shadow=>@str_shadow, :shadow_color=>@str_shadow_color,
+                            :alpha=>@str_alpha, :angle=>@str_angle, :edge=>@str_edge, :edge_color=>@str_edge_color,
+                            :edge_width=>@str_edge_width, :edge_level=>@str_edge_level})
       end
       font.dispose
     end
@@ -106,8 +109,9 @@ class Button
   end
 
   def set_string(string, font_size=36, font_name="‚l‚r ‚oƒSƒVƒbƒN", option={})
-    option = {:weight=>400, :italic=>false, :auto_fitting=>false, :color=>[255, 255, 255], :shadow=>false, :shadow_color=>[0, 0, 0],
-              :alpha=>0, :angle=>0, :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2, :edge_level=>4}.merge(option)
+    option = {:weight=>400, :italic=>false, :auto_fitting=>false, :color=>[255, 255, 255], :shadow=>false,
+              :shadow_color=>[0, 0, 0], :alpha=>0, :angle=>0, :edge=>false, :edge_color=>[0, 0, 0], :edge_width=>2,
+              :edge_level=>4}.merge(option)
 
     @string = string
     @font_size = font_size
@@ -134,12 +138,14 @@ class Button
   end
 
   def string=(string)
+
     @string = string
     unless @has_image_set then
       self.construct
     else
       self.image_reconstract
     end
+
     self.draw_string
   end
 
@@ -152,22 +158,26 @@ class Button
   end
 
   def font_color=(font_color)
+
     @str_color = font_color
     unless @has_image_set then
       self.construct
     else
       self.image_reconstract
     end
+
     self.draw_string
   end
 
   def font_name=(font_name)
+
     @font_name= font_name
     unless @has_image_set then
       self.construct
     else
       self.image_reconstract
     end
+
     self.draw_string
   end
 
@@ -256,9 +266,13 @@ class Button
     mouse_x = Input.mouse_pos_x
     mouse_y = Input.mouse_pos_y
 
-    if Input.mouse_release?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
+    if Input.mouse_release?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and
+      mouse_y >= @y and mouse_y <= @y + @height then
       return true
-    elsif Input.mouse_down?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and mouse_y >= @y and mouse_y <= @y + @height then
+
+    elsif Input.mouse_down?(M_LBUTTON) and mouse_x >= @x and mouse_x <= @x + @width and
+      mouse_y >= @y and mouse_y <= @y + @height then
+
       if @response_count >= 15 then
         @response_count = 0
         return true

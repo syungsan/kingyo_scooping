@@ -10,10 +10,10 @@ class Bubble < Sprite
 
   if __FILE__ == $0 then
     require "../lib/common"
-    BUBBLE_IMAGE = "../images/bubble_0.png"
+    IMAGE = "../images/bubble_0.png"
   else
     require "./lib/common"
-    BUBBLE_IMAGE = "./images/bubble_0.png"
+    IMAGE = "./images/bubble_0.png"
   end
 
   INIT_SCALE = 0.1
@@ -27,11 +27,11 @@ class Bubble < Sprite
 
   include Common
 
-  def initialize(min_y=0, x_ranges=[0, 800], y_ranges=[600, 1200], scale_up_speed_ranges=[1.5, 6.0], accel_ranges=[1, 5],
-                 amplification_speed_ranges=[1.5, 6.0], angular_velo_up_speed_ranges=[1.5, 6.0],
+  def initialize(min_y=0, x_ranges=[0, 800], y_ranges=[600, 1200], scale_up_speed_ranges=[1.5, 6.0],
+                 accel_ranges=[1, 5], amplification_speed_ranges=[1.5, 6.0], angular_velo_up_speed_ranges=[1.5, 6.0],
                  id=0, name="bubble", target=Window, is_drag=false)
     super()
-    image = Image.load(BUBBLE_IMAGE)
+    image = Image.load(IMAGE)
     self.image = image
     @width = self.image.width
     @height = self.image.height
@@ -97,7 +97,8 @@ class Bubble < Sprite
   end
 
   def draw
-    self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :alpha=>self.alpha})
+    self.target.draw_ex(self.x, self.y, self.image,
+                        {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :alpha=>self.alpha})
   end
 end
 

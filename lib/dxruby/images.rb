@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# images.rb Ver 1.1
+# images.rb Ver 1.0
 # ”Ä—p•`‰æƒ‰ƒCƒuƒ‰ƒŠ
 
 require "dxruby"
@@ -16,12 +16,14 @@ class Images
   attr_reader :width, :height, :string, :font_size
 
   def initialize(x=0, y=0, width=50, height=40, string= "", font_size=28, color=C_WHITE, st_color=C_BLACK, option={})
-    option = {:id=>0, :name=>"images", :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :is_pen_active=>false, :pen_size=>5, :pen_color=>C_BLACK, 
-              :is_innovative_line=>true, :is_legacy_line=>false, :target=>Window}.merge(option)
+    option = {:id=>0, :name=>"images", :font_name=>"‚l‚r ‚oƒSƒVƒbƒN", :is_pen_active=>false, :pen_size=>5,
+              :pen_color=>C_BLACK, :is_innovative_line=>true, :is_legacy_line=>false, :z=>0,
+              :target=>Window}.merge(option)
 
     @target = option[:target]
     @x = x
     @y = y
+
     @filename = nil
     @copy_name = nil
     @stretch_filename = nil
@@ -33,12 +35,15 @@ class Images
     @font_name = option[:font_name]
     @string = string
     @string_pos = []
-    @z = 0
+
+    @z = option[:z]
     @scale_x = 1.0
     @scale_y = 1.0
     @angle = 0
     @alpha = 255
+
     self.construct
+
     @name = option[:name]
     @id = option[:id]
     @is_pen_active = option[:is_pen_active]
@@ -68,7 +73,7 @@ class Images
 
     self.grid(@division_numbers, @grid_line_width, @grid_line_color) if @is_grid
     self.frame(@frame_color, @frame_size) if @is_frame
-    self.draw_string if @string != ""
+    self.draw_string unless @string == ""
   end
 
   def string=(string)
@@ -194,10 +199,11 @@ class Images
 
         # ‰~Œ`ƒyƒ“•`‰æiŸ–”ƒXƒyƒVƒƒƒ‹j###################################################
         # line”‚ª‘½‚¢‚Ì‚ÅŠ„‚ÆƒJƒN‚Â‚­
+        # i*j–{‚Ìü‚ğ•`‰æ
         for i in 0...360 do # ‰ñ“]Šp“xƒÆ‚ği
-          for j in @pen_size-1..@pen_size do # ‰~‚ÌŒú‚İ0‚©‚ç‚Éw’è‚Å’†À‰~ ‚©‚·‚ê‚È‚¢’ö“x‚ÉŒú‚­
-            @image.line(@cur_x+j*Math.cos(i*Math::PI/180), @cur_y+j*Math.sin(i*Math::PI/180),
-                       old_x+j*Math.cos(i*Math::PI/180),old_y+j*Math.sin(i*Math::PI/180),@pen_color)  # i*j–{‚Ìü‚ğ•`‰æ
+          for j in @pen_size - 1..@pen_size do # ‰~‚ÌŒú‚İ0‚©‚ç‚Éw’è‚Å’†À‰~ ‚©‚·‚ê‚È‚¢’ö“x‚ÉŒú‚­
+            @image.line(@cur_x + j * Math.cos(i * Math::PI / 180), @cur_y + j * Math.sin(i * Math::PI / 180),
+                       old_x + j * Math.cos(i * Math::PI / 180), old_y + j * Math.sin(i * Math::PI / 180), @pen_color)
           end
         end
         # image.circle_fill(@cur_x, @cur_y, 10, @pen_color) # j‚ª0‚©‚ç‚È‚ç—v‚ç‚È‚¢‘‚«o‚µ‚Ì“h‚è‚Â‚Ô‚µ—piline”íŒ¸‚Å•‰‰×ŒyŒ¸—pj
@@ -255,6 +261,7 @@ class Images
   end
 
   def get_paint_chart
+
     if @is_pen_active then
       if @is_paint then
         if @cur_x >= 0 and @cur_x <= @width and @cur_y >= 0 and @cur_y <= @height then
@@ -281,22 +288,26 @@ class Images
     @grid_line_color = grid_line_color
 
     (@division_numbers[0] + 1).times do |loop_id|
-      @image.box_fill(0, (@height - @grid_line_width) / @division_numbers[0] * loop_id, 
-                      @width, ((@height - @grid_line_width) / @division_numbers[0] * loop_id) + @grid_line_width, @grid_line_color)
+      @image.box_fill(0, (@height - @grid_line_width) / @division_numbers[0] * loop_id, @width,
+                      ((@height - @grid_line_width) / @division_numbers[0] * loop_id) + @grid_line_width,
+                      @grid_line_color)
     end
     (@division_numbers[1] + 1).times do |loop_id|
-      @image.box_fill((@width - @grid_line_width) / @division_numbers[1] * loop_id, 
-                      0, ((@width - @grid_line_width) / @division_numbers[1] * loop_id) + @grid_line_width, @height, @grid_line_color)
+      @image.box_fill((@width - @grid_line_width) / @division_numbers[1] * loop_id, 0,
+                      ((@width - @grid_line_width) / @division_numbers[1] * loop_id) + @grid_line_width, @height,
+                      @grid_line_color)
     end
   end
 
   def clear
+
     @image.dispose if @image
     @filename = nil unless @filename.nil?
     @string = "" unless @string == ""
     @is_paint = false
     @is_grid = false
     @is_frame = false
+
     self.construct
   end
 
@@ -326,18 +337,23 @@ class Images
   class << self
 
     def fit_resize(image, width, height)
+
       render_target = RenderTarget.new(width, height)
-      dist_image = render_target.draw_scale(0, 0, image, width / image.width.to_f, height / image.height.to_f, 0, 0).to_image
+      dist_image =
+        render_target.draw_scale(0, 0, image, width / image.width.to_f, height / image.height.to_f, 0, 0).to_image
       image.dispose
       render_target.dispose
+
       return dist_image
     end
 
     def scale_resize(image, scale_x, scale_y)
+
       render_target = RenderTarget.new(image.width * scale_x, image.height * scale_y)
       dist_image = render_target.draw_scale(0, 0, image, scale_x, scale_y, 0, 0).to_image
       image.dispose
       render_target.dispose
+
       return dist_image
     end
   end
@@ -369,7 +385,8 @@ if __FILE__ == $0
   base_layer.angle = 5
   base_layer.color = C_GREEN
 
-  paint_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480, "", 0, C_DEFAULT)
+  paint_layer = Images.new((Window.width - 640) * 0.5, (Window.height - 480) * 0.5, 640, 480, "",
+                           0, C_DEFAULT)
   paint_layer.is_pen_active = true
   paint_layer.pen_size = 20
 

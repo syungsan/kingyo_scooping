@@ -10,6 +10,7 @@ require "jcode"
 module Color
 
 =begin
+  # 配列要素定義 [a, r, g, b]
   # DXRuby1.4.1以降で実装されているカラー定数
   C_BLACK   = [255,   0,   0,   0]
   C_RED     = [255, 255,   0,   0]

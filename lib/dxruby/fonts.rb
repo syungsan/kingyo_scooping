@@ -3,7 +3,7 @@
 $KCODE = "s"
 require "jcode"
 
-# fonts.rb Ver 1.1
+# fonts.rb Ver 1.0
 # ラベル作成用ライブラリ
 
 require "dxruby"
@@ -22,6 +22,7 @@ class Fonts
     @x = x
     @y = y
     @z = option[:z]
+
     @string = string
     @size = size
     @font_name = option[:font_name]
@@ -37,9 +38,11 @@ class Fonts
     @edge_color = option[:edge_color]
     @edge_width = option[:edge_width]
     @edge_level = option[:edge_level]
+
     @name = option[:name]
     @id = option[:id]
     @target = option[:target]
+
     self.constract
   end
 
@@ -89,9 +92,10 @@ class Fonts
   end
 
   def draw
-    @target.draw_font_ex(@x, @y, @string, @font, {:z=>@z, :color=>@color, :shadow=>@shadow, :shadow_color=>@shadow_color,
-                                                    :alpha=>@alpha, :angle=>@angle, :edge=>@edge, :edge_color=>@edge_color,
-                                                    :edge_width=>@edge_width, :edge_level=>@edge_level})
+    @target.draw_font_ex(@x, @y, @string, @font, {:z=>@z, :color=>@color, :shadow=>@shadow,
+                                                  :shadow_color=>@shadow_color, :alpha=>@alpha, :angle=>@angle,
+                                                  :edge=>@edge, :edge_color=>@edge_color, :edge_width=>@edge_width,
+                                                  :edge_level=>@edge_level})
   end
 
   def vanish

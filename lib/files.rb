@@ -114,27 +114,6 @@ module Files
     end
   end
 
-=begin
-  # for Ruby 1.9
-  # ファイルに配列を一気に上書きで書き込む（要素ごとに改行）
-  def fileWriteArray(filename, array)
-    File.open(filename, "w") do |fh|
-      array.each do |line|
-        fh.write("#{line}\n")
-      end
-    end
-  end
-  # for Ruby 1.9
-  # ファイルに配列を一気に追加で書き込む（要素ごとに改行）
-  def fileAddArray(filename, array)
-    File.open(filename, "a") do |fh|
-      array.each do |line|
-        fh.write("#{line}\n")
-      end
-    end
-  end
-=end
-
   # 深い階層のフォルダも一気に作成
   def makeDirNotExist(dirPath)
     FileUtils.mkdir_p(dirPath) unless FileTest.exist?(dirPath)

@@ -9,6 +9,9 @@ require "jcode"
 
 class WavAnalyze
 
+  attr_reader :waves, :max, :min, :num, :start, :end, :moving_average_waves, :threshold,
+              :start_time, :end_time
+
   def initialize
     @waves = nil # ruby -Ks
     @max = nil # 最大値
@@ -21,8 +24,6 @@ class WavAnalyze
     @start_time = nil
     @end_time = nil
   end
-  
-  attr_reader :waves, :max, :min, :num, :start, :end, :moving_average_waves, :threshold, :start_time, :end_time
 
   # WAVファイルの読み込み
   def load_wave(filename, skip)
@@ -63,7 +64,7 @@ class WavAnalyze
 
 
   # 移動平均処理
-  def moving_average(range = 100)
+  def moving_average(range=100)
 
     outs = []
     total = 0
@@ -134,7 +135,7 @@ class WavAnalyze
   end
   
   # 分析する
-  def analyze(filename, skip = 1)
+  def analyze(filename, skip=1)
 
     self.load_wave(filename, skip)
     moving_average_wavs = self.moving_average(100) # -- 引数が移動平均の精度（小さいほどタイミングのずれがなくなる）

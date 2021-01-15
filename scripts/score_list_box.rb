@@ -98,14 +98,16 @@ class ScoreListBox
   end
 
   def update
+
     if @mode == :up and @page_number > 1 then
-      if @scroll_count < -1 * @up_layer.height * (@page_number - 2)then
+      if @scroll_count < -1 * @up_layer.height * (@page_number - 2) then
         @scroll_count += @scroll_speed
       else
         @mode = :wait
         @page_number -= 1
       end
     end
+
     if @mode == :down and @page_number < @max_page_number then
       if @scroll_count > -1 * (@up_layer.height * @page_number) then
         @scroll_count -= @scroll_speed
@@ -136,8 +138,9 @@ if __FILE__ == $0 then
   Window.width = 1280
   Window.height = 720
 
-  items = [["1位", "非常勤講師", "10000点", "金魚神"], ["2位", "アルバイト募集", "1000点", "金魚人"], ["3位", "ちづる", "100点", "レジェンドン"],
-           ["4位", "神じゃね？", "10点", "スーパーカブ"], ["5位", "落ちこぼれ野郎", "1点", "良しヲくん"]]
+  items = [["1位", "非常勤講師", "10000点", "金魚神"], ["2位", "アルバイト募集", "1000点", "金魚人"],
+           ["3位", "ちづる", "100点", "レジェンドン"], ["4位", "神じゃね？", "10点", "スーパーカブ"],
+           ["5位", "落ちこぼれ野郎", "1点", "良しヲくん"]]
 
   colors = [C_RED, C_PURPLE, C_BLUE, C_MAGENTA, C_ORANGE]
 
