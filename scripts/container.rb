@@ -59,6 +59,7 @@ class Container < Sprite
     @shadow_x = SHADOW_OFFSET_X
     @shadow_y = SHADOW_OFFSET_Y
     @collision_ratios = BORDER_COLLISION_RATIOS
+    self.alpha = ALPHA
 
     @mode_ranges = mode_ranges
     @speed_ranges = speed_ranges
@@ -125,7 +126,7 @@ class Container < Sprite
 
   def draw
     self.target.draw(self.x + @shadow_x, self.y + @shadow_y, @images[1], self.z)
-    self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :alpha=>ALPHA})
+    self.target.draw_ex(self.x, self.y, self.image, {:z=>self.z, :alpha=>self.alpha})
   end
 end
 

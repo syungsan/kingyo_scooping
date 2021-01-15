@@ -260,10 +260,7 @@ if __FILE__ == $0 then
   kingyos = []
   20.times do |index|
     kingyo_height = Window.height * rand_float(0.1, 0.2)
-    kingyo = Kingyo.new(0, 0, nil, kingyo_height, KIND_OF[rand(2)], rand(360), index,
-                        {:wait=>[0, Math.sqrt(Window.height * 0.001)],
-                         :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.024)],
-                         :escape=>[Math.sqrt(Window.height * 0.003), Math.sqrt(Window.height * 0.072)]})
+    kingyo = Kingyo.new(0, 0, nil, kingyo_height, KIND_OF[rand(2)], rand(360), index)
     kingyo.set_pos(kingyo.x = random_int(border.x, border.x + border.width - kingyo.width),
                    kingyo.y = random_int(border.y, border.y + border.height - kingyo.height))
     kingyos.push(kingyo)

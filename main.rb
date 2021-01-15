@@ -39,7 +39,7 @@ class Configuration
   APPLICATION_NAME = "金魚すくい"
   APPLICATION_SUB_TITLE = "視線入力対応版"
   COPYRIGHT = "Powered by Ruby, DXRuby & VisualuRuby."
-  VERSION_NUMBER = "0.9.6"
+  VERSION_NUMBER = "1.0.0"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -710,8 +710,10 @@ class GameScene < Scene::Base
     @boss_bgm = Bass.loadSample(BOSS_BGM)
 
     return_to_title_button_image = Image.load(RETURN_TO_TITLE_BUTTON_IMAGE)
-    return_to_title_button_scale = Window.width * 0.065 / return_to_title_button_image.width
-    return_to_title_button_converted_image = Images.scale_resize(return_to_title_button_image, return_to_title_button_scale, return_to_title_button_scale)
+    return_to_title_button_scale = Window.height * 0.05 / return_to_title_button_image.height
+    return_to_title_button_converted_image =
+      Images.scale_resize(return_to_title_button_image, return_to_title_button_scale, return_to_title_button_scale)
+
     @return_to_title_button = Button.new
     @return_to_title_button.set_image(return_to_title_button_converted_image)
     @return_to_title_button.set_string("Return", return_to_title_button_converted_image.height * 0.6,
@@ -719,22 +721,25 @@ class GameScene < Scene::Base
     @return_to_title_button.set_pos(Window.width - @return_to_title_button.width, 0)
 
     window_mode_button_image = Image.load(WINDOW_MODE_BUTTON_IMAGE)
-    window_mode_button_scale = Window.width * 0.065 / window_mode_button_image.width
-    window_mode_button_converted_image = Images.scale_resize(window_mode_button_image,
-                                                             window_mode_button_scale, window_mode_button_scale)
+    window_mode_button_scale = Window.height * 0.05 / window_mode_button_image.height
+    window_mode_button_converted_image =
+      Images.scale_resize(window_mode_button_image, window_mode_button_scale, window_mode_button_scale)
+
     @window_mode_button = Button.new
     @window_mode_button.set_image(window_mode_button_converted_image)
     @window_mode_button.set_string("Full/Win", window_mode_button_converted_image.height * 0.5,
                                    "07ラノベPOP", {:color=>C_DARK_BLUE})
     @window_mode_button.set_pos(Window.width - (@return_to_title_button.width + @window_mode_button.width), 0)
 
-    return_to_title_message_dialog_width = Window.width * 0.5
-    return_to_title_message_dialog_height = return_to_title_message_dialog_width * 0.5
-    return_to_title_message_dialog_option = {:frame_thickness=>(return_to_title_message_dialog_width * 0.02).round,
-                                    :radius=>return_to_title_message_dialog_width * 0.03,
+    return_to_title_message_dialog_height = Window.height * 0.4
+    return_to_title_message_dialog_width = return_to_title_message_dialog_height * 2
+    return_to_title_message_dialog_option = {:frame_thickness=>return_to_title_message_dialog_height * 0.04,
+                                    :radius=>return_to_title_message_dialog_height * 0.06,
                                     :bg_color=>C_CREAM, :frame_color=>C_CYAN}
-    @return_to_title_message_dialog = MessageDialog.new(0, 0, return_to_title_message_dialog_width, return_to_title_message_dialog_height,
-                                               1, return_to_title_message_dialog_option)
+
+    @return_to_title_message_dialog = MessageDialog.new(0, 0, return_to_title_message_dialog_width,
+                                                        return_to_title_message_dialog_height, 1,
+                                                        return_to_title_message_dialog_option)
     @return_to_title_message_dialog.set_message("タイトルに戻りますか？", "",
                                        @return_to_title_message_dialog.height * 0.15, C_BROWN, "みかちゃん")
     @return_to_title_message_dialog.set_pos((Window.width - @return_to_title_message_dialog.width) * 0.5,
@@ -743,12 +748,12 @@ class GameScene < Scene::Base
 
     @return_to_title_message_dialog.ok_button.font_color = C_DARK_BLUE
     @return_to_title_message_dialog.ok_button.font_name = "07ラノベPOP"
-    @return_to_title_message_dialog.ok_button.name = "return_message_ok_button"
+    @return_to_title_message_dialog.ok_button.name = "return_to_title_ok_button"
     @return_to_title_message_dialog.ok_button.z = Z_POSITION_TOP
 
     @return_to_title_message_dialog.cancel_button.font_color = C_DARK_BLUE
     @return_to_title_message_dialog.cancel_button.font_name = "07ラノベPOP"
-    @return_to_title_message_dialog.cancel_button.name = "return_message_cancel_button"
+    @return_to_title_message_dialog.cancel_button.name = "return_to_title_cancel_button"
     @return_to_title_message_dialog.cancel_button.z = Z_POSITION_TOP
 
     ok_button_image = Image.load(OK_BUTTON_IMAGE)
@@ -758,7 +763,8 @@ class GameScene < Scene::Base
 
     cancel_button_image = Image.load(CANCEL_BUTTON_IMAGE)
     @return_to_title_message_dialog.cancel_button.set_image(Images.fit_resize(
-      cancel_button_image, @return_to_title_message_dialog.cancel_button.width, @return_to_title_message_dialog.cancel_button.height))
+      cancel_button_image, @return_to_title_message_dialog.cancel_button.width,
+      @return_to_title_message_dialog.cancel_button.height))
 
     @is_returnable = false
 
@@ -1071,11 +1077,11 @@ class GameScene < Scene::Base
 
     if @buttons and not @buttons.empty? then
       @buttons.each do |button|
-        if @is_returnable and (button.name == "return_message_ok_button" or
-          button.name == "return_message_cancel_button") then
+        if @is_returnable and (button.name == "return_to_title_ok_button" or
+          button.name == "return_to_title_cancel_button") then
           button.hovered?
         elsif not @is_returnable and
-          not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+          not (button.name == "return_to_title_ok_button" or button.name == "return_to_title_cancel_button") then
           button.hovered?
         end
       end
@@ -1096,9 +1102,10 @@ class GameScene < Scene::Base
     end
 
     if @return_to_title_message_dialog and @is_returnable and
-      (@return_to_title_message_dialog.cancel_button.pushed? or @return_to_title_message_dialog.cancel_button.add_push) then
-      @return_to_title_message_dialog.cancel_button.add_push = false
+      (@return_to_title_message_dialog.cancel_button.pushed? or
+        @return_to_title_message_dialog.cancel_button.add_push) then
 
+      @return_to_title_message_dialog.cancel_button.add_push = false
       @click_se.play if @click_se
       @is_returnable = false
       @poi.z = Z_POSITION_TOP
@@ -1317,11 +1324,11 @@ class GameScene < Scene::Base
         if x + center_x >= button.x and x + center_x <= button.x + button.width and
           y + center_y >= button.y and y + center_y <= button.y + button.height then
 
-          if @is_returnable and (button.name == "return_message_ok_button" or
-            button.name == "return_message_cancel_button") then
+          if @is_returnable and (button.name == "return_to_title_ok_button" or
+            button.name == "return_to_title_cancel_button") then
             button.add_push = true
           elsif not @is_returnable and
-            not (button.name == "return_message_ok_button" or button.name == "return_message_cancel_button") then
+            not (button.name == "return_to_title_ok_button" or button.name == "return_to_title_cancel_button") then
             button.add_push = true
           end
         end
@@ -1509,7 +1516,7 @@ class GameScene < Scene::Base
       end
     end
 
-    if @splashs and not @splashs.empty? and not @mode == :start
+    if @splashs and not @splashs.empty? and not @mode == :start then
       @splashs.each do |splash|
         splash.draw
       end
@@ -1523,7 +1530,7 @@ class GameScene < Scene::Base
 
     @life_gauge.draw unless @mode == :start
 
-    unless @mode == :start then
+    if @poi_gauges and not @poi_gauges.empty? and not @mode == :start then
       @poi_gauges.each do |poi_gauge|
         poi_gauge.draw
       end

@@ -32,8 +32,8 @@ class Weed < Sprite
   SIGNS = {:right=>1, :left=>-1}
   ESCAPE_ROATATION_SPEED_RATIO = 0.1
 
-  def initialize(x=0, y=0, width=100, height=100, angle=0, id=0, speed_ranges={:escape=>[1, 3]}, mode_ranges={:escape=>[0, 200]},
-                 escape_change_timing = 0.3, name="weed", target=Window, is_drag=false)
+  def initialize(x=0, y=0, width=100, height=100, angle=0, id=0, speed_ranges={:escape=>[1, 3]},
+                 mode_ranges={:escape=>[0, 200]}, escape_change_timing = 0.3, name="weed", target=Window, is_drag=false)
     super()
 
     image = Image.load(IMAGE)

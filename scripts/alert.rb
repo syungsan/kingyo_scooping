@@ -43,14 +43,16 @@ class Alert
     attr_reader :width, :height
     
     def initialize(x=0, y=0, size=100, string="", font_name="‚l‚r ‚oƒSƒVƒbƒN", option={})
-      option = {:weight=>300, :italic=>false, :color=>C_WHITE, :shadow=>true, :shadow_x=>3, :shadow_y=>3, :shadow_color=>[64, 64, 64],
-                :name=>"alert_font", :id=>0, :is_drag=>false, :target=>Window}.merge(option)
+      option = {:weight=>300, :italic=>false, :color=>C_WHITE, :shadow=>true, :shadow_x=>3, :shadow_y=>3,
+                :shadow_color=>[64, 64, 64], :name=>"alert_font", :id=>0, :is_drag=>false,
+                :target=>Window}.merge(option)
       super()
 
       font = Font.new(size, font_name, {:weight=>option[:waight], :italic=>option[:italic]})
       image = Image.new(font.get_width(string), size)
-      image.draw_font_ex(0, 0, string, font, {:color=>option[:color], :shadow=>option[:shadow], :shadow_x=>option[:shadow_x],
-                                              :shadow_y=>option[:shadow_y], :shadow_color=>option[:shadow_color]})
+      image.draw_font_ex(0, 0, string, font, {:color=>option[:color], :shadow=>option[:shadow],
+                                              :shadow_x=>option[:shadow_x], :shadow_y=>option[:shadow_y],
+                                              :shadow_color=>option[:shadow_color]})
       font.dispose
 
       self.x = x
@@ -95,6 +97,7 @@ class Alert
   def make_base
     @base_image = Image.new(@width, @height * BASE_HEIGHT_RATIO)
     @base_image.box_fill(0, 0, @base_image.width, @base_image.height, BASE_COLOR)
+    @base_alpha = BASE_ALPHA
   end
 
   def make_sub_alert(string, font_name, id=0, is_drag=false, target=Window)
@@ -108,7 +111,8 @@ class Alert
 
     up_sub_alerts = []
     SUB_ALERT_MAX_NUMBER.times do |index|
-      up_sub_alert = AlertFont.new(0, @y + (@height * BASE_HEIGHT_RATIO - size) * 0.5, size, string, font_name, option)
+      up_sub_alert = AlertFont.new(0, @y + (@height * BASE_HEIGHT_RATIO - size) * 0.5,
+                                   size, string, font_name, option)
       up_sub_alert.x = @x - (up_sub_alert.width * SUB_ALERT_INTERVAL_RATIO * index)
       up_sub_alert.z = @z + 1
       up_sub_alert.name = "up_sub_alert"
@@ -117,8 +121,9 @@ class Alert
 
     down_sub_alerts = []
     SUB_ALERT_MAX_NUMBER.times do |index|
-      down_sub_alert = AlertFont.new(0, @y + @height - (@height * BASE_HEIGHT_RATIO) + ((@height * BASE_HEIGHT_RATIO - size) * 0.5),
-                                     size, string, font_name, option)
+      down_sub_alert =
+        AlertFont.new(0, @y + @height - (@height * BASE_HEIGHT_RATIO) + ((@height * BASE_HEIGHT_RATIO - size) * 0.5),
+                      size, string, font_name, option)
       down_sub_alert.x = @x - (down_sub_alert.width * SUB_ALERT_INTERVAL_RATIO * (0.5 + index))
       down_sub_alert.z = @z + 1
       down_sub_alert.name = "down_sub_alert"
@@ -134,6 +139,7 @@ class Alert
     option = {:weight=>MAIN_ALERT_WEIGHT, :italic=>MAIN_ALERT_IS_ITALIC, :color=>MAIN_ALERT_COLOR,
               :shadow=>MAIN_ALERT_IS_SHADOW, :shadow_x=>@main_alert_shadow_x, :shadow_y=>@main_alert_shadow_y,
               :shadow_color=>SHADOW_COLOR, :id=>id, :is_drag=>is_drag, :target=>target}
+
     @main_alert = AlertFont.new(@x + @width, 0, size, string, font_name, option)
     @main_alert.y = @y + ((@height - @main_alert.height) * 0.5)
     @main_alert.z = @z
@@ -166,8 +172,10 @@ class Alert
   end
 
   def draw
-    @target.draw_alpha(@x, @y, @base_image, BASE_ALPHA, @z)
-    @target.draw_alpha(@x, @y + @height - @base_image.height, @base_image, BASE_ALPHA, @z)
+
+    @target.draw_alpha(@x, @y, @base_image, @base_alpha, @z)
+    @target.draw_alpha(@x, @y + @height - @base_image.height, @base_image, @base_alpha, @z)
+
     @sub_alerts.each do |sub_alert|
       sub_alert.draw
     end

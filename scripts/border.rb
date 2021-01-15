@@ -43,10 +43,14 @@ class Border
 
     def hit(obj)
       unless obj.class == Block then
-        obj.y = self.y + self.height + (obj.height * obj.collision_ratios[0]) if self.id == 0 and obj.collision_ratios[0]
-        obj.x = self.x + self.width + (obj.height * obj.collision_ratios[1]) if self.id == 1 and obj.collision_ratios[1]
-        obj.x = self.x - obj.width - (obj.height * obj.collision_ratios[2]) if self.id == 2 and obj.collision_ratios[2]
-        obj.y = self.y - obj.height - (obj.height * obj.collision_ratios[3]) if self.id == 3 and obj.collision_ratios[3]
+        obj.y = self.y + self.height + (obj.height * obj.collision_ratios[0]) if
+          self.id == 0 and obj.collision_ratios[0]
+        obj.x = self.x + self.width + (obj.height * obj.collision_ratios[1]) if
+          self.id == 1 and obj.collision_ratios[1]
+        obj.x = self.x - obj.width - (obj.height * obj.collision_ratios[2]) if
+          self.id == 2 and obj.collision_ratios[2]
+        obj.y = self.y - obj.height - (obj.height * obj.collision_ratios[3]) if
+          self.id == 3 and obj.collision_ratios[3]
       end
     end
   end

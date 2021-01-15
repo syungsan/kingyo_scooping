@@ -13,7 +13,6 @@ class LifeGauge
 
   SHADOW_OFFSET_X = 5
   SHADOW_OFFSET_Y = 5
-  SPEED_UNIT = 0.5
   DEFAULT_COLOR = C_GREEN
   ALERT_COLOR = C_RED
 
@@ -23,7 +22,8 @@ class LifeGauge
     require "./lib/dxruby/roundbox"
   end
 
-  def initialize(width=10, height=100, border_color=C_BLUE, border_thickness=1, round_radius=5, name="life_gauge", id=0, target=Window)
+  def initialize(width=10, height=100, border_color=C_BLUE, border_thickness=1, round_radius=5,
+                 name="life_gauge", id=0, target=Window)
 
     @image = Image.new(width, height)
     @width = @image.width
@@ -102,15 +102,15 @@ class PoiGage
 
   if __FILE__ == $0 then
     require "../lib/dxruby/images"
-    MINI_POI_IMAGE = "../images/mini_poi.png"
+    IMAGE = "../images/mini_poi.png"
   else
     require "./lib/dxruby/images"
-    MINI_POI_IMAGE = "./images/mini_poi.png"
+    IMAGE = "./images/mini_poi.png"
   end
 
   def initialize(width=100, height=100, name="poi_gauge", id=0, target=Window)
 
-    image = Image.load(MINI_POI_IMAGE)
+    image = Image.load(IMAGE)
 
     scale_x = width / image.width.to_f if width
     scale_y = height / image.height.to_f if height
@@ -168,7 +168,8 @@ if __FILE__ == $0 then
 
   5.times do |index|
     poi_gauge = PoiGage.new(nil, poi_gauge_relative_size)
-    poi_gauge.set_pos((Window.width - poi_gauge.width) * 0.85 + (poi_gauge_interval * index), (Window.height - poi_gauge.height) * 0.96)
+    poi_gauge.set_pos((Window.width - poi_gauge.width) * 0.85 + (poi_gauge_interval * index),
+                      (Window.height - poi_gauge.height) * 0.96)
     poi_gauges.push(poi_gauge)
   end
   poi_gauges.reverse!

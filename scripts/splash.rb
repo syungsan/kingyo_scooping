@@ -73,10 +73,12 @@ class Splash < Sprite
   end
 
   def draw
-    self.target.draw_ex(self.x + SHADOW_OFFSET_X, self.y + SHADOW_OFFSET_Y, @shadow,
-                        {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :z=>self.z, :angle=>self.angle, :alpha=>self.alpha})
-    self.target.draw_ex(self.x, self.y, self.image,
-                        {:scale_x=>self.scale_x, :scale_y=>self.scale_y, :z=>self.z, :angle=>self.angle, :alpha=>self.alpha})
+    self.target.draw_ex(self.x + SHADOW_OFFSET_X, self.y + SHADOW_OFFSET_Y,
+                        @shadow, {:scale_x=>self.scale_x, :scale_y=>self.scale_y,
+                                  :z=>self.z, :angle=>self.angle, :alpha=>self.alpha})
+
+    self.target.draw_ex(self.x, self.y, self.image, {:scale_x=>self.scale_x, :scale_y=>self.scale_y,
+                                                     :z=>self.z, :angle=>self.angle, :alpha=>self.alpha})
   end
 end
 
@@ -91,7 +93,8 @@ if __FILE__ == $0 then
   target.y = (Window.height - target.image.height) * 0.5
 
   splash = Splash.new(10, 1)
-  splash.run(target.x + target.center_x - (splash.width * 0.5), target.y + target.center_y - (splash.height * 0.5), target, 300, 0.8)
+  splash.run(target.x + target.center_x - (splash.width * 0.5),
+             target.y + target.center_y - (splash.height * 0.5), target, 300, 0.8)
 
   Window.bgcolor = C_GREEN
   Window.loop do

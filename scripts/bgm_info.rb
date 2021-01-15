@@ -24,7 +24,8 @@ class BgmInfo < Sprite
 
   def initialize(x=0, y=0, width=300, height=100, option={})
     option = {:frame_thickness=>2, :radius=>10, :bg_color=>C_WHITE, :frame_color=>C_GREEN, :max_wait_count=>120,
-              :acceleration=>-9.8, :initial_velocity=>-82.0, :name=>"bgm_info", :id=>0, :target=>Window, :is_drag=>false}.merge(option)
+              :acceleration=>-9.8, :initial_velocity=>-82.0, :name=>"bgm_info", :id=>0, :target=>Window,
+              :is_drag=>false}.merge(option)
     super()
 
     @frame_thickness = option[:frame_thickness]
@@ -84,8 +85,10 @@ class BgmInfo < Sprite
   end
 
   def set_info(info={:title=>nil, :data=>nil, :copyright=>nil}, font_name={:title=>nil, :data=>nil, :copyright=>nil},
-               font_size={:title=>30, :data=>24, :copyright=>28}, font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE},
-               italic={:title=>false, :data=>true, :copyright=>false}, weight={:title=>800, :data=>800, :copyright=>800})
+               font_size={:title=>30, :data=>24, :copyright=>28},
+               font_color={:title=>C_WHITE, :data=>C_WHITE, :copyright=>C_WHITE},
+               italic={:title=>false, :data=>true, :copyright=>false},
+               weight={:title=>800, :data=>800, :copyright=>800})
 
     self.constract
 
@@ -117,7 +120,8 @@ class BgmInfo < Sprite
 
     @title_label.set_pos((@width - @title_label.width) * 0.5, margin_y)
     @data_label.set_pos((@width - @data_label.width) * 0.5, margin_y + @title_label.height)
-    @copyright_label.set_pos((@width - @copyright_label.width) * 0.5, margin_y + @title_label.height + @data_label.height)
+    @copyright_label.set_pos((@width - @copyright_label.width) * 0.5,
+                             margin_y + @title_label.height + @data_label.height)
 
     @title_label.draw
     @data_label.draw
@@ -173,8 +177,10 @@ if __FILE__ == $0 then
 
   bgm_info = BgmInfo.new(Window.width, Window.height * 0.04, bgm_info_width, bgm_info_height)
   bgm_info.set_info({:title=>MAIN_BGM_DATE[0], :data=>MAIN_BGM_DATE[1], :copyright=>MAIN_BGM_DATE[2]},
-                    {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE, :copyright=>TANUKI_MAGIC_FONT_TYPE},
-                    {:title=>bgm_info.height * 0.3, :data=>bgm_info.height * 0.2, :copyright=>bgm_info.height * 0.25})
+                    {:title=>TANUKI_MAGIC_FONT_TYPE, :data=>TANUKI_MAGIC_FONT_TYPE,
+                     :copyright=>TANUKI_MAGIC_FONT_TYPE},
+                    {:title=>bgm_info.height * 0.3, :data=>bgm_info.height * 0.2,
+                     :copyright=>bgm_info.height * 0.25})
   bgm_info.initial_velocity = -1 * Math.sqrt(Window.height * 8.7)
   bgm_info.mode = :run
 

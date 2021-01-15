@@ -402,7 +402,7 @@ class Boss < Sprite
       @width = self.image.width
       @height = self.image.height
 
-      self.collision = [@width* 0.5, @width * 0.5, @width * 0.5]
+      self.collision = [@width * 0.5, @width * 0.5, @width * 0.5]
       self.target = target
 
       @id = id
@@ -430,8 +430,10 @@ class Boss < Sprite
 
     def fit_pos_for_mother_ship
       position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
-      self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
-      self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
+      self.x = @mother_ship.x + @mother_ship.center_x -
+        (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
+      self.y = @mother_ship.y + @mother_ship.center_y -
+        (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
     end
 
     def is_wait=(is_wait=true)
@@ -491,8 +493,10 @@ class Boss < Sprite
 
     def wait
       position_radian = (@mother_ship.angle + 90) * (Math::PI / 180)
-      self.x = @mother_ship.x + @mother_ship.center_x - (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
-      self.y = @mother_ship.y + @mother_ship.center_y - (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
+      self.x = @mother_ship.x + @mother_ship.center_x -
+        (@mother_ship.height * 0.5 * Math.cos(position_radian)) - (@width * 0.5)
+      self.y = @mother_ship.y + @mother_ship.center_y -
+        (@mother_ship.height * 0.5 * Math.sin(position_radian)) - (@height * 0.5)
     end
 
     def preparation
@@ -513,9 +517,8 @@ class Boss < Sprite
       self.x += Math.cos(move_direction_radian) * MOVE_SPEED
       self.y += Math.sin(move_direction_radian) * MOVE_SPEED
 
-      self.scale_x += SCALE_UP_SPEED # + Math.sqrt(@scale)
-      self.scale_y += SCALE_UP_SPEED # + Math.sqrt(@scale)
-      # @scale += SCALE_UP_SPEED
+      self.scale_x += SCALE_UP_SPEED
+      self.scale_y += SCALE_UP_SPEED
     end
 
     def hit(obj)
@@ -579,9 +582,7 @@ if __FILE__ == $0 then
   5.times do |index|
     boss_height = Window.height * rand_float(0.3, 0.6)
     boss = Boss.new(0, 0, nil, boss_height, rand(360), index,
-                    {:wait=>[0, Math.sqrt(Window.height * 0.001)],
-                     :move=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)],
-                     :escape=>[Math.sqrt(Window.height * 0.001), Math.sqrt(Window.height * 0.009)]},
+                    {:wait=>[0, 1], :move=>[1, 3], :escape=>[1, 3]},
                     {:wait=>[0, 200], :move=>[0, 100], :escape=>[0, 200]},
                     {:escape=>80, :ignore=>50, :against=>20},
                     0.2, poi, border.blocks)
