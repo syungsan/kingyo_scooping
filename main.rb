@@ -1578,7 +1578,7 @@ class ResultScene < Scene::Base
   WINDOW_MODE_BUTTON_IMAGE = "./images/s_2.png"
   CANCEL_BUTTON_IMAGE = "./images/m_1.png"
 
-  COMMENDATION_POINT = 900
+  COMMENDATION_POINT = 800
   CONFETTI_MAX_NUMBER = 800
 
   MAX_COUNT_IN_WINDOW = 40
