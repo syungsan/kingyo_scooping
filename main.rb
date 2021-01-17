@@ -100,8 +100,9 @@ class Configuration
     Font.install(BALL_PARK_FONT)
     Font.install(PHENOMENA_FONT)
 
-    resolutions =  Window.get_screen_modes.select {
-      |resolution| resolution.delete_at(2) }.uniq!.sort { |a, b| a[0] <=> b[0] }.reverse
+    resolutions =  Window.get_screen_modes.select {|resolution| resolution.delete_at(2) }
+    resolutions.uniq! if resolutions.uniq!
+    resolutions = resolutions.sort { |a, b| a[0] <=> b[0] }.reverse
 
     option = {:resolutions=>resolutions, :app_name=>APPLICATION_NAME, :version=>VERSION_NUMBER}
     resolution = VRLocalScreen.modalform(nil, nil, ResolutionDialog, nil, option)
