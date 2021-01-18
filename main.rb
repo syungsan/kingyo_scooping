@@ -39,7 +39,7 @@ class Configuration
   APPLICATION_NAME = "‹à‹›‚·‚­‚¢"
   APPLICATION_SUB_TITLE = "‹ü“ü—Í‘Î‰”Å"
   COPYRIGHT = "Powered by Ruby, DXRuby & VisualuRuby."
-  VERSION_NUMBER = "1.0.0"
+  VERSION_NUMBER = "1.0.1"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
@@ -1261,7 +1261,7 @@ class GameScene < Scene::Base
       @border and @swimmers and not @swimmers.empty? and @container and not @mode == :start
 
     if @poi and @poi.mode == :transport then
-      $vibeman.run if $vibeman and $vibeman.is_runable
+      $vibeman.run if $vibeman and $vibeman.is_connecting and $vibeman.is_runable
       $vibeman.is_runable = false
 
       @catch_objects.each do |catch_object|
