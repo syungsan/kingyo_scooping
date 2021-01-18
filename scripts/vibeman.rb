@@ -13,7 +13,7 @@ class VibeMan
 
   attr_accessor :x, :y, :shadow_x, :shadow_y, :name, :id, :target, :z,
                 :title_label, :set_time_label, :time_input_box, :connect_button, :test_button, :is_active_dialog,
-                :ok_button, :output_box, :change_type_labels, :change_type_radio_buttons, :is_lock
+                :ok_button, :output_box, :change_type_labels, :change_type_radio_buttons, :is_lock, :is_runable
   attr_reader :width, :height, :buttons, :is_connecting
 
   if __FILE__ == $0 then
@@ -117,6 +117,7 @@ class VibeMan
             serial.open(port[0])
             serial.config(9600, 8, Win32Serial::NOPARITY, Win32Serial::ONESTOPBIT)
             serial.timeouts(0,200,0,0,0)
+            sleep(3)
 
             serial.write("areyouvibeman")
             raw = serial.read(14)
@@ -131,19 +132,24 @@ class VibeMan
       check_port.join
 
       output = ""
+      is_connectable = false
+
       unless @responses.empty? then
 
         @responses.each do |response|
 
           unit = response[:raw].split(/-|,/)
+          response[:port]
 
           if unit[0] == "iamvibeman2" then
             vibeman = {:port=>response[:port], :version=>"ƒÀ2", :serial=>nil}
             output += "Now connected in #{response[:port]} : Ver #{vibeman[:version]}\n"
+            is_connectable = true
 
           elsif unit.size >= 5 then
             vibeman = {:port=>response[:port], :version=>"ƒÀ1", :serial=>nil}
             output += "Now connected in #{response[:port]} : Ver #{vibeman[:version]}\n"
+            is_connectable = true
           end
           @vibemans.push(vibeman)
         end
@@ -151,7 +157,7 @@ class VibeMan
       @parent.callback_output(output)
       @responses.clear
 
-      self.open
+      self.open if is_connectable
     end
 
     def open

@@ -102,6 +102,7 @@ class Configuration
 
     resolutions =  Window.get_screen_modes.select {|resolution| resolution.delete_at(2) }
     resolutions.uniq! if resolutions.uniq!
+    resolutions = resolutions.select { |resoluton| resoluton[0] <= 1920 and resoluton[1] <= 1080}
     resolutions = resolutions.sort { |a, b| a[0] <=> b[0] }.reverse
 
     option = {:resolutions=>resolutions, :app_name=>APPLICATION_NAME, :version=>VERSION_NUMBER}
@@ -871,6 +872,8 @@ class GameScene < Scene::Base
     @start_count = 0
     @end_count = 0
 
+    $vibeman.is_runable = true
+
     @stage_number = FIRST_STAGE_NUMBER
     self.change_mode(FIRST_MODE)
   end
@@ -1258,7 +1261,8 @@ class GameScene < Scene::Base
       @border and @swimmers and not @swimmers.empty? and @container and not @mode == :start
 
     if @poi and @poi.mode == :transport then
-      $vibeman.run if $vibeman
+      $vibeman.run if $vibeman and $vibeman.is_runable
+      $vibeman.is_runable = false
 
       @catch_objects.each do |catch_object|
         catch_object[0].set_pos(@poi.x + catch_object[1][0], @poi.y + catch_object[1][1])
@@ -1292,6 +1296,7 @@ class GameScene < Scene::Base
       end
       self.reserved(catched_objects)
       @catch_objects.clear
+      $vibeman.is_runable = true
     end
 
     if @life_gauge.has_out_of_life and not @mode == :game_over and not @mode == :game_clear then
