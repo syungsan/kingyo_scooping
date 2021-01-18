@@ -496,7 +496,9 @@ class VibeMan
   end
 
   def run
-    @core.vibe if @is_connecting
+    Thread.new do
+      @core.vibe if @is_connecting
+    end
   end
 
   def draw
