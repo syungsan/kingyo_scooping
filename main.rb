@@ -31,6 +31,7 @@ class Configuration
   require "./lib/display"
   require "./lib/dxruby/color"
   require "./scripts/resolution"
+  require "./scripts/eyemot_mouse"
 
   include Display
   include Color
@@ -132,6 +133,9 @@ class Configuration
 
     # WindowÇç≈ëOñ ï\é¶
     set_window_top(Window.hWnd)
+
+    $eyemot_mouse = EyeMoTMouse.new
+    $eyemot_mouse.open
   end
 end
 
@@ -475,6 +479,7 @@ class TitleScene < Scene::Base
     if @exit_message_dialog and @is_exitable and
       (@exit_message_dialog.ok_button.pushed? or @exit_message_dialog.ok_button.add_push) then
       @exit_message_dialog.ok_button.add_push = false
+      $eyemot_mouse.close
       exit
     end
 
@@ -502,6 +507,14 @@ class TitleScene < Scene::Base
         @wait_stage_change_count = 0
       else
         @wait_stage_change_count += 1
+      end
+    end
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
       end
     end
   end
@@ -1321,6 +1334,14 @@ class GameScene < Scene::Base
         @end_count += 1
       end
     end
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
+      end
+    end
   end
 
   def gazed(x, y, center_x, center_y)
@@ -1840,6 +1861,14 @@ class ResultScene < Scene::Base
       end
     end
     @poi.mode = :search
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
+      end
+    end
   end
 
   def render
@@ -2215,6 +2244,14 @@ class NameEntryScene < Scene::Base
     @poi.update if @poi
 
     @loading_kingyo.update if @loading_kingyo.is_anime
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
+      end
+    end
   end
 
   def gazed(x, y, center_x, center_y)
@@ -2594,6 +2631,14 @@ class RankingScene < Scene::Base
         bubble.update
       end
     end
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
+      end
+    end
   end
 
   def gazed(x, y, center_x, center_y)
@@ -2885,6 +2930,14 @@ class EndingScene < Scene::Base
     @poi.update if @poi
 
     Sprite.check(@illusts + [@poi]) if @illusts and not @illusts.empty? and @poi
+
+    if Input.keyRelease?(K_X) then
+      if not $eyemot_mouse.mode == :off then
+        $eyemot_mouse.eye_off
+      elsif $eyemot_mouse.mode == :off
+        $eyemot_mouse.eye_on
+      end
+    end
   end
 
   def gazed(x, y, center_x, center_y)
