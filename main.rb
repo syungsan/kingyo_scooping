@@ -40,7 +40,7 @@ class Configuration
   APPLICATION_NAME = "‹à‹›‚·‚­‚¢"
   APPLICATION_SUB_TITLE = "Ž‹ü“ü—Í‘Î‰ž”Å"
   COPYRIGHT = "Powered by Ruby, DXRuby & VisualuRuby."
-  VERSION_NUMBER = "1.0.1"
+  VERSION_NUMBER = "1.0.2"
   APPLICATION_ICON = "./images/icon.ico"
 
   FPS = 60
